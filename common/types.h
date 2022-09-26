@@ -14,12 +14,18 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "common/types.h"
+#ifndef COMMON_TYPES_H
+#define COMMON_TYPES_H
 
-extern void
-kernel_main(void)
-{
-    /* Turns on the red board led */
-    *(volatile u32*)(0x01C20804) = 0x17777777;
-    *(volatile u32*)(0x01C20810) = 1 << 15;
-}
+#include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+typedef int8_t  s8;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef uint8_t  u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+
+#endif
