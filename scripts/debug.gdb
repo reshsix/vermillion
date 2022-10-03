@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
+shell sleep 3
 target remote localhost:1234
 symbol-file build/kernel.elf
 break _start
