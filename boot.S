@@ -18,17 +18,42 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 .global _start
 _start:
+    ldr pc, =ivt
+    ldr pc, #(ivt + 0x4)
+    ldr pc, #(ivt + 0x8)
+    ldr pc, #(ivt + 0xC)
+    ldr pc, #(ivt + 0x10)
+    ldr pc, #(ivt + 0x14)
+    ldr pc, #(ivt + 0x18)
+    ldr pc, #(ivt + 0x1C)
+
+.global ivt
+ivt:
+    b 1f
+    b .
+    b .
+    b .
+    b .
+    b .
+    b .
+    b .
+
+1:
     // Single core
     mrc p15, 0, r5, c0, c0, 5
     and r5, r5, #3
     cmp r5, #0
-    bne halt
+    bne 1f
+
+    // Set interrupt vector table
+    ldr r5, =_start
+    mcr p15, 0, r5, c12, c0, 0
 
     // Set stack and jump to C code
     ldr sp, =_start
     bl kernel_main
 
-halt:
+1:
     wfe
-    b halt
+    b 1b
 .size _start, . - _start
