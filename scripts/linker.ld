@@ -21,7 +21,16 @@ SECTIONS
     . = 0x40008000;
 
     .text   : { KEEP(*(.text.boot)) *(.text) }
+    . = ALIGN(0x1000);
+
     .rodata : { *(.rodata) }
+    . = ALIGN(0x1000);
+
     .data   : { *(.data) }
+    . = ALIGN(0x1000);
+
+    _bss_s = .;
     .bss    : { *(.bss COMMON) }
+    . = ALIGN(0x1000);
+    _bss_e = .;
 }

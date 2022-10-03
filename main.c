@@ -90,7 +90,6 @@ kernel_main(void)
     TMR0_CTRL |= 0x1;
 
     /* Wait for 10 interruptions */
-    count = 0; /* TODO clear bss on boot! */
     while (count < 10)
         arm_wait_interrupts();
 

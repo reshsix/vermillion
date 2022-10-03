@@ -45,6 +45,20 @@ ivt:
     cmp r5, #0
     bne 1f
 
+    // Clearing bss with zeros
+    ldr r4, =_bss_s
+    ldr r5, =_bss_e
+    eor r6, r6
+    eor r7, r7
+    eor r8, r8
+    eor r9, r9
+    b 2f
+1:
+    stmia r4!, {r6-r9}
+2:
+    cmp r4, r5
+    blo 1b
+
     // Set interrupt vector table
     ldr r5, =_start
     mcr p15, 0, r5, c12, c0, 0
