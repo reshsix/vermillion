@@ -15,11 +15,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include "common/types.h"
+
+#include "common/ports.h"
 #include "common/interrupts.h"
 
-#define GPIO 0x01C20800
-#define PA_CFG1 *(volatile u32*)(GPIO + 0x4)
-#define PA_DAT  *(volatile u32*)(GPIO + 0x10)
+#define R_PRCM 0x01F01400
+#define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)
 
 #define TIMER 0x01C20C00
 #define TMR_IRQ_EN  *(volatile u32*)(TIMER + 0x0)
@@ -41,10 +42,7 @@ irq_handler(void)
     if (number == IRQ_TIMER0)
     {
         /* Turn led on and off */
-        if (count % 2)
-            PA_DAT = 0;
-        else
-            PA_DAT = 1 << 15;
+        pin_write(PORT_CRTL0, 15, !(count & 0x1));
         count++;
 
         /* Acknowledge interrupt on timer */
@@ -58,8 +56,15 @@ irq_handler(void)
 extern void
 kernel_main(void)
 {
+    /* Enables R_PIO on the power controller */
+    APB0_GATE = 1;
+
+    /* Enables and turns green led on */
+    pin_config(PORT_CRTL1, 10, PIN_CFG_OUT);
+    pin_write(PORT_CRTL1, 10, true);
+
     /* Enables board's red led */
-    PA_CFG1 = 0x17777777;
+    pin_config(PORT_CRTL0, 15, PIN_CFG_OUT);
 
     /* Configure interrupts */
     ivt[IVT_IRQ] = (u32)irq_handler;
