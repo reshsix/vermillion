@@ -18,7 +18,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 .global _start
 _start:
-    ldr pc, =ivt
+    ldr pc, #(ivt + 0x0)
     ldr pc, #(ivt + 0x4)
     ldr pc, #(ivt + 0x8)
     ldr pc, #(ivt + 0xC)
@@ -29,14 +29,14 @@ _start:
 
 .global ivt
 ivt:
-    b 1f
-    b .
-    b .
-    b .
-    b .
-    b .
-    b .
-    b .
+    .word 1f
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
 
 1:
     // Single core
