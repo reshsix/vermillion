@@ -85,6 +85,18 @@ pin_write(u32 base, u8 pin, bool bit)
         PN_DAT(base, port) &= ~(0x1 << slot);
 }
 
+static inline u32
+port_read(u32 base, u8 port)
+{
+    return PN_DAT(base, port);
+}
+
+static inline void
+port_write(u32 base, u8 port, u32 data)
+{
+    PN_DAT(base, port) = data;
+}
+
 enum
 {
     PIN_LEVEL0 = 0,
@@ -173,6 +185,12 @@ eint_control(u32 base, u8 eint, bool status)
         EINT_CTL(base, port) |= 0x1 << slot;
     else
         EINT_CTL(base, port) &= ~(0x1 << slot);
+}
+
+static inline void
+eint_control2(u32 base, u8 port, u32 data)
+{
+    EINT_CTL(base, port) = data;
 }
 
 static inline void
