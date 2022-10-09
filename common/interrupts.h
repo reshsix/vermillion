@@ -52,6 +52,12 @@ extern u32 ivt[8];
 #define ICDIPTR(n) *(volatile u32*)(GIC_DIST + 0x800 + (n * 4))
 #define ICDICFR(n) *(volatile u32*)(GIC_DIST + 0xC00 + (n * 4))
 
+enum
+{
+    IRQ_TIMER0 = 50,
+    IRQ_TIMER1
+};
+
 static inline u32
 intr_swi_number(void)
 {

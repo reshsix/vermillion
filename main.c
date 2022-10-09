@@ -17,18 +17,11 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include "common/types.h"
 
 #include "common/ports.h"
+#include "common/timers.h"
 #include "common/interrupts.h"
 
 #define R_PRCM 0x01F01400
 #define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)
-
-#define TIMER 0x01C20C00
-#define TMR_IRQ_EN  *(volatile u32*)(TIMER + 0x0)
-#define TMR_IRQ_STA *(volatile u32*)(TIMER + 0x4)
-#define TMR0_CTRL  *(volatile u32*)(TIMER + 0x10)
-#define TMR0_INTV  *(volatile u32*)(TIMER + 0x14)
-#define TMR0_CUR   *(volatile u32*)(TIMER + 0x18)
-#define IRQ_TIMER0 50
 
 static volatile u8 count = 0;
 
@@ -46,7 +39,7 @@ irq_handler(void)
         count++;
 
         /* Acknowledge interrupt on timer */
-        TMR_IRQ_STA = 0x1;
+        timer_ack(TIMER0);
     }
 
     /* Acknowledge interrupt on GIC */
@@ -88,18 +81,18 @@ kernel_main(void)
     arm_enable_irq();
 
     /* Configure timer */
-    TMR_IRQ_EN = 0x1;
-    TMR0_INTV = 0x8000 / 4;
-    TMR0_CTRL = 0x0;
-    TMR0_CTRL |= 0x2;
-    TMR0_CTRL |= 0x1;
+    timer_enable(TIMER0);
+    timer_interval_set(TIMER0, 0x8000 / 4);
+    timer_config(TIMER0, false, TIMER_CLK_32KHZ);
+    timer_reload(TIMER0);
+    timer_start(TIMER0);
 
     /* Wait for 10 interruptions */
     while (count < 10)
         arm_wait_interrupts();
 
     /* Disable timer */
-    TMR0_CTRL = 0x0;
+    timer_stop(TIMER0);
 
     /* Loop forever */
     while (1)
