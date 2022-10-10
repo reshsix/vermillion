@@ -29,13 +29,13 @@ static interrupt(irq)
 irq_handler(void)
 {
     /* Get interrupt information */
-    u8 core = 0;
-    u16 number = intr_irq_info(&core);
+    enum intr_core c = 0;
+    enum intr_number n = intr_irq_info(&c);
 
-    if (number == IRQ_TIMER0)
+    if (n == IRQ_TIMER0)
     {
         /* Turn led on and off */
-        pin_write(PORT_CRTL0, 15, !(count & 0x1));
+        pin_write(PA15, !(count & 0x1));
         count++;
 
         /* Acknowledge interrupt on timer */
@@ -43,7 +43,7 @@ irq_handler(void)
     }
 
     /* Acknowledge interrupt on GIC */
-    intr_irq_ack(core, number);
+    intr_irq_ack(c, n);
 }
 
 extern void
@@ -53,14 +53,14 @@ kernel_main(void)
     APB0_GATE = 1;
 
     /* Enables and turns green led on */
-    pin_config(PORT_CRTL1, 10, PIN_CFG_OUT);
-    pin_write(PORT_CRTL1, 10, true);
+    pin_config(PL10, PIN_CFG_OUT);
+    pin_write(PL10, true);
 
     /* Enables board's red led */
-    pin_config(PORT_CRTL0, 15, PIN_CFG_OUT);
+    pin_config(PA15, PIN_CFG_OUT);
 
     /* Configure interrupts */
-    ivt[IVT_IRQ] = (u32)irq_handler;
+    ivt[IVT_IRQ] = irq_handler;
 
     arm_disable_irq();
 
@@ -68,12 +68,12 @@ kernel_main(void)
     gic_disable();
     gic_priority(0xFF);
 
-    gic_intr_target(IRQ_TIMER0, -1);
+    gic_intr_target(IRQ_TIMER0, INTR_CORE_NONE);
     gic_intr_activity(IRQ_TIMER0, false);
     gic_intr_priority(IRQ_TIMER0, 0);
     gic_intr_sensitivity(IRQ_TIMER0, true, false);
     gic_intr_activity(IRQ_TIMER0, true);
-    gic_intr_target(IRQ_TIMER0, 0);
+    gic_intr_target(IRQ_TIMER0, INTR_CORE0);
 
     gic_enable();
     gic_enable_dist();

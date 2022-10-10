@@ -31,7 +31,7 @@ enum
     IVT_FIQ
 };
 
-extern u32 ivt[8];
+extern void *ivt[8];
 
 #define interrupt(type) \
     __attribute__((target("general-regs-only"))) \
@@ -52,7 +52,17 @@ extern u32 ivt[8];
 #define ICDIPTR(n) *(volatile u32*)(GIC_DIST + 0x800 + (n * 4))
 #define ICDICFR(n) *(volatile u32*)(GIC_DIST + 0xC00 + (n * 4))
 
-enum
+enum intr_core
+{
+    INTR_CORE0 = 0,
+    INTR_CORE1,
+    INTR_CORE2,
+    INTR_CORE3,
+
+    INTR_CORE_NONE = 255
+};
+
+enum intr_number
 {
     IRQ_TIMER0 = 50,
     IRQ_TIMER1
@@ -88,30 +98,30 @@ intr_undef_address(void)
     return intr_abort_prefetch_address();
 }
 
-static inline u16
-intr_irq_info(u8 *core)
+static inline enum intr_number
+intr_irq_info(enum intr_core *c)
 {
     u32 info = ICCIAR;
-    *core = info >> 10;
+    *c = info >> 10;
     return info & 0x3FF;
 }
 
-static inline u16
-intr_fiq_info(u8 *core)
+static inline enum intr_number
+intr_fiq_info(enum intr_core *c)
 {
-    return intr_irq_info(core);
+    return intr_irq_info(c);
 }
 
 static inline void
-intr_irq_ack(u8 core, u16 number)
+intr_irq_ack(enum intr_core c, enum intr_number n)
 {
-    ICCEOIR = (core << 10) | (number & 0x3FF);
+    ICCEOIR = (c << 10) | (n & 0x3FF);
 }
 
 static inline void
-intr_fiq_ack(u8 core, u16 number)
+intr_fiq_ack(enum intr_core c, enum intr_number n)
 {
-    intr_irq_ack(core, number);
+    intr_irq_ack(c, n);
 }
 
 static inline void
@@ -187,10 +197,10 @@ gic_priority(u32 value)
 }
 
 static inline void
-gic_intr_activity(u8 intr, bool enable)
+gic_intr_activity(enum intr_number n, bool enable)
 {
-    u8 reg = intr / 32;
-    u8 off = intr % 32;
+    u8 reg = n / 32;
+    u8 off = n % 32;
 
     if (enable)
         ICDISER(reg) = (1 << off);
@@ -199,31 +209,31 @@ gic_intr_activity(u8 intr, bool enable)
 }
 
 static inline void
-gic_intr_target(u8 intr, u8 core)
+gic_intr_target(enum intr_number n, enum intr_core c)
 {
-    u8 reg = intr / 4;
-    u8 off = intr % 4;
+    u8 reg = n / 4;
+    u8 off = n % 4;
 
     ICDIPTR(reg) &= ~(0xFF << (off * 8));
-    if (core < 8)
-        ICDIPTR(reg) |= (1 << ((off * 8) + core));
+    if (c != INTR_CORE_NONE)
+        ICDIPTR(reg) |= (1 << ((off * 8) + c));
 }
 
 static inline void
-gic_intr_priority(u8 intr, u8 priority)
+gic_intr_priority(enum intr_number n, u8 priority)
 {
-    u8 reg = intr / 4;
-    u8 off = intr % 4;
+    u8 reg = n / 4;
+    u8 off = n % 4;
 
     ICDIPTR(reg) &= ~(0xFF << (off * 8));
     ICDIPTR(reg) |= priority << (off * 8);
 }
 
 static inline void
-gic_intr_sensitivity(u8 intr, bool edge, bool high)
+gic_intr_sensitivity(enum intr_number n, bool edge, bool high)
 {
-    u8 reg = intr / 16;
-    u8 off = intr % 16;
+    u8 reg = n / 16;
+    u8 off = n % 16;
 
     ICDICFR(reg) &= ~(0x3 << (off * 2));
     ICDICFR(reg) |= ((edge << 1) | high) << (off * 2);
