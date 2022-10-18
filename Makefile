@@ -72,15 +72,13 @@ build/os.img: deps/u-boot.bin build/kernel.bin \
 	printf 'start=2048, type=83, bootable\n' | sudo chronic sfdisk -q /dev/loop0
 	sudo partx -a /dev/loop0
 	sudo mkfs.ext2 "/dev/loop0p1"
-
 	sudo mount /dev/loop0p1 build/mount
 	sudo mkdir -p build/mount/boot/
 	sudo cp build/boot.scr build/mount/
 	sudo cp build/kernel.bin build/mount/boot/
 	sudo umount build/mount
-
 	sudo dd if=deps/u-boot.bin of=/dev/loop0 bs=1024 seek=8 status=none
-
+	@sleep 1
 	sudo partx -d /dev/loop0
 	sudo losetup -d /dev/loop0
 
