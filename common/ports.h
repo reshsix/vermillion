@@ -29,15 +29,15 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define EINT_STA(c, n)    *(volatile u32*)(c + 0x200 + (n * 0x20) + 0x14)
 #define EINT_DEB(c, n)    *(volatile u32*)(c + 0x200 + (n * 0x20) + 0x18)
 
-#define PORT_CRTL0 0x01C20800
-#define PORT_CRTL1 0x01F02C00
-#define PORTA PN_DAT(PORT_CRTL0, 0)
-#define PORTC PN_DAT(PORT_CRTL0, 1)
-#define PORTD PN_DAT(PORT_CRTL0, 2)
-#define PORTE PN_DAT(PORT_CRTL0, 3)
-#define PORTF PN_DAT(PORT_CRTL0, 4)
-#define PORTG PN_DAT(PORT_CRTL0, 5)
-#define PORTL PN_DAT(PORT_CRTL1, 0)
+#define PIO 0x01C20800
+#define R_PIO 0x01F02C00
+#define PORTA PN_DAT(PIO, 0)
+#define PORTC PN_DAT(PIO, 1)
+#define PORTD PN_DAT(PIO, 2)
+#define PORTE PN_DAT(PIO, 3)
+#define PORTF PN_DAT(PIO, 4)
+#define PORTG PN_DAT(PIO, 5)
+#define PORTL PN_DAT(R_PIO, 0)
 
 enum pin
 {
@@ -71,10 +71,10 @@ enum pin_config
 static inline void
 pin_config(enum pin p, enum pin_config c)
 {
-    u32 base = PORT_CRTL0;
+    u32 base = PIO;
     if (p >= PL0)
     {
-        base = PORT_CRTL1;
+        base = R_PIO;
         p -= PL0;
     }
 
@@ -93,10 +93,10 @@ pin_config(enum pin p, enum pin_config c)
 static inline bool
 pin_read(enum pin p)
 {
-    u32 base = PORT_CRTL0;
+    u32 base = PIO;
     if (p >= PL0)
     {
-        base = PORT_CRTL1;
+        base = R_PIO;
         p -= PL0;
     }
 
@@ -108,10 +108,10 @@ pin_read(enum pin p)
 static inline void
 pin_write(enum pin p, bool bit)
 {
-    u32 base = PORT_CRTL0;
+    u32 base = PIO;
     if (p >= PL0)
     {
-        base = PORT_CRTL1;
+        base = R_PIO;
         p -= PL0;
     }
 
@@ -135,10 +135,10 @@ enum pin_level
 static inline void
 pin_level(enum pin p, enum pin_level l)
 {
-    u32 base = PORT_CRTL0;
+    u32 base = PIO;
     if (p >= PL0)
     {
-        base = PORT_CRTL1;
+        base = R_PIO;
         p -= PL0;
     }
 
@@ -164,10 +164,10 @@ enum pin_pull
 static inline void
 pin_pull(enum pin p, enum pin_pull pl)
 {
-    u32 base = PORT_CRTL0;
+    u32 base = PIO;
     if (p >= PL0)
     {
-        base = PORT_CRTL1;
+        base = R_PIO;
         p -= PL0;
     }
 
@@ -207,7 +207,7 @@ enum eint_config
 static inline void
 eint_config(enum eint i, enum eint_config c)
 {
-    u32 base = PORT_CRTL0;
+    u32 base = PIO;
     u8 port = i / 32;
     u8 slot = i % 32;
     u8 reg = slot / 8;
@@ -223,7 +223,7 @@ eint_config(enum eint i, enum eint_config c)
 static inline void
 eint_control(enum eint i, bool status)
 {
-    u32 base = PORT_CRTL0;
+    u32 base = PIO;
     u8 port = i / 32;
     u8 slot = i % 32;
 
@@ -236,7 +236,7 @@ eint_control(enum eint i, bool status)
 static inline void
 eint_ack(enum eint i)
 {
-    u32 base = PORT_CRTL0;
+    u32 base = PIO;
     u8 port = i / 32;
     u8 slot = i % 32;
     EINT_STA(base, port) |= 0x1 << slot;
@@ -245,7 +245,7 @@ eint_ack(enum eint i)
 static inline void
 eint_debounce(enum eint i, u8 prescale, bool osc24m)
 {
-    u32 base = PORT_CRTL0;
+    u32 base = PIO;
     u8 port = i / 32;
     EINT_DEB(base, port) = (prescale & 0x7) << 4 | osc24m;
 }
