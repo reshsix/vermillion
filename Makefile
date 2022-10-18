@@ -34,7 +34,7 @@ UBOOT_CONFIG = orangepi_one_defconfig
 UBOOT_IMAGE = u-boot-sunxi-with-spl.bin
 QEMU_MACHINE = orangepi-pc
 
-.PHONY: all clean depclean test debug ktest kdebug
+.PHONY: all clean depclean test debug ktest kdebug uart
 
 all: build/os.img
 
@@ -53,6 +53,10 @@ ktest: build/kernel.elf
 kdebug: build/kernel.elf scripts/kdebug.gdb
 	qemu-system-arm -s -S -M $(QEMU_MACHINE) -kernel $< &
 	gdb-multiarch --command=scripts/kdebug.gdb
+
+uart:
+	sudo stty -F /dev/ttyUSB0 115200 cs8 -parenb -cstopb -crtscts
+	sudo screen /dev/ttyUSB0 115200
 
 build/boot.o: boot.S deps/.gcc | build
 	$(CC) $(CFLAGS) -c $< -o $@

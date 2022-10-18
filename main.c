@@ -16,6 +16,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include "common/types.h"
 
+#include "common/uart.h"
 #include "common/ports.h"
 #include "common/timers.h"
 #include "common/interrupts.h"
@@ -44,6 +45,16 @@ irq_handler(void)
 
     /* Acknowledge interrupt on GIC */
     intr_irq_ack(c, n);
+}
+
+static void
+print(char *s)
+{
+    for (; s[0] != '\0'; s = &(s[1]))
+    {
+        if (s[0] != '\0')
+            uart_write(UART0, s[0]);
+    }
 }
 
 extern void
@@ -93,6 +104,13 @@ kernel_main(void)
 
     /* Disable timer */
     timer_stop(TIMER0);
+
+    /* Test UART */
+    uart_config(UART0, UART_BAUD_115200, UART_CHAR_8B,
+                UART_PARITY_NONE, UART_STOP_1B, UART_FLAG_NONE);
+    print("\r\n ---- Vermillion ---- \r\n\r\n$ ");
+    while (1)
+        uart_write(UART0, uart_read(UART0));
 
     /* Loop forever */
     while (1)
