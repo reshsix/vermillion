@@ -14,10 +14,10 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef COMMON_TIMERS_H
-#define COMMON_TIMERS_H
+#ifndef H3_TIMERS_H
+#define H3_TIMERS_H
 
-#include "common/types.h"
+#include "utils/types.h"
 
 #define TIMERS 0x01C20C00
 #define TMR_IRQ_EN  *(volatile u32*)(TIMERS + 0x0)

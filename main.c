@@ -14,12 +14,12 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "common/types.h"
+#include "utils/types.h"
 
-#include "common/uart.h"
-#include "common/ports.h"
-#include "common/timers.h"
-#include "common/interrupts.h"
+#include "h3/uart.h"
+#include "h3/ports.h"
+#include "h3/timers.h"
+#include "h3/interrupts.h"
 
 #define R_PRCM 0x01F01400
 #define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)

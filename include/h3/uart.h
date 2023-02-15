@@ -14,10 +14,10 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef COMMON_UART_H
-#define COMMON_UART_H
+#ifndef H3_UART_H
+#define H3_UART_H
 
-#include "common/types.h"
+#include "utils/types.h"
 
 enum uart
 {

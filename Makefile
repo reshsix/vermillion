@@ -26,7 +26,7 @@ GCC = gcc-12.2.0
 
 CC = $(TARGET)-gcc
 CFLAGS += -Og -ggdb3
-CFLAGS += -I. -std=gnu99 -fpic -nostdlib -ffreestanding -mcpu=cortex-a7
+CFLAGS += -Iinclude -std=gnu99 -fpic -nostdlib -ffreestanding -mcpu=cortex-a7
 CFLAGS += -Wall -Wextra
 
 DISK_SIZE = 4

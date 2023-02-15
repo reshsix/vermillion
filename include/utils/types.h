@@ -14,8 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef COMMON_TYPES_H
-#define COMMON_TYPES_H
+#ifndef UTILS_TYPES_H
+#define UTILS_TYPES_H
 
 #include <stddef.h>
 #include <stdint.h>
