@@ -11,3 +11,34 @@ make
 sudo apt-get install qemu-system-arm gdb-multiarch
 make debug
 ```
+
+## Libc progress
+C89
+- [ ] assert.h
+- [ ] ctype.h
+- [x] errno.h
+- [x] float.h
+- [x] limits.h
+- [ ] locale.h
+- [ ] math.h
+- [ ] setjmp.h
+- [ ] signal.h
+- [x] stdarg.h
+- [x] stddef.h
+- [ ] stdio.h
+- [ ] stdlib.h
+- [ ] string.h
+- [ ] time.h
+
+NA1
+- [x] iso646.h
+- [ ] wchar.h
+- [ ] wctype.h
+
+C99
+- [ ] complex.h
+- [ ] fenv.h
+- [ ] inttypes.h
+- [x] stdbool.h
+- [x] stdint.h
+- [ ] tgmath.h
