@@ -36,7 +36,7 @@ halt(void)
 }
 
 extern void
-print(char *s)
+print(const char *s)
 {
     for (; s[0] != '\0'; s = &(s[1]))
     {
@@ -46,7 +46,7 @@ print(char *s)
 }
 
 static void
-print_h8(u8 n)
+print_h8(const u8 n)
 {
     for (u8 i = 1; i <= 1; i--)
     {
@@ -59,7 +59,7 @@ print_h8(u8 n)
 }
 
 extern void
-print_hex(u32 n)
+print_hex(const u32 n)
 {
     print("0x");
     if (n >= (1 << 24))
@@ -72,7 +72,33 @@ print_hex(u32 n)
 }
 
 extern void
-csleep(int n)
+print_uint(const u32 n)
+{
+    bool start = false;
+
+    u32 a = n;
+    for (int i = 1000000000;; i /= 10)
+    {
+        u8 d = a / i;
+        if (d != 0)
+            start = true;
+
+        if (start)
+        {
+            uart_write(UART0, d + '0');
+            a -= i * d;
+        }
+
+        if (i == 1)
+            break;
+    }
+
+    if (!start)
+        uart_write(UART0, '0');
+}
+
+extern void
+csleep(const int n)
 {
     timer_enable(TIMER0);
     timer_interval_set(TIMER0, n);
@@ -88,21 +114,21 @@ csleep(int n)
 }
 
 extern void
-usleep(int n)
+usleep(const int n)
 {
     for (s64 a = n * 24; a > 0; a -= UINT32_MAX)
         csleep((a < UINT32_MAX) ? a : UINT32_MAX);
 }
 
 extern void
-msleep(int n)
+msleep(const int n)
 {
     for (s64 a = n * 1000; a > 0; a -= UINT32_MAX)
         usleep((a < UINT32_MAX) ? a : UINT32_MAX);
 }
 
 extern void
-sleep(int n)
+sleep(const int n)
 {
     for (s64 a = n * 1000; a > 0; a -= UINT32_MAX)
         msleep((a < UINT32_MAX) ? a : UINT32_MAX);

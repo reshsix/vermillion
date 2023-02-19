@@ -14,8 +14,8 @@ make debug
 
 ## Libc progress
 C89
-- [ ] assert.h
-- [ ] ctype.h
+- [x] assert.h
+- [x] ctype.h
 - [x] errno.h
 - [x] float.h
 - [x] limits.h

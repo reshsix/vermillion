@@ -14,20 +14,15 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef _UTILS_H
-#define _UTILS_H
+#ifndef _ASSERT_H
+#define _ASSERT_H
 
-#include <types.h>
+int __assert(const char *f, int l, const char *fn, const char *e);
 
-void halt(void);
-
-void print(const char *s);
-void print_hex(const u32 n);
-void print_uint(const u32 n);
-
-void csleep(const int n);
-void usleep(const int n);
-void msleep(const int n);
-void sleep(const int n);
+#ifndef NDEBUG
+#define assert(x) (void)((x) || __assert(__FILE__, __LINE__, __func__, #x))
+#else
+#define assert(x) ((void)0)
+#endif
 
 #endif

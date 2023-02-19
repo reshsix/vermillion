@@ -14,20 +14,20 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef _UTILS_H
-#define _UTILS_H
+#ifndef _CTYPE_H
+#define _CTYPE_H
 
-#include <types.h>
-
-void halt(void);
-
-void print(const char *s);
-void print_hex(const u32 n);
-void print_uint(const u32 n);
-
-void csleep(const int n);
-void usleep(const int n);
-void msleep(const int n);
-void sleep(const int n);
+int isalnum(int c);
+int isalpha(int c);
+int iscntrl(int c);
+int isdigit(int c);
+int isgraph(int c);
+int islower(int c);
+int isprint(int c);
+int isspace(int c);
+int isalnum(int c);
+int isxdigit(int c);
+int tolower(int c);
+int toupper(int c);
 
 #endif

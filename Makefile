@@ -58,7 +58,8 @@ uart:
 	sudo stty -F /dev/ttyUSB0 115200 cs8 -parenb -cstopb -crtscts
 	sudo screen /dev/ttyUSB0 115200
 
-build/libc.a: build/libc/signal.o build/libc/stdlib.o \
+build/libc.a: build/libc/assert.o build/libc/ctype.o \
+              build/libc/signal.o build/libc/stdlib.o \
               build/libc/utils.o | build
 	ar ruv $@ $^
 	ranlib $@
