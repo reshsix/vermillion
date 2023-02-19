@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef H3_PORTS_H
 #define H3_PORTS_H
 
-#include "utils/types.h"
+#include <types.h>
 
 #define PN_CFG(c, n, i) *(volatile u32*)(c + (n * 0x24) + (0x4 * i))
 #define PN_DAT(c, n)    *(volatile u32*)(c + (n * 0x24) + 0x10)

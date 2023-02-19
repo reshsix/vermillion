@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef H3_UART_H
 #define H3_UART_H
 
-#include "utils/types.h"
+#include <types.h>
 
 enum uart
 {

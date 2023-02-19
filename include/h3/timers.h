@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef H3_TIMERS_H
 #define H3_TIMERS_H
 
-#include "utils/types.h"
+#include <types.h>
 
 #define TIMERS 0x01C20C00
 #define TMR_IRQ_EN  *(volatile u32*)(TIMERS + 0x0)
@@ -87,7 +87,7 @@ timer_interval_set(enum timer n, u32 data)
 static inline u32
 timer_current_get(enum timer n)
 {
-    return TMR_INTV(n);
+    return TMR_CUR(n);
 }
 
 static inline void

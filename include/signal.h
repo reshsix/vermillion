@@ -14,11 +14,23 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <types.h>
-#include <utils.h>
+#ifndef _SIGNAL_H
+#define _SIGNAL_H
 
-extern int
-kernel_main(void)
-{
-    return 0x0;
-}
+#define SIGABRT 0
+#define SIGFPE  1
+#define SIGILL  2
+#define SIGINT  3
+#define SIGSEGV 4
+#define SIGTERM 5
+#define SIGLAST SIGTERM
+
+#define SIG_DFL NULL
+#define SIG_IGN ((void*)1)
+
+#define SIG_ERR -1
+
+void *signal(int n, void (*f)(int));
+int raise(int n);
+
+#endif

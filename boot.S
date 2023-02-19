@@ -65,7 +65,7 @@ ivt:
 
     // Set stack and jump to C code
     ldr sp, =_start
-    bl kernel_main
+    bl __init
 
 1:
     wfe

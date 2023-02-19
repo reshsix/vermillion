@@ -22,11 +22,16 @@ C89
 - [ ] locale.h
 - [ ] math.h
 - [ ] setjmp.h
-- [ ] signal.h
+- [x] signal.h
 - [x] stdarg.h
 - [x] stddef.h
 - [ ] stdio.h
 - [ ] stdlib.h
+    - [x] Process control
+    - [x] Memory management
+    - [ ] Numeric conversions
+    - [ ] Wide string
+    - [ ] Miscellaneous
 - [ ] string.h
 - [ ] time.h
 

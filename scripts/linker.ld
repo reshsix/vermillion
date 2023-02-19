@@ -33,4 +33,6 @@ SECTIONS
     .bss    : { *(.bss COMMON) }
     . = ALIGN(0x1000);
     _bss_e = .;
+
+    __free = ALIGN(0x1000);
 }

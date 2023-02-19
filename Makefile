@@ -27,7 +27,7 @@ GCC = gcc-12.2.0
 CC = $(TARGET)-gcc
 CFLAGS += -Og -ggdb3
 CFLAGS += -Iinclude -std=gnu99 -fpic -nostdlib -ffreestanding -mcpu=cortex-a7
-CFLAGS += -Wall -Wextra
+CFLAGS += -Wall -Wextra -Wno-attributes
 
 DISK_SIZE = 4
 UBOOT_CONFIG = orangepi_one_defconfig
@@ -58,12 +58,20 @@ uart:
 	sudo stty -F /dev/ttyUSB0 115200 cs8 -parenb -cstopb -crtscts
 	sudo screen /dev/ttyUSB0 115200
 
+build/libc.a: build/libc/signal.o build/libc/stdlib.o \
+              build/libc/utils.o | build
+	ar ruv $@ $^
+	ranlib $@
+build/libc/%.o: src/%.c deps/.gcc | build/libc
+	$(CC) $(CFLAGS) -c $< -o $@
 build/boot.o: boot.S deps/.gcc | build
 	$(CC) $(CFLAGS) -c $< -o $@
 build/main.o: main.c deps/.gcc | build
 	$(CC) $(CFLAGS) -c $< -o $@
-build/kernel.elf: scripts/linker.ld build/boot.o build/main.o | build
-	$(CC) $(CFLAGS) -T $^ -o $@ -lgcc
+
+build/kernel.elf: scripts/linker.ld build/libc.a \
+                  build/main.o build/boot.o | build
+	$(CC) $(CFLAGS) -T $< build/boot.o build/main.o -o $@ -Lbuild -lc -lgcc
 build/kernel.bin: build/kernel.elf | build
 	$(TARGET)-objcopy $< -O binary $@
 
@@ -87,6 +95,8 @@ build/os.img: deps/u-boot.bin build/kernel.bin \
 	sudo losetup -d /dev/loop0
 
 build:
+	mkdir -p $@
+build/libc: build
 	mkdir -p $@
 build/mount: build
 	mkdir -p $@

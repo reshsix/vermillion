@@ -14,11 +14,39 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <types.h>
-#include <utils.h>
+#ifndef _STDLIB_H
+#define _STDLIB_H
 
-extern int
-kernel_main(void)
+#include <stddef.h>
+
+typedef struct
 {
-    return 0x0;
-}
+    int quot;
+    int rem;
+} div_t;
+
+typedef struct
+{
+    long quot;
+    long rem;
+} ldiv_t;
+
+void abort(void);
+int atexit(void (*f)(void));
+void exit(int code);
+int system(const char *command);
+char *getenv(const char *name);
+
+void *malloc(size_t size);
+void *calloc(size_t n, size_t size);
+void *realloc(void *mem, size_t size);
+void free(void *mem);
+
+int rand(void);
+void srand(unsigned seed);
+int abs(int x);
+long labs(long x);
+div_t div(int a, int b);
+ldiv_t ldiv(long a, long b);
+
+#endif
