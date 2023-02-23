@@ -12,38 +12,23 @@ sudo apt-get install qemu-system-arm gdb-multiarch
 make debug
 ```
 
-## Libc progress
+## Libc missing features
 C89
-- [x] assert.h
-- [x] ctype.h
-- [x] errno.h
-- [x] float.h
-- [x] limits.h
-- [ ] locale.h
-- [ ] math.h
-- [ ] setjmp.h
-- [x] signal.h
-- [x] stdarg.h
-- [x] stddef.h
-- [ ] stdio.h
-- [ ] stdlib.h
-    - [x] Process control
-    - [x] Memory management
-    - [ ] Numeric conversions
-    - [ ] Wide string
-    - [ ] Miscellaneous
-- [ ] string.h
-- [ ] time.h
+- locale.h
+- setjmp.h
+- stdio.h
+- stdlib.h's atoX strtoX qsort bsearch
+- string.h
+- time.h
+- fenv.h (C99)
+- inttypes.h (C99)
 
-NA1
-- [x] iso646.h
-- [ ] wchar.h
-- [ ] wctype.h
+Wide strings
+- stdlib.h mbX wcX
+- wchar.h (NA1)
+- wctype.h (NA1)
 
-C99
-- [ ] complex.h
-- [ ] fenv.h
-- [ ] inttypes.h
-- [x] stdbool.h
-- [x] stdint.h
-- [ ] tgmath.h
+Math
+- math.h
+- complex.h (C99)
+- tgmath.h (C99)
