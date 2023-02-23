@@ -14,11 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <types.h>
-#include <utils.h>
-
 extern int
 kernel_main(void)
 {
-    return 0x0;
+    return 0;
 }

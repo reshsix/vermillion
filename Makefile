@@ -25,7 +25,7 @@ BINUTILS = binutils-2.39
 GCC = gcc-12.2.0
 
 CC = $(TARGET)-gcc
-CFLAGS += -Og -ggdb3
+CFLAGS += -O0 -ggdb3
 CFLAGS += -Iinclude -std=gnu99 -fpic -nostdlib -ffreestanding -mcpu=cortex-a7
 CFLAGS += -Wall -Wextra -Wno-attributes
 

@@ -30,4 +30,33 @@ void usleep(const int n);
 void msleep(const int n);
 void sleep(const int n);
 
+static inline void * __attribute__((always_inline))
+stack_get(void)
+{
+    void *ret = NULL;
+    asm ("mov %[ret], sp" : [ret] "=r" (ret));
+    return ret;
+}
+
+static inline void __attribute__((always_inline))
+stack_set(void *mem)
+{
+    asm ("mov sp, %[mem]" :: [mem] "r" (mem));
+}
+
+typedef u32 registers[11];
+static inline void __attribute__((always_inline))
+registers_save(registers mem)
+{
+    register u32 *dest asm ("ip") = mem;
+    asm ("stmia %[dest], {r0-r10}" :: [dest] "r" (dest));
+}
+
+static inline void __attribute__((always_inline))
+registers_load(registers mem)
+{
+    register void *src asm ("ip") = mem;
+    asm ("ldmia %[src], {r0-r10}" :: [src] "r" (src));
+}
+
 #endif
