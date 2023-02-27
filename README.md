@@ -13,12 +13,11 @@ make debug
 ```
 
 ## Libc missing features
-C89
+General
 - locale.h
 - setjmp.h
 - stdio.h
 - stdlib.h's atoX strtoX qsort bsearch
-- string.h
 - time.h
 - fenv.h (C99)
 - inttypes.h (C99)

@@ -60,7 +60,7 @@ uart:
 
 build/libc.a: build/libc/assert.o build/libc/ctype.o \
               build/libc/signal.o build/libc/stdlib.o \
-              build/libc/utils.o | build
+              build/libc/string.o build/libc/utils.o | build
 	ar ruv $@ $^
 	ranlib $@
 build/libc/%.o: src/%.c deps/.gcc | build/libc
