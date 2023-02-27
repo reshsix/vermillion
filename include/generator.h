@@ -18,93 +18,119 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define _GENERATOR_H
 
 #include <stdlib.h>
+#include <string.h>
 #include <types.h>
 #include <utils.h>
 
 /*
 Usage:
 
-generator (range, int arg)
+generator (range, int arg, int *i)
 {
-    for (int i = 0; i < arg; i++)
-        yield(i);
+    for (*i = 0; *i < arg; (*i)++)
+        yield;
 } finish;
 
 extern void
 test(void)
 {
-    bool finished = false;
-
     int n = 0;
-    while (1)
-    {
-        // Treat next as a statement
-        next (range, n, finished, 10);
-        if (finished)
-            break;
 
-        print_uint(n);
-        print("\r\n");
+    instance_new (inst);
+    for (int i = 0; i < 5; i++)
+    {
+        instance_init (inst, range, 10, &n);
+        while (next(&inst))
+        {
+            print_uint((10 * i) + n);
+            print("\r\n");
+        }
     }
+    instance_del (inst);
 }
+
 */
 
-typedef struct
-{
-    int data;
-    bool finished;
-} generator_t;
+#define __yield(x) \
+{ \
+    registers_save(__registers); \
+    __label = &&__UNIQUE(__yield); \
+    return x; \
+    __UNIQUE(__yield): \
+} \
+
+#define yield __yield(1)
 
 #define generator(id, ...) \
-static volatile void *__stack_##id = NULL; \
-static generator_t \
+static int \
 __attribute__((__no_inline__, __noclone__)) \
 __attribute__((target("general-regs-only"))) \
-id(__VA_ARGS__) \
+__gen_##id(__VA_ARGS__) \
 { \
     _Pragma("GCC diagnostic push") \
     _Pragma("GCC diagnostic ignored \"-Wmaybe-uninitialized\""); \
-    _Pragma("GCC diagnostic ignored \"-Wdangling-pointer\""); \
-    static registers __registers; \
-    static void *__label = NULL; \
+    registers __registers; \
+    volatile void *__label = __label; \
     if (__label != NULL) \
-        goto *__label;
+    { \
+        registers_load(__registers); \
+        goto *__label; \
+    } \
+    __yield((int)__registers);
 #define finish \
     _Pragma("GCC diagnostic pop") \
     __label = NULL; \
-    return (generator_t){.finished = true}; \
+    return 0; \
 }
 
-#define yield(x) \
-{ \
-    registers_save(__registers); \
-    __label = &&__yield##__LINE__; \
-    return (generator_t){.data = x, .finished = false}; \
-    __yield##__LINE__: \
-    registers_load(__registers); \
-} \
+typedef struct
+{
+    void *stack;
+    registers *regs;
+    void *func;
+} instance;
 
+#define instance_new(x) \
+static instance x = {0}; \
+(x).stack = stack_new();
 
-#define next(f, x, flag, ...) \
+#define instance_init(x, f, ...) \
 { \
-    static volatile generator_t __result##__LINE__ = {0}; \
-    if (__stack_##f == NULL) \
-        __stack_##f = (void*)(((u32)calloc(0x1000, 1)) + 0x1000); \
+    stack_init((x).stack); \
+    (x).func = __gen_##f; \
 \
     volatile void *__stack = stack_get(); \
-    stack_set((void*)__stack_##f); \
-    __result##__LINE__ = f(__VA_ARGS__); \
+    stack_set((void*)((x).stack)); \
+    (x).regs = (registers*)(__gen_##f)(__VA_ARGS__); \
     stack_set((void*)__stack); \
-\
-    if (!(__result##__LINE__.finished)) \
-        x = __result##__LINE__.data; \
-    else \
-    { \
-        free((void*)((u32)__stack_##f - 0x1000)); \
-        __stack_##f = NULL; \
-    } \
-\
-    flag = __result##__LINE__.finished; \
+}
+
+#define instance_del(x) \
+{ \
+    free((x).stack); \
+    memset(&(x), 0, sizeof(instance)); \
+}
+
+extern bool
+next(instance *i)
+{
+    static int ret = 0;
+
+    if (i != NULL && i->func != NULL && i->stack != NULL)
+    {
+        registers regs = {0};
+        registers_save(regs);
+        void *stack = stack_get();
+
+        stack_set(i->stack);
+        registers_load(*(i->regs));
+        ret = quick_call(i->func);
+
+        stack_set(stack);
+        registers_load(regs);
+    }
+
+    return ret;
 }
 
 #endif

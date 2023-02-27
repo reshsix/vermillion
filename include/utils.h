@@ -18,6 +18,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define _UTILS_H
 
 #include <types.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define ___CONCAT(x, y) x ## y
+#define __CONCAT(x, y) ___CONCAT(x, y)
+#define __UNIQUE(x) __CONCAT(x, __LINE__)
 
 void halt(void);
 
@@ -29,6 +35,26 @@ void csleep(const int n);
 void usleep(const int n);
 void msleep(const int n);
 void sleep(const int n);
+
+#define STACK_SIZE 0x1000
+
+static inline void *
+stack_new(void)
+{
+    return (void*)((u32)malloc(STACK_SIZE) + STACK_SIZE);
+}
+
+static inline void
+stack_init(void *mem)
+{
+    memset((void*)((u32)mem - STACK_SIZE), 0, STACK_SIZE);
+}
+
+static inline void
+stack_free(void *mem)
+{
+    free((void*)((u32)mem - STACK_SIZE));
+}
 
 static inline void * __attribute__((always_inline))
 stack_get(void)
@@ -57,6 +83,22 @@ registers_load(registers mem)
 {
     register void *src asm ("ip") = mem;
     asm ("ldmia %[src], {r0-r10}" :: [src] "r" (src));
+}
+
+static inline int __attribute__((always_inline))
+quick_call(void *mem)
+{
+    static u32 lr_s = 0;
+    register u32 lr asm ("lr");
+    lr_s = lr;
+
+    int ret = 0;
+    asm ("mov ip, %[mem]" :: [mem] "r" (mem));
+    asm volatile ("blx ip");
+    asm ("mov %[ret], r0" : [ret] "=r" (ret));
+
+    lr = lr_s;
+    return ret;
 }
 
 #endif
