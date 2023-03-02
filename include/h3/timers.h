@@ -100,6 +100,7 @@ static inline void
 timer_reload(enum timer n)
 {
     TMR_CTRL(n) |= 0x2;
+    while (TMR_CTRL(n) & 0x2);
 }
 
 static inline void

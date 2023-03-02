@@ -69,28 +69,22 @@ handler_data(void)
     raise(SIGSEGV);
 }
 
-static void (*irqs[256])(void) = {NULL};
 static interrupt(irq)
 handler_irq(void)
 {
     enum intr_core c = 0;
     enum intr_number n = intr_irq_info(&c);
 
-    if (irqs[n] != NULL)
-        irqs[n]();
+    irq_handler(n);
 
     intr_irq_ack(c, n);
 }
 
-static void (*fiqs[256])(void) = {NULL};
 static interrupt(fiq)
 handler_fiq(void)
 {
     enum intr_core c = 0;
     enum intr_number n = intr_fiq_info(&c);
-
-    if (fiqs[n] != NULL)
-        fiqs[n]();
 
     intr_fiq_ack(c, n);
 }
@@ -99,19 +93,6 @@ static void
 irq_timer(void)
 {
     timer_ack(TIMER0);
-}
-
-static void
-init_timer(void)
-{
-    irqs[IRQ_TIMER0] = irq_timer;
-
-    gic_intr_target(IRQ_TIMER0, INTR_CORE_NONE);
-    gic_intr_activity(IRQ_TIMER0, false);
-    gic_intr_priority(IRQ_TIMER0, 0);
-    gic_intr_sensitivity(IRQ_TIMER0, true, false);
-    gic_intr_activity(IRQ_TIMER0, true);
-    gic_intr_target(IRQ_TIMER0, INTR_CORE0);
 }
 
 static void
@@ -124,18 +105,7 @@ init_interrupts(void)
     ivt[IVT_IRQ]      = handler_irq;
     ivt[IVT_FIQ]      = handler_fiq;
 
-    arm_disable_irq();
-
-    gic_disable_dist();
-    gic_disable();
-    gic_priority(0xFF);
-
-    init_timer();
-
-    gic_enable();
-    gic_enable_dist();
-
-    arm_enable_irq();
+    irq_config(IRQ_TIMER0, irq_timer, true, 0);
 }
 
 extern void exit(int);
