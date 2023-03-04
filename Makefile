@@ -59,6 +59,7 @@ uart:
 	sudo screen /dev/ttyUSB0 115200
 
 build/libc.a: build/libc/assert.o build/libc/ctype.o \
+              build/libc/diagnosis.o \
               build/libc/signal.o build/libc/stdlib.o \
               build/libc/string.o build/libc/utils.o | build
 	ar ruv $@ $^
