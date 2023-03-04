@@ -31,3 +31,13 @@ Math
 - math.h
 - complex.h (C99)
 - tgmath.h (C99)
+
+## Extra headers
+### diagnostic.h
+Functions to check the board health/state
+### generator.h
+Implementation of generators to make coroutines
+### types.h
+All generic types used in other headers
+### utils.h
+Tools necessary for other headers that are not categorized separatedly
