@@ -23,7 +23,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define SIGINT  3
 #define SIGSEGV 4
 #define SIGTERM 5
-#define SIGLAST SIGTERM
+#define SIGTRAP 6
+#define SIGLAST SIGTRAP
 
 #define SIG_DFL NULL
 #define SIG_IGN ((void*)1)

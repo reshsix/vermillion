@@ -19,13 +19,16 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <types.h>
 #include <utils.h>
 
+#include <h3/uart.h>
+
 static void (*handlers[SIGLAST + 1])(int) = {NULL};
 
 static void
 signal_default(int n)
 {
-    print("\r\n");
+    bool stop = true;
 
+    print("\r\n");
     switch (n)
     {
         case SIGABRT:
@@ -46,9 +49,15 @@ signal_default(int n)
         case SIGTERM:
             print("Terminated");
             break;
+        case SIGTRAP:
+            print("Press enter to continue...");
+            while (uart_read(UART0) != '\r');
+            stop = false;
+            break;
     }
 
-    halt();
+    if (stop)
+        halt();
 }
 
 static void
