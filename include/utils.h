@@ -31,10 +31,10 @@ void print(const char *s);
 void print_hex(const u32 n);
 void print_uint(const u32 n);
 
-void csleep(const int n);
-void usleep(const int n);
-void msleep(const int n);
-void sleep(const int n);
+void csleep(const u32 n);
+void usleep(const u32 n);
+void msleep(const u32 n);
+void sleep(const u32 n);
 
 #define STACK_SIZE 0x1000
 
