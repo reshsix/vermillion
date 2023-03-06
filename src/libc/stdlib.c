@@ -42,7 +42,11 @@ init_uart(void)
 {
     uart_config(UART0, UART_BAUD_115200, UART_CHAR_8B,
                 UART_PARITY_NONE, UART_STOP_1B, UART_FLAG_NONE);
-    print("\r\n ---- Vermillion ---- \r\n");
+    print("\r\nVermillion ");
+    print(__VERMILLION__);
+    print(" (");
+    print(__COMPILATION__);
+    print(")\r\n");
 }
 
 static interrupt(undef)

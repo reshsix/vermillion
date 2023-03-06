@@ -12,5 +12,5 @@
 # You should have received a copy of the GNU General Public License
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
-load mmc 0:1 0x40008000 boot/kernel.bin
+fatload mmc 0:1 0x40008000 boot/kernel.bin
 go 0x40008000

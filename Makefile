@@ -27,12 +27,20 @@ GCC = gcc-12.2.0
 CC = $(TARGET)-gcc
 CFLAGS += -O0 -ggdb3
 CFLAGS += -Iinclude -std=gnu99 -fpic -nostdlib -ffreestanding -mcpu=cortex-a7
-CFLAGS += -Wall -Wextra -Wno-attributes
+CFLAGS += -Wall -Wextra -Wno-attributes -Wl,--no-warn-rwx-segment
 
-DISK_SIZE = 4
+VERSION = 0.0a $$(git rev-parse --short HEAD)
+COMPILATION = $$(LC_ALL=C date "+%b %d %Y - %H:%M:%S %z")
+CFLAGS += -D__VERMILLION__="\"$(VERSION)\""
+CFLAGS += -D__COMPILATION__="\"$(COMPILATION)\""
+
+DISK_SIZE = 2
 UBOOT_CONFIG = orangepi_one_defconfig
 UBOOT_IMAGE = u-boot-sunxi-with-spl.bin
 QEMU_MACHINE = orangepi-pc
+
+UART = /dev/ttyUSB0
+FLASH = /dev/sdf
 
 .PHONY: all clean depclean test debug ktest kdebug uart
 
@@ -54,61 +62,65 @@ kdebug: build/kernel.elf scripts/kdebug.gdb
 	qemu-system-arm -s -S -M $(QEMU_MACHINE) -kernel $< &
 	gdb-multiarch --command=scripts/kdebug.gdb
 
-uart:
-	sudo stty -F /dev/ttyUSB0 115200 cs8 -parenb -cstopb -crtscts
-	sudo screen /dev/ttyUSB0 115200
+uart: $(UART)
+	@printf "  SCREEN  $<\n"
+	@sudo stty -F $< 115200 cs8 -parenb -cstopb -crtscts
+	@sudo screen $< 115200
+flash: build/os.img $(FLASH)
+	@printf "  FLASH   $(FLASH)\n"
+	@sudo dd if=$< of=$(FLASH) status=none
+	@sudo head -c "$$((2 * 1024 * 1024))" /dev/sdf | cmp - build/os.img
 
+build/%.o: src/%.c deps/.gcc | build build/libc
+	@printf "  CC      $@\n"
+	@$(CC) $(CFLAGS) -c $< -o $@
+build/boot.o: boot.S deps/.gcc | build
+	@printf "  AS      $@\n"
+	@$(CC) $(CFLAGS) -c $< -o $@
 build/libc.a: build/libc/assert.o build/libc/ctype.o \
               build/libc/diagnosis.o \
               build/libc/signal.o build/libc/stdlib.o \
               build/libc/string.o build/libc/utils.o | build
-	ar ruv $@ $^
-	ranlib $@
-build/libc/%.o: src/%.c deps/.gcc | build/libc
-	$(CC) $(CFLAGS) -c $< -o $@
-build/boot.o: boot.S deps/.gcc | build
-	$(CC) $(CFLAGS) -c $< -o $@
-build/main.o: main.c deps/.gcc | build
-	$(CC) $(CFLAGS) -c $< -o $@
+	@printf "  AR      $@\n"
+	@chronic ar ruv $@ $^
+	@printf "  RANLIB  $@\n"
+	@ranlib $@
 
 build/kernel.elf: scripts/linker.ld build/libc.a \
                   build/main.o build/boot.o | build
-	$(CC) $(CFLAGS) -T $< build/boot.o build/main.o -o $@ -Lbuild -lc -lgcc
+	@printf "  LD      $@\n"
+	@$(CC) $(CFLAGS) -T $< build/boot.o build/main.o -o $@ -Lbuild -lc -lgcc
 build/kernel.bin: build/kernel.elf | build
-	$(TARGET)-objcopy $< -O binary $@
+	@printf "  OBJCOPY $@\n"
+	@$(TARGET)-objcopy $< -O binary $@
 
 build/boot.scr: scripts/u-boot.cmd | build
-	chronic mkimage -C none -A arm -T script -d $< $@
+	@printf "  MKIMAGE $@\n"
+	@chronic mkimage -C none -A arm -T script -d $< $@
 build/os.img: deps/u-boot.bin build/kernel.bin \
               build/boot.scr | build/mount
-	dd if=/dev/zero of=$@ bs=1M count=$(DISK_SIZE) status=none
-	sudo losetup /dev/loop0 $@
-	printf 'start=2048, type=83, bootable\n' | sudo chronic sfdisk -q /dev/loop0
-	sudo partx -a /dev/loop0
-	sudo mkfs.ext2 "/dev/loop0p1"
-	sudo mount /dev/loop0p1 build/mount
-	sudo mkdir -p build/mount/boot/
-	sudo cp build/boot.scr build/mount/
-	sudo cp build/kernel.bin build/mount/boot/
-	sudo umount build/mount
-	sudo dd if=deps/u-boot.bin of=/dev/loop0 bs=1024 seek=8 status=none
+	@printf "  BUILD   $@\n"
+	@dd if=/dev/zero of=$@ bs=1M count=$(DISK_SIZE) status=none
+	@sudo losetup /dev/loop0 $@
+	@printf 'start=2048, type=83, bootable\n' \
+     | sudo chronic sfdisk -q /dev/loop0
+	@sudo partx -a /dev/loop0
+	@sudo chronic mkfs.fat -F32 "/dev/loop0p1"
+	@sudo mount /dev/loop0p1 build/mount
+	@sudo mkdir -p build/mount/boot/
+	@sudo cp build/boot.scr build/mount/
+	@sudo cp build/kernel.bin build/mount/boot/
+	@sudo umount build/mount
+	@sudo dd if=deps/u-boot.bin of=/dev/loop0 bs=1024 seek=8 status=none
 	@sleep 1
-	sudo partx -d /dev/loop0
-	sudo losetup -d /dev/loop0
+	@sudo partx -d /dev/loop0
+	@sudo losetup -d /dev/loop0
 
-build:
-	mkdir -p $@
-build/libc: build
-	mkdir -p $@
-build/mount: build
-	mkdir -p $@
-
-deps:
-	mkdir -p $@
-deps/tools: | deps
-	mkdir -p $@
+deps deps/tools build build/libc build/mount:
+	@mkdir -p $@
 
 deps/.binutils: deps/.binutils-step4
+	touch $@
 deps/binutils.tar.xz: | deps
 	cd $| && wget https://ftp.gnu.org/gnu/binutils/$(BINUTILS).tar.xz
 	mv $|/$(BINUTILS).tar.xz $@
@@ -124,20 +136,18 @@ deps/.binutils-step1: | deps/binutils-build
                         --with-sysroot="$(abspath deps/tools/$(TARGET))" \
                         --disable-nls --disable-multilib
 	touch $@
-deps/.binutils-step2: deps/.binutils-step1 | \
-                            deps/binutils-build
+deps/.binutils-step2: deps/.binutils-step1 | deps/binutils-build
 	cd $| && make -j "$$(nproc)" configure-host
 	touch $@
-deps/.binutils-step3: deps/.binutils-step2 | \
-                            deps/binutils-build
+deps/.binutils-step3: deps/.binutils-step2 | deps/binutils-build
 	cd $| && make -j "$$(nproc)"
 	touch $@
-deps/.binutils-step4: deps/.binutils-step3 | \
-                            deps/binutils-build
+deps/.binutils-step4: deps/.binutils-step3 | deps/binutils-build
 	cd $| && make -j "$$(nproc)" install
 	touch $@
 
 deps/.gcc: deps/.binutils deps/.gcc-step4
+	touch $@
 deps/gcc.tar.xz: | deps
 	cd $| && wget https://ftp.gnu.org/gnu/gcc/$(GCC)/$(GCC).tar.xz
 	mv $|/$(GCC).tar.xz $@
@@ -177,6 +187,8 @@ deps/.u-boot-step1: | deps/u-boot
 	touch $@
 deps/.u-boot-step2: deps/.u-boot-step1 | deps/u-boot
 	cd $| && make ARCH=$(ARCH) CROSS_COMPILE=$(TARGET)- $(UBOOT_CONFIG)
+	[ -f scripts/u-boot.patch ] && patch deps/u-boot/.config < \
+                                         scripts/u-boot.patch
 	touch $@
 deps/.u-boot-step3: deps/.u-boot-step2 | deps/u-boot
 	cd $| && make ARCH=$(ARCH) CROSS_COMPILE=$(TARGET)-
