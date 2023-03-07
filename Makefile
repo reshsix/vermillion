@@ -14,43 +14,50 @@
 
 export PATH += :$(shell pwd)/deps/tools/bin
 
-ARCH = arm
-ARMVER = armv7-a
-FLOAT = hard
-FPU = vfpv4
-HOST = $(shell printf '%s\n' "$$MACHTYPE" | sed 's/-[^-]*/-cross/')
-TARGET = $(ARCH)-none-eabihf
+# -------------------------------- Parameters -------------------------------- #
 
-BINUTILS = binutils-2.39
-GCC = gcc-12.2.0
-
-CC = $(TARGET)-gcc
+# Compilation parameters
+CC = arm-none-eabihf-gcc
 CFLAGS += -O0 -ggdb3
 CFLAGS += -Iinclude -std=gnu99 -fpic -nostdlib -ffreestanding -mcpu=cortex-a7
 CFLAGS += -Wall -Wextra -Wno-attributes -Wl,--no-warn-rwx-segment
+DISK_SIZE = 2
 
+# Extra variables
 VERSION = 0.0a $$(git rev-parse --short HEAD)
 COMPILATION = $$(LC_ALL=C date "+%b %d %Y - %H:%M:%S %z")
 CFLAGS += -D__VERMILLION__="\"$(VERSION)\""
 CFLAGS += -D__COMPILATION__="\"$(COMPILATION)\""
 
-DISK_SIZE = 2
+# Helper parameters
+QEMU_MACHINE = orangepi-pc
+UART_DEVICE = /dev/ttyUSB0
+FLASH_DEVICE = /dev/sdf
+
+# Dependency versions
+BINUTILS = binutils-2.39
+GCC = gcc-12.2.0
+UBOOT = v2020.04
+
+# Dependency parameters
+ARCH = arm
+ARMVER = armv7-a
+FLOAT = hard
+FPU = vfpv4
+TARGET = $(ARCH)-none-eabihf
+HOST = $(shell printf '%s\n' "$$MACHTYPE" | sed 's/-[^-]*/-cross/')
 UBOOT_CONFIG = orangepi_one_defconfig
 UBOOT_IMAGE = u-boot-sunxi-with-spl.bin
-QEMU_MACHINE = orangepi-pc
 
-UART = /dev/ttyUSB0
-FLASH = /dev/sdf
+# --------------------------------- Recipes  --------------------------------- #
 
-.PHONY: all clean depclean test debug ktest kdebug uart
-
+# Helper recipes
+.PHONY: all clean depclean test debug ktest kdebug uart flash
 all: build/os.img
-
 clean:
 	rm -rf build
 depclean:
 	rm -rf deps
-
 test: build/os.img
 	qemu-system-arm -M $(QEMU_MACHINE) -drive file=$<,format=raw
 debug: build/os.img scripts/debug.gdb
@@ -61,31 +68,39 @@ ktest: build/kernel.elf
 kdebug: build/kernel.elf scripts/kdebug.gdb
 	qemu-system-arm -s -S -M $(QEMU_MACHINE) -kernel $< &
 	gdb-multiarch --command=scripts/kdebug.gdb
-
-uart: $(UART)
+uart: $(UART_DEVICE)
 	@printf "  SCREEN  $<\n"
 	@sudo stty -F $< 115200 cs8 -parenb -cstopb -crtscts
 	@sudo screen $< 115200
-flash: build/os.img $(FLASH)
-	@printf "  FLASH   $(FLASH)\n"
-	@sudo dd if=$< of=$(FLASH) status=none
+flash: build/os.img $(FLASH_DEVICE)
+	@printf "  FLASH   $(FLASH_DEVICE)\n"
+	@sudo dd if=$< of=$(FLASH_DEVICE) status=none
 	@sudo head -c "$$((2 * 1024 * 1024))" /dev/sdf | cmp - build/os.img
 
+# Folder creation
+deps deps/tools build build/libc build/mount:
+	@mkdir -p $@
+
+# Generic recipes
 build/%.o: src/%.c deps/.gcc | build build/libc
 	@printf "  CC      $@\n"
 	@$(CC) $(CFLAGS) -c $< -o $@
-build/boot.o: boot.S deps/.gcc | build
-	@printf "  AS      $@\n"
-	@$(CC) $(CFLAGS) -c $< -o $@
-build/libc.a: build/libc/assert.o build/libc/ctype.o \
-              build/libc/diagnosis.o \
-              build/libc/signal.o build/libc/stdlib.o \
-              build/libc/string.o build/libc/utils.o | build
+build/%.a:
 	@printf "  AR      $@\n"
 	@chronic ar ruv $@ $^
 	@printf "  RANLIB  $@\n"
 	@ranlib $@
 
+# Library definitions
+build/libc.a: build/libc/assert.o build/libc/ctype.o \
+              build/libc/diagnosis.o \
+              build/libc/signal.o build/libc/stdlib.o \
+              build/libc/string.o build/libc/utils.o | build build/libc
+
+# Specific recipes
+build/boot.o: boot.S deps/.gcc | build
+	@printf "  AS      $@\n"
+	@$(CC) $(CFLAGS) -c $< -o $@
 build/kernel.elf: scripts/linker.ld build/libc.a \
                   build/main.o build/boot.o | build
 	@printf "  LD      $@\n"
@@ -93,7 +108,6 @@ build/kernel.elf: scripts/linker.ld build/libc.a \
 build/kernel.bin: build/kernel.elf | build
 	@printf "  OBJCOPY $@\n"
 	@$(TARGET)-objcopy $< -O binary $@
-
 build/boot.scr: scripts/u-boot.cmd | build
 	@printf "  MKIMAGE $@\n"
 	@chronic mkimage -C none -A arm -T script -d $< $@
@@ -116,9 +130,9 @@ build/os.img: deps/u-boot.bin build/kernel.bin \
 	@sudo partx -d /dev/loop0
 	@sudo losetup -d /dev/loop0
 
-deps deps/tools build build/libc build/mount:
-	@mkdir -p $@
+# ------------------------------- Dependencies ------------------------------- #
 
+# Binutils compilation
 deps/.binutils: deps/.binutils-step4
 	touch $@
 deps/binutils.tar.xz: | deps
@@ -146,6 +160,7 @@ deps/.binutils-step4: deps/.binutils-step3 | deps/binutils-build
 	cd $| && make -j "$$(nproc)" install
 	touch $@
 
+# Gcc compilation
 deps/.gcc: deps/.binutils deps/.gcc-step4
 	touch $@
 deps/gcc.tar.xz: | deps
@@ -179,11 +194,12 @@ deps/.gcc-step4: deps/.gcc-step3 | deps/gcc-build
 	cd $| && make -j "$$(nproc)" install-gcc install-target-libgcc
 	touch $@
 
+# U-boot compilation
 deps/u-boot.bin: deps/.gcc deps/.u-boot-step4
 deps/u-boot: | deps
 	cd $| && git clone https://gitlab.denx.de/u-boot/u-boot.git
 deps/.u-boot-step1: | deps/u-boot
-	cd $| && git checkout tags/v2020.04
+	cd $| && git checkout tags/$(UBOOT)
 	touch $@
 deps/.u-boot-step2: deps/.u-boot-step1 | deps/u-boot
 	cd $| && make ARCH=$(ARCH) CROSS_COMPILE=$(TARGET)- $(UBOOT_CONFIG)
