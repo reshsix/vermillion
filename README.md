@@ -33,6 +33,8 @@ Math
 - tgmath.h (C99)
 
 ## Extra headers
+### bitbang.h
+Implementation of protocols for unimplemented/damaged controllers
 ### diagnostic.h
 Functions to check the board health/state
 ### generator.h
