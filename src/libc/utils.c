@@ -101,6 +101,13 @@ print_uint(const u32 n)
 }
 
 extern void
+hsleep(const u32 n)
+{
+    for (register u32 i = 0; i < (n / 4); i++)
+        asm volatile ("nop");
+}
+
+extern void
 csleep(const u32 n)
 {
     timer_enable(TIMER0);
