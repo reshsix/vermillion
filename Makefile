@@ -55,19 +55,25 @@ UBOOT_IMAGE = u-boot-sunxi-with-spl.bin
 .PHONY: all clean depclean test debug ktest kdebug uart flash
 all: build/os.img
 clean:
-	rm -rf build
+	@printf "  RM      build\n"
+	@rm -rf build
 depclean:
-	rm -rf deps
+	@printf "  RM      deps\n"
+	@rm -rf deps
 test: build/os.img
-	qemu-system-arm -M $(QEMU_MACHINE) -drive file=$<,format=raw
+	@printf "  QEMU    $<\n"
+	@qemu-system-arm -M $(QEMU_MACHINE) -drive file=$<,format=raw
 debug: build/os.img scripts/debug.gdb
-	qemu-system-arm -s -S -M $(QEMU_MACHINE) -drive file=$<,format=raw &
-	gdb-multiarch --command=scripts/debug.gdb
+	@printf "  QEMU    $<\n"
+	@qemu-system-arm -s -S -M $(QEMU_MACHINE) -drive file=$<,format=raw &
+	@gdb-multiarch --command=scripts/debug.gdb
 ktest: build/kernel.elf
-	qemu-system-arm -M $(QEMU_MACHINE) -kernel $<
+	@printf "  QEMU    $<\n"
+	@qemu-system-arm -M $(QEMU_MACHINE) -kernel $<
 kdebug: build/kernel.elf scripts/kdebug.gdb
-	qemu-system-arm -s -S -M $(QEMU_MACHINE) -kernel $< &
-	gdb-multiarch --command=scripts/kdebug.gdb
+	@printf "  QEMU    $<\n"
+	@qemu-system-arm -s -S -M $(QEMU_MACHINE) -kernel $< &
+	@gdb-multiarch --command=scripts/kdebug.gdb
 uart: $(UART_DEVICE)
 	@printf "  SCREEN  $<\n"
 	@sudo stty -F $< 115200 cs8 -parenb -cstopb -crtscts
