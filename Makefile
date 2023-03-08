@@ -81,7 +81,8 @@ uart: $(UART_DEVICE)
 flash: build/os.img $(FLASH_DEVICE)
 	@printf "  FLASH   $(FLASH_DEVICE)\n"
 	@sudo dd if=$< of=$(FLASH_DEVICE) status=none
-	@sudo head -c "$$((2 * 1024 * 1024))" /dev/sdf | cmp - build/os.img
+	@sudo head -c "$$(($(DISK_SIZE) * 1024 * 1024))" /dev/sdf \
+     | cmp - build/os.img
 
 # Folder creation
 deps deps/tools build build/libc build/mount:
