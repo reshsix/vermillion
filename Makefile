@@ -104,17 +104,18 @@ config:
            --title "Compilation flags" \
            --checklist "Deactivating an object makes it be compiled empty" \
            0 0 0 \
+           $(call flag, CONFIG_DRIVERS_BUZZER,  'Generic buzzer driver') \
            $(call flag, CONFIG_EXTRA_BITBANG,   'Bitbang Library') \
            $(call flag, CONFIG_EXTRA_DIAGNOSIS, 'Diagnosis Library') \
            2> .config_tmp && mv .config_tmp .config
 	@rm -f .config_tmp
 
 # Folder creation
-deps deps/tools build build/libc build/mount:
+deps deps/tools build build/libc build/drivers build/mount:
 	@mkdir -p $@
 
 # Generic recipes
-build/%.o: src/%.c deps/.gcc | build build/libc
+build/%.o: src/%.c deps/.gcc | build/libc build/drivers
 	@$(CC) $(CFLAGS) -c $< -o $@
 	@[ -n "$$(nm -P $@ | awk '$$2 == "T"')" ] && \
     printf '%s\n' "  CC      $@"; true
@@ -128,16 +129,18 @@ build/%.a:
 build/libc.a: build/libc/assert.o build/libc/bitbang.o \
               build/libc/ctype.o build/libc/diagnosis.o \
               build/libc/signal.o build/libc/stdlib.o \
-              build/libc/string.o build/libc/utils.o | build build/libc
+              build/libc/string.o build/libc/utils.o
+build/libdrivers.a: build/drivers/buzzer.o
 
 # Specific recipes
 build/boot.o: boot.S deps/.gcc | build
 	@printf "  AS      $@\n"
 	@$(CC) $(CFLAGS) -c $< -o $@
-build/kernel.elf: scripts/linker.ld build/libc.a \
+build/kernel.elf: scripts/linker.ld build/libc.a build/libdrivers.a \
                   build/main.o build/boot.o | build
 	@printf "  LD      $@\n"
-	@$(CC) $(CFLAGS) -T $< build/boot.o build/main.o -o $@ -Lbuild -lc -lgcc
+	@$(CC) $(CFLAGS) -T $< build/boot.o build/main.o -o $@ \
+     -Lbuild -lc -ldrivers -lgcc
 build/kernel.bin: build/kernel.elf | build
 	@printf "  OBJCOPY $@\n"
 	@$(TARGET)-objcopy $< -O binary $@
