@@ -14,6 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#ifdef CONFIG_EXTRA_BITBANG
+
 #include <h3/ports.h>
 #include <utils.h>
 
@@ -113,3 +115,5 @@ spi_transfer(struct spi *s, u8 x)
 
     return (s->cpol) ? ~ret : ret;
 }
+
+#endif

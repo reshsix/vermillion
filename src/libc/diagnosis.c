@@ -14,6 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#ifdef CONFIG_EXTRA_DIAGNOSIS
+
 #include <h3/ports.h>
 #include <signal.h>
 #include <utils.h>
@@ -152,3 +154,5 @@ check_gpio(void)
 
     print("\r\n|-----------------------------|\r\n");
 }
+
+#endif
