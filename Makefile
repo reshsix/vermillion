@@ -33,8 +33,8 @@ CFLAGS += $(CONFIG_FLAGS)
 
 # Helper parameters
 QEMU_MACHINE = orangepi-pc
-UART_DEVICE = /dev/ttyUSB0
-FLASH_DEVICE = /dev/sdf
+UART_DEVICE ?= /dev/ttyUSB0
+FLASH_DEVICE ?= /dev/sdf
 
 # Dependency versions
 BINUTILS = binutils-2.39

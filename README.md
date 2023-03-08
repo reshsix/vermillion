@@ -9,6 +9,8 @@ sudo apt-get install gcc make git rsync g++ bison flex texinfo libncurses-dev \
                      swig python3-dev bc u-boot-tools moreutils dialog
 make config
 make
+FLASH_DEVICE=/dev/sdf make flash
+UART_DEVICE=/dev/ttyUSB0 make uart
 
 sudo apt-get install qemu-system-arm gdb-multiarch
 make debug
