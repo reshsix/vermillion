@@ -104,6 +104,7 @@ config:
            --title "Compilation flags" \
            --checklist "Deactivating an object makes it be compiled empty" \
            0 0 0 \
+           $(call flag, CONFIG_DRIVERS_ILI9488, 'Ili9488 driver') \
            $(call flag, CONFIG_DRIVERS_BUZZER,  'Generic buzzer driver') \
            $(call flag, CONFIG_EXTRA_BITBANG,   'Bitbang Library') \
            $(call flag, CONFIG_EXTRA_DIAGNOSIS, 'Diagnosis Library') \
@@ -130,7 +131,7 @@ build/libc.a: build/libc/assert.o build/libc/bitbang.o \
               build/libc/ctype.o build/libc/diagnosis.o \
               build/libc/signal.o build/libc/stdlib.o \
               build/libc/string.o build/libc/utils.o
-build/libdrivers.a: build/drivers/buzzer.o
+build/libdrivers.a: build/drivers/buzzer.o build/drivers/ili9488.o
 
 # Specific recipes
 build/boot.o: boot.S deps/.gcc | build
