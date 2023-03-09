@@ -20,15 +20,20 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <utils.h>
 #include <stdlib.h>
 
+#include <h3/ports.h>
+
 #include <drivers/buzzer.h>
 
 extern struct buzzer *
-buzzer_new(void (*write)(bool))
+buzzer_new(enum pin pin)
 {
     struct buzzer *ret = malloc(sizeof(struct buzzer));
 
     if (ret)
-        ret->write = write;
+    {
+        pin_config(pin, PIN_CFG_OUT);
+        ret->pin = pin;
+    }
 
     return ret;
 }
@@ -36,8 +41,13 @@ buzzer_new(void (*write)(bool))
 extern struct buzzer *
 buzzer_del(struct buzzer *bz)
 {
-    free(bz);
-    return bz;
+    if (bz)
+    {
+        pin_config(bz->pin, PIN_CFG_OFF);
+        free(bz);
+    }
+
+    return NULL;
 }
 
 extern void
@@ -46,9 +56,9 @@ buzzer_note(struct buzzer *bz, u16 freq, u16 duration)
     const u32 delay = 1000000 / freq / 2;
     for (u32 i = 0; i < (duration * 1000) / (delay * 2); i++)
     {
-        bz->write(true);
+        pin_write(bz->pin, true);
         usleep(delay);
-        bz->write(false);
+        pin_write(bz->pin, false);
         usleep(delay);
     }
 }
@@ -58,7 +68,7 @@ buzzer_sample(struct buzzer *bz, u16 freq, u8 *data, size_t size)
 {
     for (size_t i = 0; i < size; i++)
     {
-        bz->write(data[i] >= UINT8_MAX / 2);
+        pin_write(bz->pin, data[i] >= UINT8_MAX / 2);
         usleep(1000000 / freq);
     }
 }

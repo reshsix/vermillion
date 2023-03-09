@@ -18,13 +18,14 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define DRIVERS_BUZZER_H
 
 #include <types.h>
+#include <h3/ports.h>
 
 struct buzzer
 {
-    void (*write)(bool);
+    enum pin pin;
 };
 
-struct buzzer *buzzer_new(void (*write)(bool));
+struct buzzer *buzzer_new(enum pin pin);
 struct buzzer *buzzer_del(struct buzzer *bz);
 void buzzer_note(struct buzzer *bz, u16 freq, u16 duration);
 void buzzer_sample(struct buzzer *bz, u16 freq, u8 *data, size_t size);
