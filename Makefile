@@ -18,6 +18,7 @@ export PATH += :$(shell pwd)/deps/tools/bin
 
 # Compilation parameters
 CC = arm-none-eabihf-gcc
+LD = arm-none-eabihf-ld
 CFLAGS += -O0 -ggdb3
 CFLAGS += -Iinclude -std=gnu99 -fpic -nostdlib -ffreestanding -mcpu=cortex-a7
 CFLAGS += -Wall -Wextra -Wno-attributes -Wl,--no-warn-rwx-segment
@@ -26,7 +27,8 @@ DISK_SIZE = 2
 # Extra variables
 VERSION = 0.0a $$(git rev-parse --short HEAD)
 COMPILATION = $$(LC_ALL=C date "+%b %d %Y - %H:%M:%S %z")
-CONFIG_FLAGS = $(shell [ -f .config ] && cat .config)
+CONFIG_FLAGS = $(shell [ -f .config ] && cat .config \
+                 | sed '/^$$/d; /^#/d; s/^/ -D/' | tr '\n' ' ')
 CFLAGS += -D__VERMILLION__="\"$(VERSION)\""
 CFLAGS += -D__COMPILATION__="\"$(COMPILATION)\""
 CFLAGS += $(CONFIG_FLAGS)
@@ -51,21 +53,11 @@ HOST = $(shell printf '%s\n' "$$MACHTYPE" | sed 's/-[^-]*/-cross/')
 UBOOT_CONFIG = orangepi_one_defconfig
 UBOOT_IMAGE = u-boot-sunxi-with-spl.bin
 
-# -------------------------------- Functions --------------------------------- #
-
-# Config functions
-define check
-	RESULT="$$(echo $(1) | gcc -E -P -xc $(CONFIG_FLAGS) -)" && \
-    if [ "$$RESULT" = '1' ]; then printf 'on'; else printf 'off'; fi
-endef
-define flag
-	$(1) $(2) $$($(call check, $(1)))
-endef
-
 # --------------------------------- Recipes  --------------------------------- #
 
 # Helper recipes
-.PHONY: all clean depclean test debug ktest kdebug uart flash config
+.PHONY: all clean depclean test debug ktest kdebug uart flash \
+        config menuconfig xconfig
 all: build/os.img
 clean:
 	@printf "  RM      build\n"
@@ -97,19 +89,14 @@ flash: build/os.img $(FLASH_DEVICE)
 	@sudo head -c "$$(($(DISK_SIZE) * 1024 * 1024))" /dev/sdf \
      | cmp - build/os.img
 config:
-	@TERM=linux \
-    DIALOGRC=scripts/dialog.conf \
-    dialog --no-cancel --output-separator ' -D' \
-           --backtitle "Vermillion configuration" \
-           --title "Compilation flags" \
-           --checklist "Deactivating an object makes it be compiled empty" \
-           0 0 0 \
-           $(call flag, CONFIG_DRIVERS_ILI9488, 'Ili9488 driver') \
-           $(call flag, CONFIG_DRIVERS_BUZZER,  'Generic buzzer driver') \
-           $(call flag, CONFIG_EXTRA_BITBANG,   'Bitbang Library') \
-           $(call flag, CONFIG_EXTRA_DIAGNOSIS, 'Diagnosis Library') \
-           2> .config_tmp && mv .config_tmp .config
-	@rm -f .config_tmp
+	@kconfig-conf Kconfig
+	@rm -rf build
+menuconfig:
+	@kconfig-mconf Kconfig
+	@rm -rf build
+xconfig:
+	@kconfig-qconf Kconfig
+	@rm -rf build
 
 # Folder creation
 deps deps/tools build build/libc build/drivers build/mount:
@@ -131,17 +118,22 @@ build/libc.a: build/libc/assert.o build/libc/bitbang.o \
               build/libc/ctype.o build/libc/diagnosis.o \
               build/libc/signal.o build/libc/stdlib.o \
               build/libc/string.o build/libc/utils.o
-build/libdrivers.a: build/drivers/buzzer.o build/drivers/ili9488.o
+build/libdrivers.a: build/drivers/dummy.o build/drivers/buzzer.o \
+                    build/drivers/ili9488.o
 
 # Specific recipes
 build/boot.o: boot.S deps/.gcc | build
 	@printf "  AS      $@\n"
 	@$(CC) $(CFLAGS) -c $< -o $@
-build/kernel.elf: scripts/linker.ld build/libc.a build/libdrivers.a \
-                  build/main.o build/boot.o | build
+build/splash.o: splash.png | build
 	@printf "  LD      $@\n"
-	@$(CC) $(CFLAGS) -T $< build/boot.o build/main.o -o $@ \
-     -Lbuild -lc -ldrivers -lgcc
+	@convert $< build/splash.rgb
+	@cd build && $(LD) -r -b binary -o splash.o splash.rgb
+build/kernel.elf: scripts/linker.ld build/libc.a build/libdrivers.a \
+                  build/main.o build/boot.o build/splash.o
+	@printf "  LD      $@\n"
+	@$(CC) $(CFLAGS) -T $< build/boot.o build/splash.o build/main.o -o $@ \
+     -Lbuild -ldrivers -lc -lgcc
 build/kernel.bin: build/kernel.elf | build
 	@printf "  OBJCOPY $@\n"
 	@$(TARGET)-objcopy $< -O binary $@

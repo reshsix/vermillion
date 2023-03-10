@@ -14,14 +14,17 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef DRIVERS_ILI9488_H
-#define DRIVERS_ILI9488_H
+#ifndef INTERFACE_VIDEO_H
+#define INTERFACE_VIDEO_H
 
-#ifdef CONFIG_VIDEO_ILI9488_SPI_X
+#include <types.h>
+#include <drivers/dummy.h>
+#include <drivers/ili9488.h>
 
-#define VIDEO_WIDTH  480
-#define VIDEO_HEIGHT 320
-
-#endif
+struct video;
+struct video *video_new(void);
+struct video *video_del(struct video *v);
+void video_update(struct video *v, u8 *buffer, u16 x, u16 y, u16 w, u16 h);
+void video_clear(struct video *v);
 
 #endif

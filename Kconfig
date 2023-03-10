@@ -1,0 +1,74 @@
+# This file is part of vermillion.
+
+# Vermillion is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published
+# by the Free Software Foundation, version 3.
+
+# Vermillion is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+
+# Video configuration
+
+choice VIDEO_DEVICE
+    prompt "Video device"
+config VIDEO_DUMMY
+    bool "Dummy output"
+config VIDEO_ILI9488_SPI_X
+    bool "Ili9488 SPI-X"
+    select EXTRA_BITBANG
+endchoice
+
+menu "Ili9488 SPI-X"
+    depends on VIDEO_ILI9488_SPI_X
+config ILI9488_SS
+    string "SS pin"
+    default PA0
+config ILI9488_SCK
+    string "SCK pin"
+    default PA1
+config ILI9488_MOSI
+    string "MOSI pin"
+    default PA2
+config ILI9488_MISO
+    string "MISO pin"
+    default PA3
+config ILI9488_DCRS
+    string "DCRS pin"
+    default PA12
+config ILI9488_LEDS
+    string "LEDS pin"
+    default PA11
+endmenu
+
+# Audio configuration
+
+choice AUDIO_DEVICE
+    prompt "Audio device"
+config AUDIO_DUMMY
+    bool "Dummy output"
+config AUDIO_BUZZER
+    bool "Buzzer"
+endchoice
+
+menu "Buzzer"
+    depends on AUDIO_BUZZER
+config BUZZER_PIN
+    string "Output pin"
+    default PA13
+endmenu
+
+# Library configuration
+
+menu "Extra Libraries"
+config EXTRA_BITBANG
+    bool "Bitbang library"
+    default y
+config EXTRA_DIAGNOSIS
+    bool "Diagnosis library"
+    default n
+endmenu

@@ -14,14 +14,17 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef DRIVERS_ILI9488_H
-#define DRIVERS_ILI9488_H
+#ifndef DRIVERS_BUZZER_H
+#define DRIVERS_BUZZER_H
 
-#ifdef CONFIG_VIDEO_ILI9488_SPI_X
+#include <types.h>
+#include <drivers/dummy.h>
+#include <drivers/buzzer.h>
 
-#define VIDEO_WIDTH  480
-#define VIDEO_HEIGHT 320
-
-#endif
+struct audio;
+struct audio *audio_new(void);
+struct audio *audio_del(struct audio *a);
+void audio_note(struct audio *a, u16 freq, u16 duration);
+void audio_sample(struct audio *a, u16 freq, u8 *data, size_t size);
 
 #endif

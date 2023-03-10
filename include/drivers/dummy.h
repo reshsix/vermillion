@@ -14,13 +14,14 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef DRIVERS_ILI9488_H
-#define DRIVERS_ILI9488_H
+#ifndef DRIVERS_DUMMY_H
+#define DRIVERS_DUMMY_H
 
-#ifdef CONFIG_VIDEO_ILI9488_SPI_X
+#ifdef CONFIG_VIDEO_DUMMY
 
-#define VIDEO_WIDTH  480
-#define VIDEO_HEIGHT 320
+#define VIDEO_WIDTH  0
+#define VIDEO_HEIGHT 0
+#define VIDEO_DEPTH  0
 
 #endif
 

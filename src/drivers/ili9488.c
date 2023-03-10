@@ -14,20 +14,26 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifdef CONFIG_DRIVERS_ILI9488
+#ifdef CONFIG_VIDEO_ILI9488_SPI_X
 
 #include <types.h>
 #include <utils.h>
 #include <stdarg.h>
 #include <h3/ports.h>
 
-#include <drivers/ili9488.h>
+struct ili9488
+{
+    enum pin dcrs;
+    enum pin leds;
+
+    void (*write)(u8);
+};
 
 /* Led pin is negated, so with a transistor in NOT configuration,
    and a capacitor between emitter and base, the screen doesn't
    turn white on boot */
 
-extern struct ili9488 *
+static struct ili9488 *
 ili9488_new(enum pin dcrs, enum pin leds, void (*write)(u8))
 {
     struct ili9488 *ret = malloc(sizeof(struct ili9488));
@@ -45,7 +51,7 @@ ili9488_new(enum pin dcrs, enum pin leds, void (*write)(u8))
     return ret;
 }
 
-extern struct ili9488 *
+static struct ili9488 *
 ili9488_del(struct ili9488 *ili)
 {
     if (!ili)
@@ -104,7 +110,32 @@ ili9488_command3(struct ili9488 *ili, u8 n, u8 c, size_t length)
     pin_write(ili->dcrs, false);
 }
 
-extern void
+static void
+ili9488_update(struct ili9488 *ili, u8* buffer, u16 x, u16 y, u16 w, u16 h)
+{
+    u16 ex = w + x - 1;
+    u16 ey = h + y - 1;
+
+    if (x < ex && y < ey)
+    {
+        u32 size = w * h * 3;
+        ili9488_command(ili, 5, 0x2A, x >> 8, x & 0xFF, ex >> 8, ex & 0xFF);
+        ili9488_command(ili, 5, 0x2B, y >> 8, y & 0xFF, ey >> 8, ey & 0xFF);
+        ili9488_command2(ili, 0x2c, buffer, size);
+        ili9488_command(ili, 1, 0x00);
+    }
+}
+
+static void
+ili9488_clear(struct ili9488 *ili)
+{
+    ili9488_command(ili, 5, 0x2A, 0, 0, 480 >> 8, 480 & 0xFF);
+    ili9488_command(ili, 5, 0x2B, 0, 0, 320 >> 8, 320 & 0xFF);
+    ili9488_command3(ili, 0x2c, 0x0, 480 * 320 * 3);
+    ili9488_command(ili, 1, 0x00);
+}
+
+static void
 ili9488_start(struct ili9488 *ili, u8 *splash, u16 splash_w, u16 splash_h)
 {
     pin_config(ili->dcrs, PIN_CFG_OUT);
@@ -134,29 +165,69 @@ ili9488_start(struct ili9488 *ili, u8 *splash, u16 splash_w, u16 splash_h)
     pin_write(ili->leds, false);
 }
 
-extern void
-ili9488_update(struct ili9488 *ili, u8* buffer, u16 x, u16 y, u16 w, u16 h)
-{
-    u16 ex = w + x - 1;
-    u16 ey = h + y - 1;
+#endif
 
-    if (x < ex && y < ey)
+#ifdef CONFIG_VIDEO_ILI9488_SPI_X
+
+#include <bitbang.h>
+
+struct video
+{
+    struct spi *spi;
+    struct ili9488 *ili;
+};
+
+extern struct video *
+video_del(struct video *v)
+{
+    if (v)
     {
-        u32 size = w * h * 3;
-        ili9488_command(ili, 5, 0x2A, x >> 8, x & 0xFF, ex >> 8, ex & 0xFF);
-        ili9488_command(ili, 5, 0x2B, y >> 8, y & 0xFF, ey >> 8, ey & 0xFF);
-        ili9488_command2(ili, 0x2c, buffer, size);
-        ili9488_command(ili, 1, 0x00);
+        spi_del(v->spi);
+        ili9488_del(v->ili);
+        free(v);
     }
+
+    return NULL;
+}
+
+static struct spi *spi0 = NULL;
+void spi0_write(u8 data){ spi_transfer(spi0, data); }
+extern u8 _binary_splash_rgb_start[];
+extern struct video *
+video_new(void)
+{
+    struct video *ret = malloc(sizeof(struct video));
+
+    if (ret)
+    {
+        ret->spi = spi_new(CONFIG_ILI9488_SS, CONFIG_ILI9488_SCK,
+                           CONFIG_ILI9488_MOSI, CONFIG_ILI9488_MISO);
+        ret->ili = ili9488_new(CONFIG_ILI9488_DCRS, CONFIG_ILI9488_LEDS,
+                               spi0_write);
+        if (!(ret->spi && ret->ili))
+            ret = video_del(ret);
+    }
+
+    if (ret)
+    {
+        spi0 = ret->spi;
+        spi_config(ret->spi, SPI_MAX, 0, false);
+        ili9488_start(ret->ili, _binary_splash_rgb_start, 96, 96);
+    }
+
+    return ret;
 }
 
 extern void
-ili9488_clear(struct ili9488 *ili)
+video_update(struct video *v, u8* buffer, u16 x, u16 y, u16 w, u16 h)
 {
-    ili9488_command(ili, 5, 0x2A, 0, 0, 480 >> 8, 480 & 0xFF);
-    ili9488_command(ili, 5, 0x2B, 0, 0, 320 >> 8, 320 & 0xFF);
-    ili9488_command3(ili, 0x2c, 0x0, 480 * 320 * 3);
-    ili9488_command(ili, 1, 0x00);
+    ili9488_update(v->ili, buffer, x, y, w, h);
+}
+
+extern void
+video_clear(struct video *v)
+{
+    ili9488_clear(v->ili);
 }
 
 #endif
