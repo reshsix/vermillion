@@ -117,7 +117,6 @@ audio_new(void)
             msleep(100);
         }
         buzzer_note(ret->bz, 523, 500);
-        buzzer_del(ret->bz);
         msleep(100);
     }
 

@@ -168,7 +168,7 @@ __strspn(const char *str, const char *chars, bool complement)
     for (size_t i = 0; i < l; i++)
     {
         bool has = false;
-        for (size_t j = 0; i < l2; j++)
+        for (size_t j = 0; j < l2; j++)
         {
             if (str[i] == chars[j])
             {
@@ -251,8 +251,10 @@ strtok(char *str, const char *chars)
             state = &(state[strcspn(state, chars)]);
             if (state[0] != '\0')
             {
-                state = &(state[1]);
                 state[0] = '\0';
+                state = &(state[1]);
+                if (state[0] == '\0')
+                    state = NULL;
             }
         }
     }
