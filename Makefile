@@ -119,7 +119,7 @@ build/libc.a: build/libc/assert.o build/libc/bitbang.o \
               build/libc/signal.o build/libc/stdlib.o \
               build/libc/string.o build/libc/utils.o
 build/libdrivers.a: build/drivers/dummy.o build/drivers/buzzer.o \
-                    build/drivers/ili9488.o
+                    build/drivers/ili9488.o build/drivers/fat32.o
 
 # Specific recipes
 build/boot.o: boot.S deps/.gcc | build
