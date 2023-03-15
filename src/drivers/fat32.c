@@ -14,11 +14,75 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#ifdef CONFIG_STORAGE_FAT32_MBR_SD0
+
 #include <types.h>
 #include <string.h>
 #include <stdlib.h>
 
 #include <drivers/fat32.h>
+
+struct fat32br
+{
+    u8 jmp[3];
+    char oem[8];
+    u16 bytepersect;
+    u8 sectspercluster;
+    u16 reservedsects;
+    u8 tablecount;
+    u16 rootentries;
+    u16 sectsvolume;
+    u8 mediatype;
+    u16 _unused;
+    u16 sectspertrack;
+    u16 headcount;
+    u32 hiddensects;
+    u32 sectsvolume32;
+    u32 sectspertable;
+    u16 flags;
+    u16 version;
+    u32 rootcluster;
+    u16 fsinfosect;
+    u16 backupsect;
+    u8 _reserved[12];
+    u8 drivenum;
+    u8 flagsnt;
+    u8 signature;
+    u32 volumeid;
+    char label[11];
+    char system[8];
+} __attribute__((packed));
+
+struct fat32e
+{
+    char *name;
+    u8 attributes;
+
+    u32 cluster;
+    size_t size;
+
+    u32 created;
+    u32 accessed;
+    u32 modified;
+
+    struct
+    {
+        struct fat32e *data;
+        size_t count;
+        size_t length;
+    } files;
+};
+
+struct fat32
+{
+    u32 lba;
+    struct fat32br br;
+    u8 *buffer;
+    u32 *table;
+    struct fat32e root;
+
+    bool (*read)(u8*, u32, u32);
+};
 
 static u8 fat32_buf[0x200] __attribute__((aligned(32)));
 
@@ -335,7 +399,7 @@ fat32_new(u32 lba, bool (*read)(u8*, u32, u32))
     if (ret)
     {
         u32 lba = ret->lba + ret->br.reservedsects;
-        if (!ret->read(ret->table, lba, ret->br.sectspertable))
+        if (!ret->read((u8*)ret->table, lba, ret->br.sectspertable))
             ret = fat32_del(ret);
     }
 
@@ -400,3 +464,115 @@ fat32_read(struct fat32 *f, struct fat32e *fe, u32 sector, u8 *out)
 
     return ret;
 }
+
+#endif
+
+#ifdef CONFIG_STORAGE_FAT32_MBR_SD0
+
+#include <h3/sd.h>
+
+struct storage
+{
+    struct fat32 *fat32;
+};
+
+struct file
+{
+    struct fat32 *fat32;
+    struct fat32e *fat32e;
+};
+
+extern struct storage *
+storage_del(struct storage *st)
+{
+    if (st)
+    {
+        fat32_del(st->fat32);
+        free(st);
+    }
+
+    return NULL;
+}
+
+extern struct storage *
+storage_new(void)
+{
+    struct storage *ret = malloc(sizeof(struct storage));
+
+    if (ret)
+    {
+        if (sd_read(fat32_buf, 0, 1))
+        {
+            u32 lba = ((u32*)&(fat32_buf[0x1BE]))[2];
+            ret->fat32 = fat32_new(lba, sd_read);
+        }
+    }
+
+    return ret;
+}
+
+extern struct file *
+storage_close(struct file *f)
+{
+    free(f);
+    return NULL;
+}
+
+extern struct file *
+storage_open(struct storage *st, char *path)
+{
+    struct file *ret = NULL;
+
+    if (st)
+        ret = malloc(sizeof(struct file));
+
+    if (ret)
+    {
+        ret->fat32 = st->fat32;
+        ret->fat32e = fat32_find(ret->fat32, path);
+        if (!(ret->fat32e))
+            ret = storage_close(ret);
+    }
+
+    return ret;
+}
+
+extern void
+storage_info(struct file *f, size_t *size, s32 *files)
+{
+    if (f && size)
+        *size = f->fat32e->size;
+    if (f && files)
+        *files = (f->fat32e->attributes & 0x10) ?
+                  (s32)f->fat32e->files.count : -1;
+}
+
+extern struct file *
+storage_index(struct file *f, u32 index)
+{
+    struct file *ret = NULL;
+
+    if (f && f->fat32e->files.count > index)
+        ret = malloc(sizeof(struct file));
+
+    if (ret)
+    {
+        ret->fat32 = f->fat32;
+        ret->fat32e = &(f->fat32e->files.data[index]);
+    }
+
+    return ret;
+}
+
+extern bool
+storage_read(struct file *f, u32 sector, u8 *buffer)
+{
+    bool ret = false;
+
+    if (f)
+        ret = fat32_read(f->fat32, f->fat32e, sector, buffer);
+
+    return ret;
+}
+
+#endif

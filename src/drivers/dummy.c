@@ -85,3 +85,56 @@ audio_sample(struct audio *a, u16 freq, u8 *data, size_t size)
 }
 
 #endif
+
+#ifdef CONFIG_STORAGE_DUMMY
+
+#include <types.h>
+
+extern struct storage *
+storage_new(void)
+{
+    return NULL;
+}
+
+extern struct storage *
+storage_del(struct storage *st)
+{
+    (void)st;
+    return NULL;
+}
+
+extern struct file *
+storage_open(struct storage *st, char *path)
+{
+    (void)st, (void)path;
+    return NULL;
+}
+
+extern struct file *
+storage_close(struct file *f)
+{
+    (void)f;
+    return NULL;
+}
+
+extern void
+storage_info(struct file *f, size_t *size, s32 *files)
+{
+    (void)f, (void)size, (void)files;
+}
+
+extern struct file *
+storage_index(struct file *f, u32 index)
+{
+    (void)f, (void)index;
+    return NULL;
+}
+
+extern bool
+storage_read(struct file *f, u32 sector, u8 *buffer)
+{
+    (void)f, (void)sector, (void)buffer;
+    return false;
+}
+
+#endif

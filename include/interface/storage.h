@@ -14,17 +14,20 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef INTERFACE_AUDIO_H
-#define INTERFACE_AUDIO_H
+#ifndef INTERFACE_STORAGE_H
+#define INTERFACE_STORAGE_H
 
 #include <types.h>
-#include <drivers/dummy.h>
-#include <drivers/buzzer.h>
+#include <drivers/fat32.h>
 
-struct audio;
-struct audio *audio_new(void);
-struct audio *audio_del(struct audio *a);
-void audio_note(struct audio *a, u16 freq, u16 duration);
-void audio_sample(struct audio *a, u16 freq, u8 *data, size_t size);
+struct storage;
+struct file;
+struct storage *storage_new(void);
+struct storage *storage_del(struct storage *st);
+struct file *storage_open(struct storage *st, char *path);
+struct file *storage_close(struct file *f);
+void storage_info(struct file *f, size_t *size, s32 *files);
+struct file *storage_index(struct file *f, u32 index);
+bool storage_read(struct file *f, u32 sector, u8 *buffer);
 
 #endif

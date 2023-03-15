@@ -14,10 +14,12 @@
 
 # Video configuration
 
+menu "Video output"
+
 choice VIDEO_DEVICE
-    prompt "Video device"
+    prompt "Device"
 config VIDEO_DUMMY
-    bool "Dummy output"
+    bool "Dummy device"
 config VIDEO_ILI9488_SPI_X
     bool "Ili9488 SPI-X"
     select EXTRA_BITBANG
@@ -47,10 +49,12 @@ endmenu
 
 # Audio configuration
 
+menu "Audio Output"
+
 choice AUDIO_DEVICE
-    prompt "Audio device"
+    prompt "Device"
 config AUDIO_DUMMY
-    bool "Dummy output"
+    bool "Dummy device"
 config AUDIO_BUZZER
     bool "Buzzer"
 endchoice
@@ -60,6 +64,22 @@ menu "Buzzer"
 config BUZZER_PIN
     string "Output pin"
     default PA13
+endmenu
+
+endmenu
+
+# Storage configuration
+
+menu "Storage"
+
+choice STORAGE_DEVICE
+    prompt "Device"
+config STORAGE_DUMMY
+    bool "Dummy device"
+config STORAGE_FAT32_MBR_SD0
+    bool "SD Card 0 (MBR/Fat32)"
+endchoice
+
 endmenu
 
 # Library configuration
