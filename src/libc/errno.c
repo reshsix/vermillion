@@ -14,12 +14,4 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef _ERRNO_H
-#define _ERRNO_H
-
-extern int errno;
-
-#define EDOM 1
-#define ERANGE 2
-
-#endif
+int errno;
