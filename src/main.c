@@ -14,20 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <interface/video.h>
-#include <interface/audio.h>
-#include <interface/storage.h>
-
 extern int
 kernel_main(void)
 {
-    struct video *v = video_new();
-    struct audio *a = audio_new();
-    struct storage *st = storage_new();
-
-    video_del(v);
-    audio_del(a);
-    storage_del(st);
-
     return 0;
 }

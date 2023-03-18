@@ -22,9 +22,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <drivers/ili9488.h>
 
 struct video;
-struct video *video_new(void);
-struct video *video_del(struct video *v);
-void video_update(struct video *v, u8 *buffer, u16 x, u16 y, u16 w, u16 h);
-void video_clear(struct video *v);
+extern struct video video;
+
+bool _video_init(void);
+void _video_clean(void);
+
+void video_update(u8 *buffer, u16 x, u16 y, u16 w, u16 h);
+void video_clear(void);
 
 #endif

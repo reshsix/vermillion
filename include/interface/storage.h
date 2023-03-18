@@ -21,10 +21,13 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <drivers/fat32.h>
 
 struct storage;
+extern struct storage storage;
 struct file;
-struct storage *storage_new(void);
-struct storage *storage_del(struct storage *st);
-struct file *storage_open(struct storage *st, char *path);
+
+bool _storage_init(void);
+void _storage_clean(void);
+
+struct file *storage_open(char *path);
 struct file *storage_close(struct file *f);
 void storage_info(struct file *f, size_t *size, s32 *files);
 struct file *storage_index(struct file *f, u32 index);

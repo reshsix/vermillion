@@ -22,9 +22,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <drivers/buzzer.h>
 
 struct audio;
-struct audio *audio_new(void);
-struct audio *audio_del(struct audio *a);
-void audio_note(struct audio *a, u16 freq, u16 duration);
-void audio_sample(struct audio *a, u16 freq, u8 *data, size_t size);
+extern struct audio audio;
+
+bool _audio_init(void);
+void _audio_clean(void);
+
+void audio_note(u16 freq, u16 duration);
+void audio_sample(u16 freq, u8 *data, size_t size);
 
 #endif

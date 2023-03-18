@@ -177,57 +177,50 @@ struct video
     struct ili9488 *ili;
 };
 
-extern struct video *
-video_del(struct video *v)
-{
-    if (v)
-    {
-        spi_del(v->spi);
-        ili9488_del(v->ili);
-        free(v);
-    }
+struct video video;
 
-    return NULL;
+extern void
+_video_clean(void)
+{
+    spi_del(video.spi);
+    ili9488_del(video.ili);
 }
 
 static struct spi *spi0 = NULL;
 void spi0_write(u8 data){ spi_transfer(spi0, data); }
 extern u8 _binary_splash_rgb_start[];
-extern struct video *
-video_new(void)
+extern bool
+_video_init(void)
 {
-    struct video *ret = malloc(sizeof(struct video));
+    bool ret = false;
 
-    if (ret)
+    video.spi = spi_new(CONFIG_ILI9488_SS, CONFIG_ILI9488_SCK,
+                       CONFIG_ILI9488_MOSI, CONFIG_ILI9488_MISO);
+    video.ili = ili9488_new(CONFIG_ILI9488_DCRS, CONFIG_ILI9488_LEDS,
+                            spi0_write);
+    if (video.spi && video.ili)
     {
-        ret->spi = spi_new(CONFIG_ILI9488_SS, CONFIG_ILI9488_SCK,
-                           CONFIG_ILI9488_MOSI, CONFIG_ILI9488_MISO);
-        ret->ili = ili9488_new(CONFIG_ILI9488_DCRS, CONFIG_ILI9488_LEDS,
-                               spi0_write);
-        if (!(ret->spi && ret->ili))
-            ret = video_del(ret);
+        spi0 = video.spi;
+        spi_config(spi0, SPI_MAX, 0, false);
+        ili9488_start(video.ili, _binary_splash_rgb_start, 96, 96);
+        ret = true;
     }
-
-    if (ret)
-    {
-        spi0 = ret->spi;
-        spi_config(ret->spi, SPI_MAX, 0, false);
-        ili9488_start(ret->ili, _binary_splash_rgb_start, 96, 96);
-    }
+    else
+        _video_clean();
 
     return ret;
 }
 
 extern void
-video_update(struct video *v, u8* buffer, u16 x, u16 y, u16 w, u16 h)
+video_update(u8* buffer, u16 x, u16 y, u16 w, u16 h)
 {
-    ili9488_update(v->ili, buffer, x, y, w, h);
+    ili9488_update(video.ili, buffer, x, y, w, h);
 }
 
 extern void
-video_clear(struct video *v)
+video_clear(void)
 {
-    ili9488_clear(v->ili);
+    ili9488_clear(video.ili);
 }
 
 #endif

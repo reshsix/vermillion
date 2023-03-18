@@ -134,7 +134,7 @@ build/kernel.elf: scripts/linker.ld build/libc.a build/libdrivers.a \
                   build/main.o build/boot.o build/splash.o
 	@printf "  LD      $@\n"
 	@$(CC) $(CFLAGS) -T $< build/boot.o build/splash.o build/main.o -o $@ \
-     -Lbuild -ldrivers -lc -lgcc
+     -Lbuild -ldrivers -lc -ldrivers -lc -lgcc
 build/kernel.bin: build/kernel.elf | build
 	@printf "  OBJCOPY $@\n"
 	@$(TARGET)-objcopy $< -O binary $@

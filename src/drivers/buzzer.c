@@ -85,54 +85,48 @@ struct audio
     struct buzzer *bz;
 };
 
-extern struct audio *
-audio_del(struct audio *a)
-{
-    if (a)
-    {
-        buzzer_del(a->bz);
-        free(a);
-    }
+struct audio audio;
 
-    return NULL;
+extern void
+_audio_clean(void)
+{
+    buzzer_del(audio.bz);
 }
 
-extern struct audio *
-audio_new(void)
+extern bool
+_audio_init(void)
 {
-    struct audio *ret = malloc(sizeof(struct audio));
+    bool ret = false;
 
-    if (ret)
-    {
-        ret->bz = buzzer_new(CONFIG_BUZZER_PIN);
-        if (!(ret->bz))
-            ret = audio_del(ret);
-    }
-
-    if (ret)
+    audio.bz = buzzer_new(CONFIG_BUZZER_PIN);
+    if (audio.bz)
     {
         for (int i = 0; i < 4; i++)
         {
-            buzzer_note(ret->bz, 329, 100);
+            buzzer_note(audio.bz, 329, 100);
             msleep(100);
         }
-        buzzer_note(ret->bz, 523, 500);
+        buzzer_note(audio.bz, 523, 500);
         msleep(100);
+
+        ret = true;
     }
+    else
+        _audio_clean();
 
     return ret;
 }
 
 extern void
-audio_note(struct audio *a, u16 freq, u16 duration)
+audio_note(u16 freq, u16 duration)
 {
-    buzzer_note(a->bz, freq, duration);
+    buzzer_note(audio.bz, freq, duration);
 }
 
 extern void
-audio_sample(struct audio *a, u16 freq, u8 *data, size_t size)
+audio_sample(u16 freq, u8 *data, size_t size)
 {
-    buzzer_sample(a->bz, freq, data, size);
+    buzzer_sample(audio.bz, freq, data, size);
 }
 
 #endif

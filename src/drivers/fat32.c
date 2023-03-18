@@ -476,36 +476,31 @@ struct storage
     struct fat32 *fat32;
 };
 
+struct storage storage;
+
 struct file
 {
     struct fat32 *fat32;
     struct fat32e *fat32e;
 };
 
-extern struct storage *
-storage_del(struct storage *st)
+extern void
+_storage_clean(void)
 {
-    if (st)
-    {
-        fat32_del(st->fat32);
-        free(st);
-    }
-
-    return NULL;
+    fat32_del(storage.fat32);
 }
 
-extern struct storage *
-storage_new(void)
+extern bool
+_storage_init(void)
 {
-    struct storage *ret = malloc(sizeof(struct storage));
+    bool ret = false;
 
-    if (ret)
+    if (sd_read(fat32_buf, 0, 1))
     {
-        if (sd_read(fat32_buf, 0, 1))
-        {
-            u32 lba = ((u32*)&(fat32_buf[0x1BE]))[2];
-            ret->fat32 = fat32_new(lba, sd_read);
-        }
+        u32 lba = ((u32*)&(fat32_buf[0x1BE]))[2];
+        storage.fat32 = fat32_new(lba, sd_read);
+        if (storage.fat32)
+            ret = true;
     }
 
     return ret;
@@ -519,16 +514,13 @@ storage_close(struct file *f)
 }
 
 extern struct file *
-storage_open(struct storage *st, char *path)
+storage_open(char *path)
 {
-    struct file *ret = NULL;
-
-    if (st)
-        ret = malloc(sizeof(struct file));
+    struct file *ret = malloc(sizeof(struct file));
 
     if (ret)
     {
-        ret->fat32 = st->fat32;
+        ret->fat32 = storage.fat32;
         ret->fat32e = fat32_find(ret->fat32, path);
         if (!(ret->fat32e))
             ret = storage_close(ret);

@@ -24,6 +24,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <h3/timers.h>
 #include <h3/interrupts.h>
 
+#include <interface/video.h>
+#include <interface/audio.h>
+#include <interface/storage.h>
+
 /* Initialization */
 
 #define R_PRCM 0x01F01400
@@ -118,11 +122,41 @@ static void init_malloc(void);
 extern void
 __init(void)
 {
+    int ret = 0;
+
     init_led();
     init_uart();
     init_malloc();
     init_interrupts();
-    exit(kernel_main());
+
+    ret = !_video_init();
+    if (ret)
+        print("Failed to initialize video interface\r\n");
+
+    if (!ret)
+    {
+        ret = !_audio_init();
+        if (ret)
+            print("Failed to initialize audio interface\r\n");
+    }
+
+    if (!ret)
+    {
+        ret = !_storage_init();
+        if (ret)
+            print("Failed to initialize storage interface\r\n");
+    }
+
+    if (!ret)
+    {
+        ret = kernel_main();
+
+        _video_clean();
+        _audio_clean();
+        _storage_clean();
+    }
+
+    exit(ret);
 }
 
 /* Process control */

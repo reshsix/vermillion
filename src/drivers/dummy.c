@@ -23,29 +23,30 @@ struct video
     u8 dummy;
 };
 
-extern struct video *
-video_new(void)
-{
-    return NULL;
-}
+struct video video;
 
-extern struct video *
-video_del(struct video *v)
+extern bool
+_video_init(void)
 {
-    (void)v;
-    return NULL;
+    return true;
 }
 
 extern void
-video_update(struct video *v, u8* buffer, u16 x, u16 y, u16 w, u16 h)
+_video_clean(void)
 {
-    (void)v, (void)buffer, (void)x, (void)y, (void)w, (void)h;
+    return;
 }
 
 extern void
-video_clear(struct video *v)
+video_update(u8* buffer, u16 x, u16 y, u16 w, u16 h)
 {
-    (void)v;
+    (void)buffer, (void)x, (void)y, (void)w, (void)h;
+}
+
+extern void
+video_clear(void)
+{
+    return;
 }
 
 #endif
@@ -59,29 +60,30 @@ struct audio
     u8 dummy;
 };
 
-extern struct audio *
-audio_new(void)
-{
-    return NULL;
-}
+struct audio audio;
 
-extern struct audio *
-audio_del(struct audio *a)
+extern bool
+_audio_init(void)
 {
-    (void)a;
-    return NULL;
+    return true;
 }
 
 extern void
-audio_note(struct audio *a, u16 freq, u16 duration)
+_audio_clean(void)
 {
-    (void)a, (void)freq, (void)duration;
+    return;
 }
 
 extern void
-audio_sample(struct audio *a, u16 freq, u8 *data, size_t size)
+audio_note(u16 freq, u16 duration)
 {
-    (void)a, (void)freq, (void)data, (void)size;
+    (void)freq, (void)duration;
+}
+
+extern void
+audio_sample(u16 freq, u8 *data, size_t size)
+{
+    (void)freq, (void)data, (void)size;
 }
 
 #endif
@@ -90,23 +92,29 @@ audio_sample(struct audio *a, u16 freq, u8 *data, size_t size)
 
 #include <types.h>
 
-extern struct storage *
-storage_new(void)
+struct storage
 {
-    return NULL;
+    u8 dummy;
+};
+
+struct storage storage;
+
+extern bool
+_storage_init(void)
+{
+    return true;
 }
 
-extern struct storage *
-storage_del(struct storage *st)
+extern void
+_storage_clean(void)
 {
-    (void)st;
-    return NULL;
+    return;
 }
 
 extern struct file *
-storage_open(struct storage *st, char *path)
+storage_open(char *path)
 {
-    (void)st, (void)path;
+    (void)path;
     return NULL;
 }
 
