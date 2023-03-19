@@ -279,8 +279,8 @@ fat32_directory(struct fat32 *f, u32 cluster, struct fat32e *out)
     ret = f->read(f->buffer, f->lba + firstsect, f->br.sectspercluster);
 
     bool finished = false;
-    char name[255] = {0};
-    u16 lfn[255] = {0};
+    static char name[(255 * 4) + 1] = {0};
+    static u16 lfn[(255 * 4) + 1] = {0};
     u16 *lfn_p = lfn;
     for (size_t i = 0; ret && i < (0x200 * f->br.sectspercluster); i += 32)
     {
