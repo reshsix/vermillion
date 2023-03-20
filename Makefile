@@ -117,8 +117,8 @@ build/%.a:
 build/libc.a: build/libc/assert.o build/libc/bitbang.o \
               build/libc/ctype.o build/libc/diagnosis.o \
               build/libc/errno.o build/libc/signal.o \
-              build/libc/stdlib.o build/libc/string.o \
-              build/libc/utils.o
+              build/libc/stdio.o build/libc/stdlib.o \
+              build/libc/string.o build/libc/utils.o
 build/libdrivers.a: build/drivers/dummy.o build/drivers/buzzer.o \
                     build/drivers/ili9488.o build/drivers/fat32.o
 
@@ -134,7 +134,7 @@ build/kernel.elf: scripts/linker.ld build/libc.a build/libdrivers.a \
                   build/main.o build/boot.o build/splash.o
 	@printf "  LD      $@\n"
 	@$(CC) $(CFLAGS) -T $< build/boot.o build/splash.o build/main.o -o $@ \
-     -Lbuild -ldrivers -lc -ldrivers -lc -lgcc
+     -Lbuild -ldrivers -lc -ldrivers -lc -lresources -lgcc
 build/kernel.bin: build/kernel.elf | build
 	@printf "  OBJCOPY $@\n"
 	@$(TARGET)-objcopy $< -O binary $@

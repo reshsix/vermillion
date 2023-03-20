@@ -21,5 +21,9 @@ extern int errno;
 
 #define EDOM 1
 #define ERANGE 2
+#define ENOMEM 3
+#define EINVAL 4
+#define ENOENT 5
+#define EROFS 6
 
 #endif
