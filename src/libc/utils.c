@@ -19,7 +19,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <h3/uart.h>
 #include <h3/ports.h>
 #include <h3/timers.h>
-#include <h3/interrupts.h>
+
+#include <arm/interrupts.h>
 
 void (*irqs[256])(void) = {NULL};
 void (*fiqs[256])(void) = {NULL};

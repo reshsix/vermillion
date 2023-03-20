@@ -22,7 +22,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <h3/uart.h>
 #include <h3/ports.h>
 #include <h3/timers.h>
-#include <h3/interrupts.h>
+
+#include <arm/interrupts.h>
 
 #include <interface/video.h>
 #include <interface/audio.h>
@@ -229,7 +230,8 @@ static void
 init_malloc(void)
 {
     head = &__free;
-    head->size = 0x60008000 - (u32)MEMBODY(head, 0);
+    head->size = CONFIG_RAM_ADDRESS + CONFIG_RAM_SIZE + CONFIG_STACK_SIZE;
+    head->size -= (u32)MEMBODY(head, 0);
     head->next = NULL;
 }
 

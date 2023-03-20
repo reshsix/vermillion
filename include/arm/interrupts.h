@@ -37,14 +37,14 @@ extern void *ivt[8];
     __attribute__((target("general-regs-only"))) \
     __attribute__((isr(#type))) void
 
-#define GIC_CPU   0x01C82000
+#define GIC_CPU    CONFIG_ARM_GIC_CPU
 #define ICCICR     *(volatile u32*)(GIC_CPU + 0x0)
 #define ICCPMR     *(volatile u32*)(GIC_CPU + 0x4)
 #define ICCIAR     *(volatile u32*)(GIC_CPU + 0xC)
 #define ICCEOIR    *(volatile u32*)(GIC_CPU + 0x10)
 #define ICCHPIR    *(volatile u32*)(GIC_CPU + 0x18)
 
-#define GIC_DIST  0x01C81000
+#define GIC_DIST   CONFIG_ARM_GIC_DIST
 #define ICDDCR     *(volatile u32*)(GIC_DIST + 0x0)
 #define ICDISER(n) *(volatile u32*)(GIC_DIST + 0x100 + (n * 4))
 #define ICDICER(n) *(volatile u32*)(GIC_DIST + 0x180 + (n * 4))

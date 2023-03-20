@@ -99,7 +99,7 @@ xconfig:
 	@rm -rf build
 
 # Folder creation
-deps deps/tools build build/libc build/drivers build/mount:
+deps deps/tools build build/libc build/drivers build/scripts build/mount:
 	@mkdir -p $@
 
 # Generic recipes
@@ -112,6 +112,9 @@ build/%.a:
 	@chronic ar ruv $@ $^
 	@printf "  RANLIB  $@\n"
 	@ranlib $@
+build/scripts/%: scripts/% | build/scripts
+	@printf "  CC      $@\n"
+	@$(CC) $(CFLAGS) -xc $< -E -P | grep -v '^#' > $@
 
 # Library definitions
 build/libc.a: build/libc/assert.o build/libc/bitbang.o \
@@ -130,15 +133,16 @@ build/splash.o: splash.png | build
 	@printf "  LD      $@\n"
 	@convert $< build/splash.rgb
 	@cd build && $(LD) -r -b binary -o splash.o splash.rgb
-build/kernel.elf: scripts/linker.ld build/libc.a build/libdrivers.a \
-                  build/main.o build/boot.o build/splash.o
+build/kernel.elf: build/scripts/linker.ld \
+                  build/libc.a build/libdrivers.a \
+                  build/splash.o build/main.o build/boot.o
 	@printf "  LD      $@\n"
 	@$(CC) $(CFLAGS) -T $< build/boot.o build/splash.o build/main.o -o $@ \
      -Lbuild -ldrivers -lc -ldrivers -lc -lresources -lgcc
 build/kernel.bin: build/kernel.elf | build
 	@printf "  OBJCOPY $@\n"
 	@$(TARGET)-objcopy $< -O binary $@
-build/boot.scr: scripts/u-boot.cmd | build
+build/boot.scr: build/scripts/u-boot.cmd | build
 	@printf "  MKIMAGE $@\n"
 	@chronic mkimage -C none -A arm -T script -d $< $@
 build/os.img: deps/u-boot.bin build/kernel.bin \

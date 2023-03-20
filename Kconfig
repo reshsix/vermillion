@@ -14,6 +14,24 @@
 
 # Video configuration
 
+menu "Architecture"
+config STACK_SIZE
+    hex "Kernel stack size"
+    default 0x8000
+config RAM_ADDRESS
+    hex "General purpose RAM (Mapped address)"
+    default 0x40000000
+config RAM_SIZE
+    hex "General purpose RAM (Full length)"
+    default 0x20000000
+config ARM_GIC_CPU
+    hex "Generic Interrupt Controller (CPU address)"
+    default 0x01C82000
+config ARM_GIC_DIST
+    hex "Generic Interrupt Controller (DIST address)"
+    default 0x01C81000
+endmenu
+
 menu "Video output"
 
 choice VIDEO_DEVICE

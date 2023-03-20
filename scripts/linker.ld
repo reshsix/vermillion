@@ -18,7 +18,7 @@ ENTRY(_start)
 
 SECTIONS
 {
-    . = 0x40008000;
+    . = CONFIG_RAM_ADDRESS + CONFIG_STACK_SIZE;
 
     .text   : { KEEP(*(.text.boot)) *(.text) }
     . = ALIGN(0x1000);
