@@ -65,6 +65,8 @@ config ILI9488_LEDS
     default PA11
 endmenu
 
+endmenu
+
 # Audio configuration
 
 menu "Audio Output"
