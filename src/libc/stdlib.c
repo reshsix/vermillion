@@ -19,7 +19,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <types.h>
 #include <utils.h>
 
-#include <h3/uart.h>
 #include <h3/ports.h>
 #include <h3/timers.h>
 
@@ -28,6 +27,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <interface/video.h>
 #include <interface/audio.h>
 #include <interface/storage.h>
+#include <interface/serial.h>
 
 /* Initialization */
 
@@ -43,10 +43,10 @@ init_led(void)
 }
 
 static void
-init_uart(void)
+init_serial(void)
 {
-    uart_config(UART0, UART_BAUD_115200, UART_CHAR_8B,
-                UART_PARITY_NONE, UART_STOP_1B, UART_FLAG_NONE);
+    serial_config(0, 115200, SERIAL_CHAR_8B, SERIAL_PARITY_NONE,
+                  SERIAL_STOP_1B);
     print("\r\nVermillion ");
     print(__VERMILLION__);
     print(" (");
@@ -126,13 +126,22 @@ __init(void)
     int ret = 0;
 
     init_led();
-    init_uart();
     init_malloc();
     init_interrupts();
 
-    ret = !_video_init();
-    if (ret)
-        print("Failed to initialize video interface\r\n");
+    if (!ret)
+    {
+        ret = !_serial_init();
+        if (!ret)
+            init_serial();
+    }
+
+    if (!ret)
+    {
+        ret = !_video_init();
+        if (ret)
+            print("Failed to initialize video interface\r\n");
+    }
 
     if (!ret)
     {

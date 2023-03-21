@@ -14,20 +14,12 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef DRIVERS_DUMMY_H
-#define DRIVERS_DUMMY_H
+#ifndef DRIVERS_SUNXI_UART_H
+#define DRIVERS_SUNXI_UART_H
 
-#ifdef CONFIG_VIDEO_DUMMY
+#ifdef CONFIG_SERIAL_SUNXI_UART
 
-#define VIDEO_WIDTH  0
-#define VIDEO_HEIGHT 0
-#define VIDEO_DEPTH  0
-
-#endif
-
-#ifdef CONFIG_SERIAL_DUMMY
-
-#define SERIAL_PORTS 0
+#define SERIAL_PORTS 5
 
 #endif
 

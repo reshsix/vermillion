@@ -102,6 +102,20 @@ endchoice
 
 endmenu
 
+# Serial configuration
+
+menu "Serial"
+
+choice SERIAL_DEVICE
+    prompt "Device"
+config SERIAL_DUMMY
+    bool "Dummy device"
+config SERIAL_SUNXI_UART
+    bool "Sunxi UART"
+endchoice
+
+endmenu
+
 # Library configuration
 
 menu "Extra Libraries"

@@ -19,7 +19,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <types.h>
 #include <utils.h>
 
-#include <h3/uart.h>
+#include <interface/serial.h>
 
 static void (*handlers[SIGLAST + 1])(int) = {NULL};
 
@@ -51,7 +51,7 @@ signal_default(int n)
             break;
         case SIGTRAP:
             print("Press enter to continue...");
-            while (uart_read(UART0) != '\r');
+            while (serial_read(0) != '\r');
             stop = false;
             break;
     }

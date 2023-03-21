@@ -146,3 +146,44 @@ storage_read(struct file *f, u32 sector, u8 *buffer)
 }
 
 #endif
+
+#ifdef CONFIG_SERIAL_DUMMY
+
+#include <types.h>
+#include <interface/serial.h>
+
+extern bool
+_serial_init(void)
+{
+    return true;
+}
+
+extern void
+_serial_clean(void)
+{
+    return;
+}
+
+extern bool
+serial_config(u8 port, u32 baud, enum serial_char c,
+              enum serial_parity p, enum serial_stop s)
+{
+    (void)port, (void)baud, (void)c, (void)p, (void)s;
+    return true;
+}
+
+extern u8
+serial_read(u8 port)
+{
+    (void)port;
+    return 0;
+}
+
+extern void
+serial_write(u8 port, u16 data)
+{
+    (void)port, (void)data;
+    return;
+}
+
+#endif

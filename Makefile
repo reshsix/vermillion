@@ -123,7 +123,8 @@ build/libc.a: build/libc/assert.o build/libc/bitbang.o \
               build/libc/stdio.o build/libc/stdlib.o \
               build/libc/string.o build/libc/utils.o
 build/libdrivers.a: build/drivers/dummy.o build/drivers/buzzer.o \
-                    build/drivers/ili9488.o build/drivers/fat32.o
+                    build/drivers/ili9488.o build/drivers/fat32.o \
+                    build/drivers/sunxi-uart.o
 
 # Specific recipes
 build/boot.o: boot.S deps/.gcc | build
@@ -138,7 +139,7 @@ build/kernel.elf: build/scripts/linker.ld \
                   build/splash.o build/main.o build/boot.o
 	@printf "  LD      $@\n"
 	@$(CC) $(CFLAGS) -T $< build/boot.o build/splash.o build/main.o -o $@ \
-     -Lbuild -ldrivers -lc -ldrivers -lc -lresources -lgcc
+     -Lbuild -Wl,--start-group -ldrivers -lc -Wl,--end-group -lgcc
 build/kernel.bin: build/kernel.elf | build
 	@printf "  OBJCOPY $@\n"
 	@$(TARGET)-objcopy $< -O binary $@

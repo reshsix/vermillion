@@ -16,11 +16,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <types.h>
 
-#include <h3/uart.h>
 #include <h3/ports.h>
 #include <h3/timers.h>
 
 #include <arm/interrupts.h>
+
+#include <interface/serial.h>
 
 void (*irqs[256])(void) = {NULL};
 void (*fiqs[256])(void) = {NULL};
@@ -45,7 +46,7 @@ print(const char *s)
     for (; s[0] != '\0'; s = &(s[1]))
     {
         if (s[0] != '\0')
-            uart_write(UART0, s[0]);
+            serial_write(0, s[0]);
     }
 }
 
@@ -56,9 +57,9 @@ print_h8(const u8 n)
     {
         u8 x = (n >> (i * 4)) & 0xF;
         if (x < 10)
-            uart_write(UART0, x + '0');
+            serial_write(0, x + '0');
         else
-            uart_write(UART0, x - 10 + 'A');
+            serial_write(0, x - 10 + 'A');
     }
 }
 
@@ -89,7 +90,7 @@ print_uint(const u32 n)
 
         if (start)
         {
-            uart_write(UART0, d + '0');
+            serial_write(0, d + '0');
             a -= i * d;
         }
 
@@ -98,7 +99,7 @@ print_uint(const u32 n)
     }
 
     if (!start)
-        uart_write(UART0, '0');
+        serial_write(0, '0');
 }
 
 extern void

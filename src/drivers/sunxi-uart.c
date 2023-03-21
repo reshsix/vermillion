@@ -14,8 +14,7 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef H3_UART_H
-#define H3_UART_H
+#ifdef CONFIG_SERIAL_SUNXI_UART
 
 #include <types.h>
 
@@ -58,32 +57,6 @@ uart_write(enum uart p, char c)
     UART_BUF(p) = c;
 }
 
-enum uart_baud
-{
-    UART_BAUD_25      = 60000,
-    UART_BAUD_50      = 30000,
-    UART_BAUD_75      = 20000,
-    UART_BAUD_110     = 13636,
-    UART_BAUD_300     = 5000,
-    UART_BAUD_600     = 2500,
-    UART_BAUD_1200    = 1250,
-    UART_BAUD_2400    = 625,
-    UART_BAUD_4800    = 312,
-    UART_BAUD_9600    = 156,
-    UART_BAUD_14400   = 104,
-    UART_BAUD_19200   = 78,
-    UART_BAUD_38400   = 39,
-    UART_BAUD_57600   = 26,
-    UART_BAUD_115200  = 13,
-    UART_BAUD_128K    = 12,
-    UART_BAUD_256K    = 6,
-    UART_BAUD_300K    = 5,
-    UART_BAUD_375K    = 4,
-    UART_BAUD_500K    = 3,
-    UART_BAUD_750K    = 2,
-    UART_BAUD_1500K   = 1
-};
-
 enum uart_char
 {
     UART_CHAR_5B,
@@ -114,12 +87,12 @@ enum uart_flags
 };
 
 static inline void
-uart_config(enum uart p, enum uart_baud b, enum uart_char c,
+uart_config(enum uart p, u16 divider, enum uart_char c,
             enum uart_parity i, enum uart_stop s, enum uart_flags f)
 {
     UART_LCR(p) |= (1 << 7);
-    UART_DLH(p) = (b >> 8) & 0xff;
-    UART_DLL(p) = (b >> 0) & 0xff;
+    UART_DLH(p) = (divider >> 8) & 0xff;
+    UART_DLL(p) = (divider >> 0) & 0xff;
     UART_LCR(p) &= ~(1 << 7);
 
     UART_LCR(p) &= ~0x3;
@@ -328,6 +301,121 @@ static inline void
 uart_halt_change_update(enum uart p)
 {
     UART_HLT(p) |= 1 << 2;
+}
+
+#endif
+
+#ifdef CONFIG_SERIAL_SUNXI_UART
+
+#include <interface/serial.h>
+
+extern bool
+_serial_init(void)
+{
+    return true;
+}
+
+extern void
+_serial_clean(void)
+{
+    return;
+}
+
+static u32 ports[] = {UART0, UART1, UART2, UART3, R_UART};
+extern bool
+serial_config(u8 port, u32 baud, enum serial_char c,
+              enum serial_parity p, enum serial_stop s)
+{
+    bool ret = true;
+
+    ret = port < (sizeof(ports) / sizeof(u32));
+
+    u32 divider = 1500000 / baud;
+    if (ret)
+        ret = (divider && divider <= UINT16_MAX);
+
+    enum uart_char uc = UART_CHAR_5B;
+    if (ret)
+    {
+        switch (c)
+        {
+            case SERIAL_CHAR_5B:
+                break;
+            case SERIAL_CHAR_6B:
+                uc = UART_CHAR_6B;
+                break;
+            case SERIAL_CHAR_7B:
+                uc = UART_CHAR_7B;
+                break;
+            case SERIAL_CHAR_8B:
+                uc = UART_CHAR_8B;
+                break;
+            default:
+                ret = false;
+                break;
+        }
+    }
+
+    enum uart_parity up = UART_PARITY_NONE;
+    if (ret)
+    {
+        switch (p)
+        {
+            case SERIAL_PARITY_NONE:
+                break;
+            case SERIAL_PARITY_ODD:
+                up = UART_PARITY_ODD;
+                break;
+            case SERIAL_PARITY_EVEN:
+                up = UART_PARITY_EVEN;
+                break;
+            default:
+                ret = false;
+                break;
+        }
+    }
+
+    enum uart_stop us = UART_STOP_1B;
+    if (ret)
+    {
+        switch (s)
+        {
+            case SERIAL_STOP_1B:
+                break;
+            case SERIAL_STOP_1HB:
+                us = UART_STOP_1HB;
+                break;
+            case SERIAL_STOP_2B:
+                us = UART_STOP_2B;
+                break;
+            default:
+                ret = false;
+                break;
+        }
+    }
+
+    if (ret)
+        uart_config(ports[port], divider, uc, up, us, UART_FLAG_NONE);
+
+    return ret;
+}
+
+extern u8
+serial_read(u8 port)
+{
+    u8 ret = 0;
+
+    if (port < (sizeof(ports) / sizeof(u32)))
+        ret = uart_read(ports[port]);
+
+    return ret;
+}
+
+extern void
+serial_write(u8 port, u16 data)
+{
+    if (port < (sizeof(ports) / sizeof(u32)))
+        uart_write(ports[port], data);
 }
 
 #endif
