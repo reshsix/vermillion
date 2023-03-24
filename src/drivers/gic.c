@@ -35,14 +35,14 @@ extern void *ivt[8];
     __attribute__((target("general-regs-only"))) \
     __attribute__((isr(#type))) void
 
-#define GIC_CPU    CONFIG_ARM_GIC_CPU
+#define GIC_CPU    CONFIG_GIC_CPU
 #define ICCICR     *(volatile u32*)(GIC_CPU + 0x0)
 #define ICCPMR     *(volatile u32*)(GIC_CPU + 0x4)
 #define ICCIAR     *(volatile u32*)(GIC_CPU + 0xC)
 #define ICCEOIR    *(volatile u32*)(GIC_CPU + 0x10)
 #define ICCHPIR    *(volatile u32*)(GIC_CPU + 0x18)
 
-#define GIC_DIST   CONFIG_ARM_GIC_DIST
+#define GIC_DIST   CONFIG_GIC_DIST
 #define ICDDCR     *(volatile u32*)(GIC_DIST + 0x0)
 #define ICDISER(n) *(volatile u32*)(GIC_DIST + 0x100 + (n * 4))
 #define ICDICER(n) *(volatile u32*)(GIC_DIST + 0x180 + (n * 4))
@@ -312,7 +312,15 @@ gic_config(u16 n, void (*f)(void), bool enable, u8 priority)
     gic_intr_target(n, INTR_CORE_NONE);
     gic_intr_activity(n, false);
     gic_intr_priority(n, priority);
+    #if defined(CONFIG_GIC_TYPE_0)
+    gic_intr_sensitivity(n, false, false);
+    #elif defined(CONFIG_GIC_TYPE_1)
+    gic_intr_sensitivity(n, false, true);
+    #elif defined(CONFIG_GIC_TYPE_2)
     gic_intr_sensitivity(n, true, false);
+    #elif defined(CONFIG_GIC_TYPE_3)
+    gic_intr_sensitivity(n, true, true);
+    #endif
     if (enable)
     {
         gic_intr_activity(n, true);

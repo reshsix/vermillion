@@ -12,27 +12,48 @@
 # You should have received a copy of the GNU General Public License
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
-# Video configuration
+# Architecture configuration
 
 menu "Architecture"
 config STACK_SIZE
     hex "Kernel stack size"
     default 0x8000
+
+menu "General purpose RAM"
 config RAM_ADDRESS
-    hex "General purpose RAM (Mapped address)"
+    hex "Mapped address"
     default 0x40000000
 config RAM_SIZE
-    hex "General purpose RAM (Full length)"
+    hex "Full length"
     default 0x20000000
-config ARM_GIC_CPU
-    hex "Generic Interrupt Controller (CPU address)"
-    default 0x01C82000
-config ARM_GIC_DIST
-    hex "Generic Interrupt Controller (DIST address)"
-    default 0x01C81000
 endmenu
 
-menu "Video output"
+menu "Generic Interrupt Controller"
+config GIC_CPU
+    hex "CPU address"
+    default 0x01C82000
+config GIC_DIST
+    hex "DIST address"
+    default 0x01C81000
+choice GIC_TYPE
+    prompt "Interrupt Type"
+    default GIC_TYPE_2
+config GIC_TYPE_0
+    bool "Low level"
+config GIC_TYPE_1
+    bool "High level"
+config GIC_TYPE_2
+    bool "Low edge"
+config GIC_TYPE_3
+    bool "High edge"
+endchoice
+endmenu
+
+endmenu
+
+# Video configuration
+
+menu "Video Output"
 
 choice VIDEO_DEVICE
     prompt "Device"
