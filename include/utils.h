@@ -102,9 +102,4 @@ quick_call(void *mem)
     return ret;
 }
 
-#include <arm/interrupts.h>
-
-void irq_config(u16 n, void (*f)(void), bool enable, u8 priority);
-void irq_handler(u16 n);
-
 #endif

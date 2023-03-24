@@ -57,7 +57,7 @@ signal_default(int n)
     }
 
     if (stop)
-        halt();
+        exit(EXIT_FAILURE);
 }
 
 static void

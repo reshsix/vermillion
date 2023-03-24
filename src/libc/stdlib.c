@@ -21,13 +21,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <h3/ports.h>
 
-#include <arm/interrupts.h>
-
 #include <interface/video.h>
 #include <interface/audio.h>
 #include <interface/storage.h>
 #include <interface/serial.h>
 #include <interface/timer.h>
+#include <interface/gic.h>
 
 /* Initialization */
 
@@ -54,61 +53,6 @@ init_serial(void)
     print(")\r\n");
 }
 
-static interrupt(undef)
-handler_undef(void)
-{
-    raise(SIGILL);
-}
-
-static interrupt(swi)
-handler_swi(void)
-{
-    raise(SIGINT);
-}
-
-static interrupt(abort)
-handler_prefetch(void)
-{
-    raise(SIGSEGV);
-}
-
-static interrupt(abort)
-handler_data(void)
-{
-    raise(SIGSEGV);
-}
-
-static interrupt(irq)
-handler_irq(void)
-{
-    enum intr_core c = 0;
-    u16 n = intr_irq_info(&c);
-
-    irq_handler(n);
-
-    intr_irq_ack(c, n);
-}
-
-static interrupt(fiq)
-handler_fiq(void)
-{
-    enum intr_core c = 0;
-    u16 n = intr_fiq_info(&c);
-
-    intr_fiq_ack(c, n);
-}
-
-static void
-init_interrupts(void)
-{
-    ivt[IVT_UNDEF]    = handler_undef;
-    ivt[IVT_SWI]      = handler_swi;
-    ivt[IVT_PREFETCH] = handler_prefetch;
-    ivt[IVT_DATA]     = handler_data;
-    ivt[IVT_IRQ]      = handler_irq;
-    ivt[IVT_FIQ]      = handler_fiq;
-}
-
 extern void exit(int);
 extern int kernel_main(void);
 static void init_malloc(void);
@@ -119,7 +63,9 @@ __init(void)
 
     init_led();
     init_malloc();
-    init_interrupts();
+
+    if (!ret)
+        ret = !_gic_init();
 
     if (!ret)
     {
@@ -160,6 +106,7 @@ __init(void)
     {
         ret = kernel_main();
 
+        _gic_clean();
         _serial_clean();
         _timer_clean();
         _video_clean();
@@ -193,7 +140,7 @@ atexit(void (*f)(void))
     return ret;
 }
 
-extern void
+extern void __attribute__((noreturn))
 exit(int code)
 {
     while (__atexit_c)
@@ -201,7 +148,14 @@ exit(int code)
 
     print("\r\nExited with code: ");
     print_hex(code);
-    halt();
+
+    pin_config(PA15, PIN_CFG_OUT);
+    pin_write(PA15, true);
+    pin_config(PL10, PIN_CFG_OUT);
+    pin_write(PL10, false);
+
+    for (;;)
+        gic_wait();
 }
 
 extern int

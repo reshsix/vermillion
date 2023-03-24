@@ -18,27 +18,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <h3/ports.h>
 
-#include <arm/interrupts.h>
-
 #include <interface/serial.h>
 #include <interface/timer.h>
-
-void (*irqs[256])(void) = {NULL};
-void (*fiqs[256])(void) = {NULL};
-
-extern void __attribute__((noreturn))
-halt(void)
-{
-    gic_disable();
-
-    pin_config(PA15, PIN_CFG_OUT);
-    pin_write(PA15, true);
-    pin_config(PL10, PIN_CFG_OUT);
-    pin_write(PL10, false);
-
-    for (;;)
-        arm_wait_interrupts();
-}
 
 extern void
 print(const char *s)
@@ -107,37 +88,4 @@ hsleep(const u32 n)
 {
     for (register u32 i = 0; i < (n / 4); i++)
         asm volatile ("nop");
-}
-
-extern void
-irq_config(u16 n, void (*f)(void), bool enable, u8 priority)
-{
-    arm_disable_irq();
-
-    gic_disable_dist();
-    gic_disable();
-    gic_priority(0xFF);
-
-    irqs[n] = f;
-
-    gic_intr_target(n, INTR_CORE_NONE);
-    gic_intr_activity(n, false);
-    gic_intr_priority(n, priority);
-    gic_intr_sensitivity(n, true, false);
-    if (enable)
-    {
-        gic_intr_activity(n, true);
-        gic_intr_target(n, INTR_CORE0);
-    }
-
-    gic_enable();
-    gic_enable_dist();
-
-    arm_enable_irq();
-}
-
-extern void
-irq_handler(u16 n)
-{
-    irqs[n]();
 }

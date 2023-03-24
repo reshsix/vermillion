@@ -14,10 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef H3_INTERRUPTS_H
-#define H3_INTERRUPTS_H
-
 #include <types.h>
+#include <signal.h>
 
 enum
 {
@@ -233,4 +231,102 @@ gic_intr_sensitivity(u16 n, bool edge, bool high)
     ICDICFR(reg) |= ((edge << 1) | high) << (off * 2);
 }
 
-#endif
+static void (*irqs[256])(void) = {NULL};
+
+static interrupt(undef)
+handler_undef(void)
+{
+    raise(SIGILL);
+}
+
+static interrupt(swi)
+handler_swi(void)
+{
+    raise(SIGINT);
+}
+
+static interrupt(abort)
+handler_prefetch(void)
+{
+    raise(SIGSEGV);
+}
+
+static interrupt(abort)
+handler_data(void)
+{
+    raise(SIGSEGV);
+}
+
+static interrupt(irq)
+handler_irq(void)
+{
+    enum intr_core c = 0;
+    u16 n = intr_irq_info(&c);
+
+    irqs[n]();
+
+    intr_irq_ack(c, n);
+}
+
+static interrupt(fiq)
+handler_fiq(void)
+{
+    enum intr_core c = 0;
+    u16 n = intr_fiq_info(&c);
+
+    intr_fiq_ack(c, n);
+}
+
+extern bool
+_gic_init(void)
+{
+    ivt[IVT_UNDEF]    = handler_undef;
+    ivt[IVT_SWI]      = handler_swi;
+    ivt[IVT_PREFETCH] = handler_prefetch;
+    ivt[IVT_DATA]     = handler_data;
+    ivt[IVT_IRQ]      = handler_irq;
+    ivt[IVT_FIQ]      = handler_fiq;
+
+    return true;
+}
+
+extern void
+_gic_clean(void)
+{
+    arm_disable_irq();
+    gic_disable_dist();
+    gic_disable();
+}
+
+extern void
+gic_config(u16 n, void (*f)(void), bool enable, u8 priority)
+{
+    arm_disable_irq();
+
+    gic_disable_dist();
+    gic_disable();
+    gic_priority(0xFF);
+
+    irqs[n] = f;
+
+    gic_intr_target(n, INTR_CORE_NONE);
+    gic_intr_activity(n, false);
+    gic_intr_priority(n, priority);
+    gic_intr_sensitivity(n, true, false);
+    if (enable)
+    {
+        gic_intr_activity(n, true);
+        gic_intr_target(n, INTR_CORE0);
+    }
+
+    gic_enable();
+    gic_enable_dist();
+
+    arm_enable_irq();
+}
+
+extern void
+gic_wait(void)
+{
+    arm_wait_interrupts();
+}

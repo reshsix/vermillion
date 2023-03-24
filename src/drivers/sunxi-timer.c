@@ -121,7 +121,7 @@ timer_stop(enum timer n)
 #include <types.h>
 #include <utils.h>
 
-#include <arm/interrupts.h>
+#include <interface/gic.h>
 
 static void
 irq_timer(void)
@@ -132,14 +132,14 @@ irq_timer(void)
 extern bool
 _timer_init(void)
 {
-    irq_config(CONFIG_SUNXI_TIMER_IRQ, irq_timer, true, 0);
+    gic_config(CONFIG_SUNXI_TIMER_IRQ, irq_timer, true, 0);
     return true;
 }
 
 extern void
 _timer_clean(void)
 {
-    irq_config(CONFIG_SUNXI_TIMER_IRQ, NULL, false, 0);
+    gic_config(CONFIG_SUNXI_TIMER_IRQ, NULL, false, 0);
 }
 
 extern void
@@ -155,7 +155,7 @@ timer_csleep(const u32 n)
     timer_start(TIMER0);
     while (1)
     {
-        arm_wait_interrupts();
+        gic_wait();
         u32 x = timer_current_get(TIMER0);
         if (x == 0 || x > n)
             break;
