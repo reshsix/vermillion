@@ -116,6 +116,27 @@ endchoice
 
 endmenu
 
+# Timer configuration
+
+menu "Timer"
+
+choice TIMER_DEVICE
+    prompt "Device"
+config TIMER_DUMMY
+    bool "Dummy device"
+config TIMER_SUNXI_TIMER
+    bool "Sunxi Timer"
+endchoice
+
+menu "Sunxi Timer"
+    depends on TIMER_SUNXI_TIMER
+config SUNXI_TIMER_IRQ
+    int "Timer0 IRQ"
+    default 50
+endmenu
+
+endmenu
+
 # Library configuration
 
 menu "Extra Libraries"

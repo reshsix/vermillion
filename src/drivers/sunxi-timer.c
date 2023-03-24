@@ -14,8 +14,7 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef H3_TIMERS_H
-#define H3_TIMERS_H
+#ifdef CONFIG_TIMER_SUNXI_TIMER
 
 #include <types.h>
 
@@ -113,6 +112,78 @@ static inline void
 timer_stop(enum timer n)
 {
     TMR_CTRL(n) &= ~0x1;
+}
+
+#endif
+
+#ifdef CONFIG_TIMER_SUNXI_TIMER
+
+#include <types.h>
+#include <utils.h>
+
+#include <arm/interrupts.h>
+
+static void
+irq_timer(void)
+{
+    timer_ack(TIMER0);
+}
+
+extern bool
+_timer_init(void)
+{
+    irq_config(CONFIG_SUNXI_TIMER_IRQ, irq_timer, true, 0);
+    return true;
+}
+
+extern void
+_timer_clean(void)
+{
+    irq_config(CONFIG_SUNXI_TIMER_IRQ, NULL, false, 0);
+}
+
+extern void
+timer_csleep(const u32 n)
+{
+    timer_enable(TIMER0);
+    timer_stop(TIMER0);
+
+    timer_interval_set(TIMER0, n);
+    timer_config(TIMER0, true, TIMER_CLK_24MHZ);
+    timer_reload(TIMER0);
+
+    timer_start(TIMER0);
+    while (1)
+    {
+        arm_wait_interrupts();
+        u32 x = timer_current_get(TIMER0);
+        if (x == 0 || x > n)
+            break;
+    }
+
+    timer_stop(TIMER0);
+    timer_disable(TIMER0);
+}
+
+extern void
+timer_usleep(const u32 n)
+{
+    for (s64 a = n * 24; a > 0; a -= UINT32_MAX)
+        timer_csleep((a < UINT32_MAX) ? a : UINT32_MAX);
+}
+
+extern void
+timer_msleep(const u32 n)
+{
+    for (s64 a = n * 1000; a > 0; a -= UINT32_MAX)
+        timer_usleep((a < UINT32_MAX) ? a : UINT32_MAX);
+}
+
+extern void
+timer_sleep(const u32 n)
+{
+    for (s64 a = n * 1000; a > 0; a -= UINT32_MAX)
+        timer_msleep((a < UINT32_MAX) ? a : UINT32_MAX);
 }
 
 #endif

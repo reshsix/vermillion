@@ -14,26 +14,12 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef DRIVERS_DUMMY_H
-#define DRIVERS_DUMMY_H
+#ifndef DRIVERS_SUNXI_TIMER_H
+#define DRIVERS_SUNXI_TIMER_H
 
-#ifdef CONFIG_VIDEO_DUMMY
+#ifdef CONFIG_TIMER_SUNXI_TIMER
 
-#define VIDEO_WIDTH  0
-#define VIDEO_HEIGHT 0
-#define VIDEO_DEPTH  0
-
-#endif
-
-#ifdef CONFIG_SERIAL_DUMMY
-
-#define SERIAL_PORTS 0
-
-#endif
-
-#ifdef CONFIG_TIMER_DUMMY
-
-#define TIMER_CLOCK 0
+#define TIMER_CLOCK 24000000
 
 #endif
 

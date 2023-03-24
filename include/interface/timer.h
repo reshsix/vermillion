@@ -14,27 +14,19 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef DRIVERS_DUMMY_H
-#define DRIVERS_DUMMY_H
+#ifndef INTERFACE_TIMER_H
+#define INTERFACE_TIMER_H
 
-#ifdef CONFIG_VIDEO_DUMMY
+#include <types.h>
+#include <drivers/dummy.h>
+#include <drivers/sunxi-timer.h>
 
-#define VIDEO_WIDTH  0
-#define VIDEO_HEIGHT 0
-#define VIDEO_DEPTH  0
+bool _timer_init(void);
+void _timer_clean(void);
 
-#endif
-
-#ifdef CONFIG_SERIAL_DUMMY
-
-#define SERIAL_PORTS 0
-
-#endif
-
-#ifdef CONFIG_TIMER_DUMMY
-
-#define TIMER_CLOCK 0
-
-#endif
+void timer_csleep(const u32 n);
+void timer_usleep(const u32 n);
+void timer_msleep(const u32 n);
+void timer_sleep(const u32 n);
 
 #endif

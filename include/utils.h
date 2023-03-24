@@ -104,8 +104,7 @@ quick_call(void *mem)
 
 #include <arm/interrupts.h>
 
-void irq_config(enum intr_number n, void (*f)(void),
-                bool enable, u8 priority);
-void irq_handler(enum intr_number n);
+void irq_config(u16 n, void (*f)(void), bool enable, u8 priority);
+void irq_handler(u16 n);
 
 #endif

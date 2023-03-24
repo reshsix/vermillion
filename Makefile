@@ -124,7 +124,7 @@ build/libc.a: build/libc/assert.o build/libc/bitbang.o \
               build/libc/string.o build/libc/utils.o
 build/libdrivers.a: build/drivers/dummy.o build/drivers/buzzer.o \
                     build/drivers/ili9488.o build/drivers/fat32.o \
-                    build/drivers/sunxi-uart.o
+                    build/drivers/sunxi-timer.o build/drivers/sunxi-uart.o
 
 # Specific recipes
 build/boot.o: boot.S deps/.gcc | build

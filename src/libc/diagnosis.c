@@ -16,9 +16,11 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #ifdef CONFIG_EXTRA_DIAGNOSIS
 
-#include <h3/ports.h>
 #include <signal.h>
-#include <utils.h>
+
+#include <h3/ports.h>
+
+#include <interface/timer.h>
 
 static enum pin gpio[40] = {999,  999,
                             PA12, 999,
@@ -86,7 +88,7 @@ check_gpio(void)
 
             pin_config(pin, PIN_CFG_IN);
             pin_pull(pin, PIN_PULLDOWN);
-            usleep(10);
+            timer_usleep(10);
 
             bool f = pin_read(pin);
             if (!f)
@@ -103,7 +105,7 @@ check_gpio(void)
 
             pin_config(pin, PIN_CFG_IN);
             pin_pull(pin, PIN_PULLUP);
-            usleep(10);
+            timer_usleep(10);
 
             bool t = pin_read(pin);
             if (t)
@@ -119,14 +121,14 @@ check_gpio(void)
             GET_PIN;
 
             pin_config(pin, PIN_CFG_OUT);
-            usleep(10);
+            timer_usleep(10);
 
             pin_write(pin, true);
-            usleep(10);
+            timer_usleep(10);
             bool t = pin_read(pin);
 
             pin_write(pin, false);
-            usleep(10);
+            timer_usleep(10);
             bool f = pin_read(pin);
 
             if (t && !f)

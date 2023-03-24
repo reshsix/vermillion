@@ -17,9 +17,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifdef CONFIG_VIDEO_ILI9488_SPI_X
 
 #include <types.h>
-#include <utils.h>
 #include <stdarg.h>
+#include <stdlib.h>
+
 #include <h3/ports.h>
+
+#include <interface/timer.h>
 
 struct ili9488
 {
@@ -145,10 +148,10 @@ ili9488_start(struct ili9488 *ili, u8 *splash, u16 splash_w, u16 splash_h)
 
     ili9488_command(ili, 1, 0x00, 0);
     ili9488_command(ili, 1, 0x01, 0);
-    msleep(10);
+    timer_msleep(10);
 
     ili9488_command(ili, 1, 0x11);
-    msleep(5);
+    timer_msleep(5);
 
     ili9488_command(ili, 2, 0x36, 0xE8);
     ili9488_command(ili, 2, 0x3A, 0x06);
@@ -160,7 +163,7 @@ ili9488_start(struct ili9488 *ili, u8 *splash, u16 splash_w, u16 splash_h)
 
     ili9488_command(ili, 1, 0x13);
     ili9488_command(ili, 1, 0x29);
-    msleep(10);
+    timer_msleep(10);
 
     pin_write(ili->leds, false);
 }

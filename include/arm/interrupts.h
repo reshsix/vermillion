@@ -62,12 +62,6 @@ enum intr_core
     INTR_CORE_NONE = 255
 };
 
-enum intr_number
-{
-    IRQ_TIMER0 = 50,
-    IRQ_TIMER1
-};
-
 static inline u32
 intr_swi_number(void)
 {
@@ -98,7 +92,7 @@ intr_undef_address(void)
     return intr_abort_prefetch_address();
 }
 
-static inline enum intr_number
+static inline u16
 intr_irq_info(enum intr_core *c)
 {
     u32 info = ICCIAR;
@@ -106,20 +100,20 @@ intr_irq_info(enum intr_core *c)
     return info & 0x3FF;
 }
 
-static inline enum intr_number
+static inline u16
 intr_fiq_info(enum intr_core *c)
 {
     return intr_irq_info(c);
 }
 
 static inline void
-intr_irq_ack(enum intr_core c, enum intr_number n)
+intr_irq_ack(enum intr_core c, u16 n)
 {
     ICCEOIR = (c << 10) | (n & 0x3FF);
 }
 
 static inline void
-intr_fiq_ack(enum intr_core c, enum intr_number n)
+intr_fiq_ack(enum intr_core c, u16 n)
 {
     intr_irq_ack(c, n);
 }
@@ -197,7 +191,7 @@ gic_priority(u32 value)
 }
 
 static inline void
-gic_intr_activity(enum intr_number n, bool enable)
+gic_intr_activity(u16 n, bool enable)
 {
     u8 reg = n / 32;
     u8 off = n % 32;
@@ -209,7 +203,7 @@ gic_intr_activity(enum intr_number n, bool enable)
 }
 
 static inline void
-gic_intr_target(enum intr_number n, enum intr_core c)
+gic_intr_target(u16 n, enum intr_core c)
 {
     u8 reg = n / 4;
     u8 off = n % 4;
@@ -220,7 +214,7 @@ gic_intr_target(enum intr_number n, enum intr_core c)
 }
 
 static inline void
-gic_intr_priority(enum intr_number n, u8 priority)
+gic_intr_priority(u16 n, u8 priority)
 {
     u8 reg = n / 4;
     u8 off = n % 4;
@@ -230,7 +224,7 @@ gic_intr_priority(enum intr_number n, u8 priority)
 }
 
 static inline void
-gic_intr_sensitivity(enum intr_number n, bool edge, bool high)
+gic_intr_sensitivity(u16 n, bool edge, bool high)
 {
     u8 reg = n / 16;
     u8 off = n % 16;

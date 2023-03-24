@@ -20,7 +20,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <utils.h>
 
 #include <h3/ports.h>
-#include <h3/timers.h>
 
 #include <arm/interrupts.h>
 
@@ -28,6 +27,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <interface/audio.h>
 #include <interface/storage.h>
 #include <interface/serial.h>
+#include <interface/timer.h>
 
 /* Initialization */
 
@@ -82,7 +82,7 @@ static interrupt(irq)
 handler_irq(void)
 {
     enum intr_core c = 0;
-    enum intr_number n = intr_irq_info(&c);
+    u16 n = intr_irq_info(&c);
 
     irq_handler(n);
 
@@ -93,15 +93,9 @@ static interrupt(fiq)
 handler_fiq(void)
 {
     enum intr_core c = 0;
-    enum intr_number n = intr_fiq_info(&c);
+    u16 n = intr_fiq_info(&c);
 
     intr_fiq_ack(c, n);
-}
-
-static void
-irq_timer(void)
-{
-    timer_ack(TIMER0);
 }
 
 static void
@@ -113,8 +107,6 @@ init_interrupts(void)
     ivt[IVT_DATA]     = handler_data;
     ivt[IVT_IRQ]      = handler_irq;
     ivt[IVT_FIQ]      = handler_fiq;
-
-    irq_config(IRQ_TIMER0, irq_timer, true, 0);
 }
 
 extern void exit(int);
@@ -134,6 +126,13 @@ __init(void)
         ret = !_serial_init();
         if (!ret)
             init_serial();
+    }
+
+    if (!ret)
+    {
+        ret = !_timer_init();
+        if (ret)
+            print("Failed to initialize timer interface\r\n");
     }
 
     if (!ret)
@@ -161,6 +160,8 @@ __init(void)
     {
         ret = kernel_main();
 
+        _serial_clean();
+        _timer_clean();
         _video_clean();
         _audio_clean();
         _storage_clean();

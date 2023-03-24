@@ -187,3 +187,45 @@ serial_write(u8 port, u16 data)
 }
 
 #endif
+
+#ifdef CONFIG_TIMER_DUMMY
+
+#include <types.h>
+
+extern bool
+_timer_init(void)
+{
+    return true;
+}
+
+extern void
+_timer_clean(void)
+{
+    return;
+}
+
+extern void
+timer_csleep(const u32 n)
+{
+    (void)n;
+}
+
+extern void
+timer_usleep(const u32 n)
+{
+    (void)n;
+}
+
+extern void
+timer_msleep(const u32 n)
+{
+    (void)n;
+}
+
+extern void
+timer_sleep(const u32 n)
+{
+    (void)n;
+}
+
+#endif

@@ -17,10 +17,11 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifdef CONFIG_AUDIO_BUZZER
 
 #include <types.h>
-#include <utils.h>
 #include <stdlib.h>
 
 #include <h3/ports.h>
+
+#include <interface/timer.h>
 
 struct buzzer
 {
@@ -60,9 +61,9 @@ buzzer_note(struct buzzer *bz, u16 freq, u16 duration)
     for (u32 i = 0; i < (duration * 1000) / (delay * 2); i++)
     {
         pin_write(bz->pin, true);
-        usleep(delay);
+        timer_usleep(delay);
         pin_write(bz->pin, false);
-        usleep(delay);
+        timer_usleep(delay);
     }
 }
 
@@ -72,7 +73,7 @@ buzzer_sample(struct buzzer *bz, u16 freq, u8 *data, size_t size)
     for (size_t i = 0; i < size; i++)
     {
         pin_write(bz->pin, data[i] >= UINT8_MAX / 2);
-        usleep(1000000 / freq);
+        timer_usleep(1000000 / freq);
     }
 }
 
@@ -104,10 +105,10 @@ _audio_init(void)
         for (int i = 0; i < 4; i++)
         {
             buzzer_note(audio.bz, 329, 100);
-            msleep(100);
+            timer_msleep(100);
         }
         buzzer_note(audio.bz, 523, 500);
-        msleep(100);
+        timer_msleep(100);
 
         ret = true;
     }

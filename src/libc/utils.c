@@ -17,11 +17,11 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <types.h>
 
 #include <h3/ports.h>
-#include <h3/timers.h>
 
 #include <arm/interrupts.h>
 
 #include <interface/serial.h>
+#include <interface/timer.h>
 
 void (*irqs[256])(void) = {NULL};
 void (*fiqs[256])(void) = {NULL};
@@ -110,52 +110,7 @@ hsleep(const u32 n)
 }
 
 extern void
-csleep(const u32 n)
-{
-    timer_enable(TIMER0);
-    timer_stop(TIMER0);
-
-    timer_interval_set(TIMER0, n);
-    timer_config(TIMER0, true, TIMER_CLK_24MHZ);
-    timer_reload(TIMER0);
-
-    timer_start(TIMER0);
-    while (1)
-    {
-        arm_wait_interrupts();
-        u32 x = timer_current_get(TIMER0);
-        if (x == 0 || x > n)
-            break;
-    }
-
-    timer_stop(TIMER0);
-    timer_disable(TIMER0);
-}
-
-extern void
-usleep(const u32 n)
-{
-    for (s64 a = n * 24; a > 0; a -= UINT32_MAX)
-        csleep((a < UINT32_MAX) ? a : UINT32_MAX);
-}
-
-extern void
-msleep(const u32 n)
-{
-    for (s64 a = n * 1000; a > 0; a -= UINT32_MAX)
-        usleep((a < UINT32_MAX) ? a : UINT32_MAX);
-}
-
-extern void
-sleep(const u32 n)
-{
-    for (s64 a = n * 1000; a > 0; a -= UINT32_MAX)
-        msleep((a < UINT32_MAX) ? a : UINT32_MAX);
-}
-
-extern void
-irq_config(enum intr_number n, void (*f)(void),
-           bool enable, u8 priority)
+irq_config(u16 n, void (*f)(void), bool enable, u8 priority)
 {
     arm_disable_irq();
 
@@ -182,7 +137,7 @@ irq_config(enum intr_number n, void (*f)(void),
 }
 
 extern void
-irq_handler(enum intr_number n)
+irq_handler(u16 n)
 {
     irqs[n]();
 }

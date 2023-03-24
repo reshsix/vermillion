@@ -16,16 +16,25 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #ifdef CONFIG_EXTRA_BITBANG
 
-#include <h3/ports.h>
-#include <utils.h>
-
+#include <stdlib.h>
 #include <bitbang.h>
+
+#include <h3/ports.h>
+
+#include <interface/timer.h>
 
 static void
 empty(u32 x)
 {
     (void)(x);
     return;
+}
+
+static void
+hsleep(const u32 n)
+{
+    for (register u32 i = 0; i < (n / 4); i++)
+        asm volatile ("nop");
 }
 
 extern struct spi *
@@ -73,10 +82,10 @@ spi_config(struct spi *s, u32 freq, u8 mode, bool lsb)
 
     if (freq == 0)
         s->sleep = empty;
-    else if (freq <= 12000000)
+    else if (freq <= TIMER_CLOCK / 2)
     {
-        s->sleep = csleep;
-        s->delay = 24000000 / freq / 2;
+        s->sleep = timer_csleep;
+        s->delay = TIMER_CLOCK / freq / 2;
     }
     else
     {
