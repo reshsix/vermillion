@@ -21,9 +21,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <drivers/dummy.h>
 #include <drivers/buzzer.h>
 
-struct audio;
-extern struct audio audio;
-
 bool _audio_init(void);
 void _audio_clean(void);
 

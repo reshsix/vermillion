@@ -20,8 +20,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <types.h>
 #include <drivers/fat32.h>
 
-struct storage;
-extern struct storage storage;
 struct file;
 
 bool _storage_init(void);

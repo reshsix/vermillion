@@ -21,9 +21,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <drivers/dummy.h>
 #include <drivers/ili9488.h>
 
-struct video;
-extern struct video video;
-
 bool _video_init(void);
 void _video_clean(void);
 
