@@ -14,7 +14,7 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifdef CONFIG_VIDEO_DUMMY
+#ifndef CONFIG_VIDEO
 
 #include <types.h>
 
@@ -51,7 +51,7 @@ video_clear(void)
 
 #endif
 
-#ifdef CONFIG_AUDIO_DUMMY
+#ifndef CONFIG_AUDIO
 
 #include <types.h>
 
@@ -88,7 +88,7 @@ audio_sample(u16 freq, u8 *data, size_t size)
 
 #endif
 
-#ifdef CONFIG_STORAGE_DUMMY
+#ifndef CONFIG_STORAGE
 
 #include <types.h>
 
@@ -147,7 +147,7 @@ storage_read(struct file *f, u32 sector, u8 *buffer)
 
 #endif
 
-#ifdef CONFIG_SERIAL_DUMMY
+#ifndef CONFIG_SERIAL
 
 #include <types.h>
 #include <interface/serial.h>
@@ -188,7 +188,7 @@ serial_write(u8 port, u16 data)
 
 #endif
 
-#ifdef CONFIG_TIMER_DUMMY
+#ifndef CONFIG_TIMER
 
 #include <types.h>
 

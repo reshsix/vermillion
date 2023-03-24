@@ -53,19 +53,22 @@ endmenu
 
 # Video configuration
 
-menu "Video Output"
+config VIDEO
+    bool
+    default y
+menuconfig VIDEO
+    prompt "Video Output"
 
 choice VIDEO_DEVICE
     prompt "Device"
-config VIDEO_DUMMY
-    bool "Dummy device"
+    depends on VIDEO
 config VIDEO_ILI9488_SPI_X
     bool "Ili9488 SPI-X"
     select EXTRA_BITBANG
 endchoice
 
 menu "Ili9488 SPI-X"
-    depends on VIDEO_ILI9488_SPI_X
+    depends on VIDEO && VIDEO_ILI9488_SPI_X
 config ILI9488_SS
     string "SS pin"
     default PA0
@@ -86,76 +89,79 @@ config ILI9488_LEDS
     default PA11
 endmenu
 
-endmenu
 
 # Audio configuration
 
-menu "Audio Output"
+config AUDIO
+    bool
+    default y
+menuconfig AUDIO
+    prompt "Audio Output"
 
 choice AUDIO_DEVICE
     prompt "Device"
-config AUDIO_DUMMY
-    bool "Dummy device"
+    depends on AUDIO
 config AUDIO_BUZZER
     bool "Buzzer"
 endchoice
 
 menu "Buzzer"
-    depends on AUDIO_BUZZER
+    depends on AUDIO && AUDIO_BUZZER
 config BUZZER_PIN
     string "Output pin"
     default PA13
 endmenu
 
-endmenu
-
 # Storage configuration
 
-menu "Storage"
+config STORAGE
+    bool
+    default y
+menuconfig STORAGE
+    prompt "Storage"
 
 choice STORAGE_DEVICE
     prompt "Device"
-config STORAGE_DUMMY
-    bool "Dummy device"
+    depends on STORAGE
 config STORAGE_FAT32_MBR_SD0
     bool "SD Card 0 (MBR/Fat32)"
 endchoice
 
-endmenu
-
 # Serial configuration
 
-menu "Serial"
+config SERIAL
+    bool
+    default y
+menuconfig SERIAL
+    prompt "Serial"
 
 choice SERIAL_DEVICE
     prompt "Device"
-config SERIAL_DUMMY
-    bool "Dummy device"
+    depends on SERIAL
 config SERIAL_SUNXI_UART
     bool "Sunxi UART"
 endchoice
 
-endmenu
-
 # Timer configuration
 
-menu "Timer"
+config TIMER
+    bool
+    default y
+menuconfig TIMER
+    prompt "Timer"
 
 choice TIMER_DEVICE
     prompt "Device"
-config TIMER_DUMMY
-    bool "Dummy device"
+    depends on TIMER
 config TIMER_SUNXI_TIMER
     bool "Sunxi Timer"
 endchoice
 
 menu "Sunxi Timer"
-    depends on TIMER_SUNXI_TIMER
+    depends on TIMER && TIMER_SUNXI_TIMER
 config SUNXI_TIMER_IRQ
     int "Timer0 IRQ"
     default 50
-endmenu
-
 endmenu
 
 # Library configuration

@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef DRIVERS_DUMMY_H
 #define DRIVERS_DUMMY_H
 
-#ifdef CONFIG_VIDEO_DUMMY
+#ifndef CONFIG_VIDEO
 
 #define VIDEO_WIDTH  0
 #define VIDEO_HEIGHT 0
@@ -25,13 +25,13 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #endif
 
-#ifdef CONFIG_SERIAL_DUMMY
+#ifndef CONFIG_SERIAL
 
 #define SERIAL_PORTS 0
 
 #endif
 
-#ifdef CONFIG_TIMER_DUMMY
+#ifndef CONFIG_TIMER
 
 #define TIMER_CLOCK 0
 
