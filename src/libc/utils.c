@@ -82,10 +82,3 @@ print_uint(const u32 n)
     if (!start)
         serial_write(0, '0');
 }
-
-extern void
-hsleep(const u32 n)
-{
-    for (register u32 i = 0; i < (n / 4); i++)
-        asm volatile ("nop");
-}
