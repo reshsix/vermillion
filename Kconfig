@@ -115,19 +115,19 @@ config BUZZER_PIN
     default PA13
 endmenu
 
-# Storage configuration
+# Filesystem configuration
 
-config STORAGE
+config FILESYSTEM
     bool
     default y
-menuconfig STORAGE
-    prompt "Storage"
+menuconfig FILESYSTEM
+    prompt "Filesystem"
 
-choice STORAGE_DEVICE
-    prompt "Device"
-    depends on STORAGE
-config STORAGE_FAT32_MBR_SD0
-    bool "SD Card 0 (MBR/Fat32)"
+choice FILESYSTEM_FORMAT
+    prompt "Format"
+    depends on FILESYSTEM
+config STORAGE_FAT32_MBR
+    bool "Fat32 MBR"
 endchoice
 
 # Serial configuration

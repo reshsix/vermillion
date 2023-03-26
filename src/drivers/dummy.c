@@ -84,56 +84,56 @@ audio_sample(u16 freq, u8 *data, size_t size)
 
 #endif
 
-#ifndef CONFIG_STORAGE
+#ifndef CONFIG_FS
 
 #include <_types.h>
 
-struct storage
+struct fs
 {
     u8 dummy;
 };
 
 extern bool
-_storage_init(void)
+_fs_init(void)
 {
     return true;
 }
 
 extern void
-_storage_clean(void)
+_fs_clean(void)
 {
     return;
 }
 
 extern struct file *
-storage_open(char *path)
+fs_open(char *path)
 {
     (void)path;
     return NULL;
 }
 
 extern struct file *
-storage_close(struct file *f)
+fs_close(struct file *f)
 {
     (void)f;
     return NULL;
 }
 
 extern void
-storage_info(struct file *f, size_t *size, s32 *files)
+fs_info(struct file *f, size_t *size, s32 *files)
 {
     (void)f, (void)size, (void)files;
 }
 
 extern struct file *
-storage_index(struct file *f, u32 index)
+fs_index(struct file *f, u32 index)
 {
     (void)f, (void)index;
     return NULL;
 }
 
 extern bool
-storage_read(struct file *f, u32 sector, u8 *buffer)
+fs_read(struct file *f, u32 sector, u8 *buffer)
 {
     (void)f, (void)sector, (void)buffer;
     return false;

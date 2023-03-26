@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef DRIVERS_FAT32_H
 #define DRIVERS_FAT32_H
 
-#ifdef CONFIG_STORAGE_FAT32_MBR_SD0
+#ifdef CONFIG_FS_FAT32_MBR
 #endif
 
 #endif

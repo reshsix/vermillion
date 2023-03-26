@@ -20,7 +20,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <string.h>
 
-#include <interface/storage.h>
+#include <interface/fs.h>
 
 typedef struct _FILE
 {
@@ -44,7 +44,7 @@ fclose(FILE *f)
 
     if (f)
     {
-        storage_close(f->file);
+        fs_close(f->file);
         free(f);
         ret = 0;
     }
@@ -64,7 +64,7 @@ fopen(const char *path, const char *mode)
 
     if (ret)
     {
-        ret->file = storage_open((char*)path);
+        ret->file = fs_open((char*)path);
         if (!(ret->file))
         {
             errno = ENOENT;
@@ -89,7 +89,7 @@ fread(void *buffer, size_t size, size_t count, FILE *f)
     if (f)
     {
         bytes = size * count;
-        storage_info(f->file, &fsize, NULL);
+        fs_info(f->file, &fsize, NULL);
         if ((f->position + bytes) >= fsize)
         {
             bytes = fsize - f->position - 1;
@@ -103,7 +103,7 @@ fread(void *buffer, size_t size, size_t count, FILE *f)
         u32 sector = f->position / 0x200;
         if (!(f->cached) || sector != f->cachedsect)
         {
-            if (storage_read(f->file, sector, f->cache))
+            if (fs_read(f->file, sector, f->cache))
             {
                 f->cachedsect = sector;
                 f->cached = true;
@@ -182,7 +182,7 @@ fseek(FILE *f, long offset, int origin)
     int ret = 0;
 
     size_t size = 0;
-    storage_info(f->file, &size, NULL);
+    fs_info(f->file, &size, NULL);
 
     switch (origin)
     {

@@ -14,21 +14,21 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef INTERFACE_STORAGE_H
-#define INTERFACE_STORAGE_H
+#ifndef INTERFACE_FS_H
+#define INTERFACE_FS_H
 
 #include <_types.h>
 #include <drivers/fat32.h>
 
 struct file;
 
-bool _storage_init(void);
-void _storage_clean(void);
+bool _fs_init(void);
+void _fs_clean(void);
 
-struct file *storage_open(char *path);
-struct file *storage_close(struct file *f);
-void storage_info(struct file *f, size_t *size, s32 *files);
-struct file *storage_index(struct file *f, u32 index);
-bool storage_read(struct file *f, u32 sector, u8 *buffer);
+struct file *fs_open(char *path);
+struct file *fs_close(struct file *f);
+void fs_info(struct file *f, size_t *size, s32 *files);
+struct file *fs_index(struct file *f, u32 index);
+bool fs_read(struct file *f, u32 sector, u8 *buffer);
 
 #endif

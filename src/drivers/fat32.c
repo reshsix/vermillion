@@ -14,7 +14,7 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifdef CONFIG_STORAGE_FAT32_MBR_SD0
+#ifdef CONFIG_FS_FAT32_MBR
 
 #include <_types.h>
 #include <string.h>
@@ -467,16 +467,16 @@ fat32_read(struct fat32 *f, struct fat32e *fe, u32 sector, u8 *out)
 
 #endif
 
-#ifdef CONFIG_STORAGE_FAT32_MBR_SD0
+#ifdef CONFIG_FS_FAT32_MBR_SD0
 
 #include <h3/sd.h>
 
-struct storage
+struct fs
 {
     struct fat32 *fat32;
 };
 
-static struct storage storage;
+static struct fs fs;
 
 struct file
 {
@@ -485,21 +485,21 @@ struct file
 };
 
 extern void
-_storage_clean(void)
+_fs_clean(void)
 {
-    fat32_del(storage.fat32);
+    fat32_del(fs.fat32);
 }
 
 extern bool
-_storage_init(void)
+_fs_init(void)
 {
     bool ret = false;
 
     if (sd_read(fat32_buf, 0, 1))
     {
         u32 lba = ((u32*)&(fat32_buf[0x1BE]))[2];
-        storage.fat32 = fat32_new(lba, sd_read);
-        if (storage.fat32)
+        fs.fat32 = fat32_new(lba, sd_read);
+        if (fs.fat32)
             ret = true;
     }
 
@@ -507,30 +507,30 @@ _storage_init(void)
 }
 
 extern struct file *
-storage_close(struct file *f)
+fs_close(struct file *f)
 {
     free(f);
     return NULL;
 }
 
 extern struct file *
-storage_open(char *path)
+fs_open(char *path)
 {
     struct file *ret = malloc(sizeof(struct file));
 
     if (ret)
     {
-        ret->fat32 = storage.fat32;
+        ret->fat32 = fs.fat32;
         ret->fat32e = fat32_find(ret->fat32, path);
         if (!(ret->fat32e))
-            ret = storage_close(ret);
+            ret = fs_close(ret);
     }
 
     return ret;
 }
 
 extern void
-storage_info(struct file *f, size_t *size, s32 *files)
+fs_info(struct file *f, size_t *size, s32 *files)
 {
     if (f && size)
         *size = f->fat32e->size;
@@ -540,7 +540,7 @@ storage_info(struct file *f, size_t *size, s32 *files)
 }
 
 extern struct file *
-storage_index(struct file *f, u32 index)
+fs_index(struct file *f, u32 index)
 {
     struct file *ret = NULL;
 
@@ -557,7 +557,7 @@ storage_index(struct file *f, u32 index)
 }
 
 extern bool
-storage_read(struct file *f, u32 sector, u8 *buffer)
+fs_read(struct file *f, u32 sector, u8 *buffer)
 {
     bool ret = false;
 
