@@ -102,12 +102,19 @@ fread(void *buffer, size_t size, size_t count, FILE *f)
     {
         u32 sector = f->position / 0x200;
         if (!(f->cached) || sector != f->cachedsect)
-            if (!(storage_read(f->file, sector, f->cache)))
+        {
+            if (storage_read(f->file, sector, f->cache))
+            {
+                f->cachedsect = sector;
+                f->cached = true;
+            }
+            else
                 break;
+        }
 
         u16 partial = (bytes > 0x200) ? 0x200 - (f->position % 0x200) : bytes;
 
-        memcpy(buffer, f->cache, partial);
+        memcpy(buffer, &(f->cache[f->position % 0x200]), partial);
         f->position += partial;
 
         buffer = &(((u8*)buffer)[partial]);
