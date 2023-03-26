@@ -14,8 +14,7 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef H3_SD_H
-#define H3_SD_H
+#ifdef CONFIG_STORAGE_SUNXI_MMC
 
 #include <_types.h>
 
@@ -28,8 +27,20 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define SD_STA   *(volatile u32*)(SD + 0x3C)
 #define SD_FIFO  *(volatile u32*)(SD + 0x200)
 
-static bool
-sd_read(u8 *buffer, u32 block, u32 count)
+extern bool
+_storage_init(void)
+{
+    return true;
+}
+
+extern void
+_storage_clean(void)
+{
+    return;
+}
+
+extern bool
+storage_read(u8 *buffer, u32 block, u32 count)
 {
     if (count != 0)
     {

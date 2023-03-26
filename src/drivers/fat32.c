@@ -20,8 +20,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <string.h>
 #include <stdlib.h>
 
-#include <drivers/fat32.h>
-
 struct fat32br
 {
     u8 jmp[3];
@@ -358,9 +356,9 @@ fat32_transverse(struct fat32 *f, u32 cluster, struct fat32e *out)
     return ret;
 }
 
-/* External interface */
+/* Internal interface */
 
-extern struct fat32 *
+static struct fat32 *
 fat32_del(struct fat32 *f)
 {
     if (f)
@@ -372,7 +370,7 @@ fat32_del(struct fat32 *f)
     return NULL;
 }
 
-extern struct fat32 *
+static struct fat32 *
 fat32_new(u32 lba, bool (*read)(u8*, u32, u32))
 {
     struct fat32 *ret = calloc(1, sizeof(struct fat32));
@@ -421,7 +419,7 @@ fat32_new(u32 lba, bool (*read)(u8*, u32, u32))
     return ret;
 }
 
-extern struct fat32e *
+static struct fat32e *
 fat32_find(struct fat32 *f, char *path)
 {
     bool found = true;
@@ -443,7 +441,7 @@ fat32_find(struct fat32 *f, char *path)
     return (found) ? cur : NULL;
 }
 
-extern bool
+static bool
 fat32_read(struct fat32 *f, struct fat32e *fe, u32 sector, u8 *out)
 {
     bool ret = false;
@@ -467,9 +465,9 @@ fat32_read(struct fat32 *f, struct fat32e *fe, u32 sector, u8 *out)
 
 #endif
 
-#ifdef CONFIG_FS_FAT32_MBR_SD0
+#ifdef CONFIG_FS_FAT32_MBR
 
-#include <h3/sd.h>
+#include <interface/storage.h>
 
 struct fs
 {
@@ -495,10 +493,10 @@ _fs_init(void)
 {
     bool ret = false;
 
-    if (sd_read(fat32_buf, 0, 1))
+    if (storage_read(fat32_buf, 0, 1))
     {
         u32 lba = ((u32*)&(fat32_buf[0x1BE]))[2];
-        fs.fat32 = fat32_new(lba, sd_read);
+        fs.fat32 = fat32_new(lba, storage_read);
         if (fs.fat32)
             ret = true;
     }

@@ -125,7 +125,7 @@ build/libdrivers.a: build/drivers/dummy.o build/drivers/buzzer.o \
                     build/drivers/ili9488.o build/drivers/fat32.o \
                     build/drivers/sunxi-timer.o build/drivers/sunxi-uart.o \
                     build/drivers/gic.o build/drivers/elf-fdpic.o \
-                    build/drivers/bitbang.o
+                    build/drivers/bitbang.o build/drivers/sunxi-mmc.o
 
 # Specific recipes
 build/boot.o: boot.S deps/.gcc | build

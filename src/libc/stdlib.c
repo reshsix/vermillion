@@ -23,6 +23,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <interface/video.h>
 #include <interface/audio.h>
+#include <interface/storage.h>
 #include <interface/fs.h>
 #include <interface/serial.h>
 #include <interface/timer.h>
@@ -105,6 +106,13 @@ __init(void)
 
     if (!ret)
     {
+        ret = !_storage_init();
+        if (ret)
+            print("Failed to initialize storage interface\r\n");
+    }
+
+    if (!ret)
+    {
         ret = !_fs_init();
         if (ret)
             print("Failed to initialize filesystem interface\r\n");
@@ -120,6 +128,7 @@ __init(void)
         _timer_clean();
         _video_clean();
         _audio_clean();
+        _storage_clean();
         _fs_clean();
     }
 

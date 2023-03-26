@@ -84,6 +84,30 @@ audio_sample(u16 freq, u8 *data, size_t size)
 
 #endif
 
+#ifndef CONFIG_STORAGE
+
+#include <_types.h>
+
+extern bool
+_storage_init(void)
+{
+    return true;
+}
+
+extern void
+_storage_clean(void)
+{
+    return;
+}
+
+extern bool
+storage_read(u8 *buffer, u32 block, u32 count)
+{
+    return true;
+}
+
+#endif
+
 #ifndef CONFIG_FS
 
 #include <_types.h>

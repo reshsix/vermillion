@@ -115,18 +115,33 @@ config BUZZER_PIN
     default PA13
 endmenu
 
-# Filesystem configuration
+# Storage configuration
 
-config FILESYSTEM
+config STORAGE
     bool
     default y
-menuconfig FILESYSTEM
+menuconfig STORAGE
+    prompt "Storage"
+
+choice STORAGE_DEVICE
+    prompt "Device"
+    depends on STORAGE
+config STORAGE_SUNXI_MMC
+    bool "Sunxi SD/MMC"
+endchoice
+
+# Filesystem configuration
+
+config FS
+    bool
+    default y
+menuconfig FS
     prompt "Filesystem"
 
-choice FILESYSTEM_FORMAT
+choice FS_FORMAT
     prompt "Format"
-    depends on FILESYSTEM
-config STORAGE_FAT32_MBR
+    depends on FS
+config FS_FAT32_MBR
     bool "Fat32 MBR"
 endchoice
 
