@@ -16,7 +16,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #ifdef CONFIG_TIMER_SUNXI_TIMER
 
-#include <types.h>
+#include <_types.h>
 
 #define TIMERS 0x01C20C00
 #define TMR_IRQ_EN  *(volatile u32*)(TIMERS + 0x0)
@@ -118,8 +118,8 @@ timer_stop(enum timer n)
 
 #ifdef CONFIG_TIMER_SUNXI_TIMER
 
-#include <types.h>
-#include <utils.h>
+#include <_types.h>
+#include <_utils.h>
 
 #include <interface/gic.h>
 

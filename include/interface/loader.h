@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef INTERFACE_LOADER_H
 #define INTERFACE_LOADER_H
 
-#include <types.h>
+#include <_types.h>
 #include <drivers/elf-fdpic.h>
 
 bool _loader_init(void);

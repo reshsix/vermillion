@@ -16,7 +16,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <errno.h>
 #include <stdio.h>
-#include <types.h>
+#include <_types.h>
 #include <stdlib.h>
 #include <string.h>
 

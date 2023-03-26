@@ -14,7 +14,7 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <utils.h>
+#include <_utils.h>
 
 extern int
 __assert(const char *f, int l, const char *fn, const char *e)

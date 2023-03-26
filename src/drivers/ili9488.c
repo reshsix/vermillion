@@ -16,7 +16,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #ifdef CONFIG_VIDEO_ILI9488_SPI
 
-#include <types.h>
+#include <_types.h>
 #include <stdarg.h>
 #include <stdlib.h>
 
@@ -179,7 +179,7 @@ struct video
     struct ili9488 *ili;
 };
 
-struct video video;
+static struct video video;
 
 extern void
 _video_clean(void)

@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef _STDIO_H
 #define _STDIO_H
 
-#include <types.h>
+#include <_types.h>
 #include <stddef.h>
 
 typedef struct _FILE FILE;

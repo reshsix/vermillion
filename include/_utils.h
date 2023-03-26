@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef _UTILS_H
 #define _UTILS_H
 
-#include <types.h>
+#include <_types.h>
 #include <stdlib.h>
 #include <string.h>
 

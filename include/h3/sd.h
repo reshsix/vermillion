@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef H3_SD_H
 #define H3_SD_H
 
-#include <types.h>
+#include <_types.h>
 
 #define SD 0x01C0F000
 #define SD_CFG   *(volatile u32*)(SD + 0x00)

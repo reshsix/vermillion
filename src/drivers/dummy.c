@@ -16,14 +16,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #ifndef CONFIG_VIDEO
 
-#include <types.h>
+#include <_types.h>
 
 struct video
 {
     u8 dummy;
 };
-
-struct video video;
 
 extern bool
 _video_init(void)
@@ -53,14 +51,12 @@ video_clear(void)
 
 #ifndef CONFIG_AUDIO
 
-#include <types.h>
+#include <_types.h>
 
 struct audio
 {
     u8 dummy;
 };
-
-struct audio audio;
 
 extern bool
 _audio_init(void)
@@ -90,14 +86,12 @@ audio_sample(u16 freq, u8 *data, size_t size)
 
 #ifndef CONFIG_STORAGE
 
-#include <types.h>
+#include <_types.h>
 
 struct storage
 {
     u8 dummy;
 };
-
-struct storage storage;
 
 extern bool
 _storage_init(void)
@@ -149,7 +143,7 @@ storage_read(struct file *f, u32 sector, u8 *buffer)
 
 #ifndef CONFIG_SERIAL
 
-#include <types.h>
+#include <_types.h>
 #include <interface/serial.h>
 
 extern bool
@@ -190,7 +184,7 @@ serial_write(u8 port, u16 data)
 
 #ifndef CONFIG_TIMER
 
-#include <types.h>
+#include <_types.h>
 
 extern bool
 _timer_init(void)
@@ -232,7 +226,7 @@ timer_sleep(const u32 n)
 
 #ifndef CONFIG_SPI
 
-#include <types.h>
+#include <_types.h>
 
 extern bool
 _spi_init(void)

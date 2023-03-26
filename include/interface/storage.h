@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef INTERFACE_STORAGE_H
 #define INTERFACE_STORAGE_H
 
-#include <types.h>
+#include <_types.h>
 #include <drivers/fat32.h>
 
 struct file;

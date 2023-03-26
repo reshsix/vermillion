@@ -197,11 +197,3 @@ config BITBANG_SPI_MISO
     string "MISO pin"
     default PA3
 endmenu
-
-# Library configuration
-
-menu "Extra Libraries"
-config EXTRA_DIAGNOSIS
-    bool "Diagnosis library"
-    default n
-endmenu

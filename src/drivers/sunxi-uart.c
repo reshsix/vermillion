@@ -16,7 +16,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #ifdef CONFIG_SERIAL_SUNXI_UART
 
-#include <types.h>
+#include <_types.h>
 
 enum uart
 {

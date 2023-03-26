@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef INTERFACE_SERIAL_H
 #define INTERFACE_SERIAL_H
 
-#include <types.h>
+#include <_types.h>
 #include <drivers/sunxi-uart.h>
 
 bool _serial_init(void);

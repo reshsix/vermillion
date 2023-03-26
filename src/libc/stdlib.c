@@ -16,8 +16,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <signal.h>
 #include <stdlib.h>
-#include <types.h>
-#include <utils.h>
+#include <_types.h>
+#include <_utils.h>
 
 #include <h3/ports.h>
 

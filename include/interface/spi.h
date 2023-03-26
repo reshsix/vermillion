@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef INTERFACE_SPI_H
 #define INTERFACE_SPI_H
 
-#include <types.h>
+#include <_types.h>
 #include <drivers/dummy.h>
 #include <drivers/bitbang.h>
 

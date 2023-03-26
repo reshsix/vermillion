@@ -120,7 +120,7 @@ build/libc.a: build/libc/assert.o \
               build/libc/ctype.o build/libc/diagnosis.o \
               build/libc/errno.o build/libc/signal.o \
               build/libc/stdio.o build/libc/stdlib.o \
-              build/libc/string.o build/libc/utils.o
+              build/libc/string.o build/libc/_utils.o
 build/libdrivers.a: build/drivers/dummy.o build/drivers/buzzer.o \
                     build/drivers/ili9488.o build/drivers/fat32.o \
                     build/drivers/sunxi-timer.o build/drivers/sunxi-uart.o \

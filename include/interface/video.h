@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef INTERFACE_VIDEO_H
 #define INTERFACE_VIDEO_H
 
-#include <types.h>
+#include <_types.h>
 #include <drivers/dummy.h>
 #include <drivers/ili9488.h>
 

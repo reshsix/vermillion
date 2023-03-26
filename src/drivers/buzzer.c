@@ -16,7 +16,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #ifdef CONFIG_AUDIO_BUZZER
 
-#include <types.h>
+#include <_types.h>
 #include <stdlib.h>
 
 #include <h3/ports.h>
@@ -86,7 +86,7 @@ struct audio
     struct buzzer *bz;
 };
 
-struct audio audio;
+static struct audio audio;
 
 extern void
 _audio_clean(void)

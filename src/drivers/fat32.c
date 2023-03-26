@@ -16,7 +16,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #ifdef CONFIG_STORAGE_FAT32_MBR_SD0
 
-#include <types.h>
+#include <_types.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -476,7 +476,7 @@ struct storage
     struct fat32 *fat32;
 };
 
-struct storage storage;
+static struct storage storage;
 
 struct file
 {

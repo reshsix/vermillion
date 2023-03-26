@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef INTERFACE_GIC_H
 #define INTERFACE_GIC_H
 
-#include <types.h>
+#include <_types.h>
 #include <drivers/gic.h>
 
 bool _gic_init(void);
