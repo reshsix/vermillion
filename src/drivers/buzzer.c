@@ -101,17 +101,7 @@ _audio_init(void)
 
     audio.bz = buzzer_new(CONFIG_BUZZER_PIN);
     if (audio.bz)
-    {
-        for (int i = 0; i < 4; i++)
-        {
-            buzzer_note(audio.bz, 329, 100);
-            timer_msleep(100);
-        }
-        buzzer_note(audio.bz, 523, 500);
-        timer_msleep(100);
-
         ret = true;
-    }
     else
         _audio_clean();
 

@@ -130,15 +130,11 @@ build/libdrivers.a: build/drivers/dummy.o build/drivers/buzzer.o \
 build/boot.o: boot.S deps/.gcc | build
 	@printf "  AS      $@\n"
 	@$(CC) $(CFLAGS) -c $< -o $@
-build/splash.o: splash.png | build
-	@printf "  LD      $@\n"
-	@convert $< build/splash.rgb
-	@cd build && $(LD) -r -b binary -o splash.o splash.rgb
 build/kernel.elf: build/scripts/linker.ld \
                   build/libc.a build/libdrivers.a \
-                  build/splash.o build/main.o build/boot.o
+                  build/main.o build/boot.o
 	@printf "  LD      $@\n"
-	@$(CC) $(CFLAGS) -T $< build/boot.o build/splash.o build/main.o -o $@ \
+	@$(CC) $(CFLAGS) -T $< build/boot.o build/main.o -o $@ \
      -Lbuild -Wl,--start-group -ldrivers -lc -Wl,--end-group -lgcc
 build/kernel.bin: build/kernel.elf | build
 	@printf "  OBJCOPY $@\n"

@@ -191,7 +191,6 @@ _video_clean(void)
 
 static struct spi *spi0 = NULL;
 void spi0_write(u8 data){ spi_transfer(spi0, data); }
-extern u8 _binary_splash_rgb_start[];
 extern bool
 _video_init(void)
 {
@@ -205,7 +204,7 @@ _video_init(void)
     {
         spi0 = video.spi;
         spi_config(spi0, SPI_MAX, 0, false);
-        ili9488_start(video.ili, _binary_splash_rgb_start, 96, 96);
+        ili9488_start(video.ili, NULL, 0, 0);
         ret = true;
     }
     else
