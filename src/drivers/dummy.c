@@ -229,3 +229,35 @@ timer_sleep(const u32 n)
 }
 
 #endif
+
+#ifndef CONFIG_SPI
+
+#include <types.h>
+
+extern bool
+_spi_init(void)
+{
+    return true;
+}
+
+extern void
+_spi_clean(void)
+{
+    return;
+}
+
+extern bool
+spi_config(u32 freq, u8 mode, bool lsb)
+{
+    (void)freq, (void)mode, (void)lsb;
+    return true;
+}
+
+extern u8
+spi_transfer(u8 x)
+{
+    (void)x;
+    return 0;
+}
+
+#endif

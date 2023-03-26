@@ -116,7 +116,7 @@ build/scripts/%: scripts/% | build/scripts
 	@$(CC) $(CFLAGS) -xc $< -E -P | grep -v '^#' > $@
 
 # Library definitions
-build/libc.a: build/libc/assert.o build/libc/bitbang.o \
+build/libc.a: build/libc/assert.o \
               build/libc/ctype.o build/libc/diagnosis.o \
               build/libc/errno.o build/libc/signal.o \
               build/libc/stdio.o build/libc/stdlib.o \
@@ -124,7 +124,8 @@ build/libc.a: build/libc/assert.o build/libc/bitbang.o \
 build/libdrivers.a: build/drivers/dummy.o build/drivers/buzzer.o \
                     build/drivers/ili9488.o build/drivers/fat32.o \
                     build/drivers/sunxi-timer.o build/drivers/sunxi-uart.o \
-                    build/drivers/gic.o build/drivers/elf-fdpic.o
+                    build/drivers/gic.o build/drivers/elf-fdpic.o \
+                    build/drivers/bitbang.o
 
 # Specific recipes
 build/boot.o: boot.S deps/.gcc | build

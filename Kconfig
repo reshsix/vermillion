@@ -77,25 +77,13 @@ menuconfig VIDEO
 choice VIDEO_DEVICE
     prompt "Device"
     depends on VIDEO
-config VIDEO_ILI9488_SPI_X
-    bool "Ili9488 SPI-X"
-    select EXTRA_BITBANG
+config VIDEO_ILI9488_SPI
+    bool "Ili9488 (SPI)"
+    depends on SPI
 endchoice
 
-menu "Ili9488 SPI-X"
-    depends on VIDEO && VIDEO_ILI9488_SPI_X
-config ILI9488_SS
-    string "SS pin"
-    default PA0
-config ILI9488_SCK
-    string "SCK pin"
-    default PA1
-config ILI9488_MOSI
-    string "MOSI pin"
-    default PA2
-config ILI9488_MISO
-    string "MISO pin"
-    default PA3
+menu "Ili9488 (SPI)"
+    depends on VIDEO && VIDEO_ILI9488_SPI
 config ILI9488_DCRS
     string "DCRS pin"
     default PA12
@@ -179,12 +167,40 @@ config SUNXI_TIMER_IRQ
     default 50
 endmenu
 
+# SPI configuration
+
+config SPI
+    bool
+    default y
+menuconfig SPI
+    prompt "SPI"
+
+choice SPI_DEVICE
+    prompt "Device"
+    depends on SPI
+config SPI_BITBANG
+    bool "Bitbang"
+endchoice
+
+menu "Bitbang"
+    depends on SPI && SPI_BITBANG
+config BITBANG_SPI_SS
+    string "SS pin"
+    default PA0
+config BITBANG_SPI_SCK
+    string "SCK pin"
+    default PA1
+config BITBANG_SPI_MOSI
+    string "MOSI pin"
+    default PA2
+config BITBANG_SPI_MISO
+    string "MISO pin"
+    default PA3
+endmenu
+
 # Library configuration
 
 menu "Extra Libraries"
-config EXTRA_BITBANG
-    bool "Bitbang library"
-    default y
 config EXTRA_DIAGNOSIS
     bool "Diagnosis library"
     default n

@@ -27,6 +27,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <interface/serial.h>
 #include <interface/timer.h>
 #include <interface/gic.h>
+#include <interface/spi.h>
 
 /* Initialization */
 
@@ -76,6 +77,13 @@ __init(void)
 
     if (!ret)
     {
+        ret = !_spi_init();
+        if (ret)
+            print("Failed to initialize spi interface\r\n");
+    }
+
+    if (!ret)
+    {
         ret = !_timer_init();
         if (ret)
             print("Failed to initialize timer interface\r\n");
@@ -108,6 +116,7 @@ __init(void)
 
         _gic_clean();
         _serial_clean();
+        _spi_clean();
         _timer_clean();
         _video_clean();
         _audio_clean();

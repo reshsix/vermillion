@@ -14,7 +14,7 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifdef CONFIG_VIDEO_ILI9488_SPI_X
+#ifdef CONFIG_VIDEO_ILI9488_SPI
 
 #include <types.h>
 #include <stdarg.h>
@@ -170,13 +170,12 @@ ili9488_start(struct ili9488 *ili, u8 *splash, u16 splash_w, u16 splash_h)
 
 #endif
 
-#ifdef CONFIG_VIDEO_ILI9488_SPI_X
+#ifdef CONFIG_VIDEO_ILI9488_SPI
 
-#include <bitbang.h>
+#include <interface/spi.h>
 
 struct video
 {
-    struct spi *spi;
     struct ili9488 *ili;
 };
 
@@ -185,25 +184,20 @@ struct video video;
 extern void
 _video_clean(void)
 {
-    spi_del(video.spi);
     ili9488_del(video.ili);
 }
 
-static struct spi *spi0 = NULL;
-void spi0_write(u8 data){ spi_transfer(spi0, data); }
+void spi_write(u8 data){ spi_transfer(data); }
 extern bool
 _video_init(void)
 {
     bool ret = false;
 
-    video.spi = spi_new(CONFIG_ILI9488_SS, CONFIG_ILI9488_SCK,
-                       CONFIG_ILI9488_MOSI, CONFIG_ILI9488_MISO);
     video.ili = ili9488_new(CONFIG_ILI9488_DCRS, CONFIG_ILI9488_LEDS,
-                            spi0_write);
-    if (video.spi && video.ili)
+                            spi_write);
+    if (video.ili)
     {
-        spi0 = video.spi;
-        spi_config(spi0, SPI_MAX, 0, false);
+        spi_config(SPI_MAX, 0, false);
         ili9488_start(video.ili, NULL, 0, 0);
         ret = true;
     }

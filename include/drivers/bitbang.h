@@ -14,32 +14,11 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef _BITBANG_H
-#define _BITBANG_H
+#ifndef DRIVERS_BITBANG_H
+#define DRIVERS_BITBANG_H
 
-#include <types.h>
-#include <h3/ports.h>
-
+#ifdef CONFIG_SPI_BITBANG
 #define SPI_MAX 0
-
-struct spi
-{
-    enum pin ss;
-    enum pin sck;
-    enum pin mosi;
-    enum pin miso;
-
-    bool lsb;
-    bool cpol;
-    bool cpha;
-
-    u32 delay;
-    void (*sleep)(u32);
-};
-
-struct spi *spi_new(enum pin ss, enum pin sck, enum pin mosi, enum pin miso);
-struct spi *spi_del(struct spi *s);
-void spi_config(struct spi *s, u32 freq, u8 mode, bool lsb);
-u8 spi_transfer(struct spi *s, u8 x);
+#endif
 
 #endif
