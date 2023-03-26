@@ -54,6 +54,18 @@ endmenu
 
 endmenu
 
+# Runtime configuration
+
+menu "Runtime"
+
+choice LOADER_DEVICE
+    prompt "Format"
+config LOADER_FDPIC
+    bool "FDPIC ELF"
+endchoice
+
+endmenu
+
 # Video configuration
 
 config VIDEO

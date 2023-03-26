@@ -14,17 +14,15 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <interface/loader.h>
+#ifndef INTERFACE_LOADER_H
+#define INTERFACE_LOADER_H
 
-extern int
-kernel_main(void)
-{
-    int ret = 0;
+#include <types.h>
+#include <drivers/elf-fdpic.h>
 
-    u32 entry = 0;
-    u8 *prog = loader_prog("/bin/init", &entry);
-    if (prog)
-        ret = ((int (*)(void))&(prog[entry]))();
+bool _loader_init(void);
+void _loader_clean(void);
 
-    return ret;
-}
+u8 *loader_prog(const char *path, u32 *entry);
+
+#endif
