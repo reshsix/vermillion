@@ -12,15 +12,18 @@
 # You should have received a copy of the GNU General Public License
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
+include .config
 export PATH += :$(shell pwd)/deps/tools/bin
 
 # -------------------------------- Parameters -------------------------------- #
 
 # Compilation parameters
-CC = arm-none-eabihf-gcc
-LD = arm-none-eabihf-ld
-CFLAGS += -O0 -ggdb3
-CFLAGS += -Iinclude -std=gnu99 -fpic -nostdlib -ffreestanding -mcpu=cortex-a7
+TARGET = arm-none-eabi
+CC = $(TARGET)-gcc
+LD = $(TARGET)-ld
+CFLAGS += -O2 -ggdb3
+CFLAGS += -Iinclude -std=gnu99 -fpic -nostdlib -ffreestanding
+CFLAGS += -mcpu=$(CONFIG_ARM_CPU) -mfloat-abi=soft
 CFLAGS += -Wall -Wextra -Wno-attributes -Wl,--no-warn-rwx-segment
 DISK_SIZE = 2
 
@@ -45,10 +48,6 @@ UBOOT = v2020.04
 
 # Dependency parameters
 ARCH = arm
-ARMVER = armv7-a
-FLOAT = hard
-FPU = vfpv4
-TARGET = $(ARCH)-none-eabihf
 HOST = $(shell printf '%s\n' "$$MACHTYPE" | sed 's/-[^-]*/-cross/')
 UBOOT_CONFIG = orangepi_one_defconfig
 UBOOT_IMAGE = u-boot-sunxi-with-spl.bin
@@ -219,9 +218,7 @@ deps/.gcc-step2: deps/.gcc-step1 | deps/gcc-build
                      --disable-libgomp --disable-libmudflap \
                      --disable-libssp --disable-libatomic \
                      --disable-libquadmath --disable-threads \
-                     --enable-languages=c --disable-multilib \
-                     --with-arch="$(ARMVER)" \
-                     --with-float="$(FLOAT)" --with-fpu="$(FPU)"
+                     --enable-languages=c --disable-multilib
 	touch $@
 deps/.gcc-step3: deps/.gcc-step2 | deps/gcc-build
 	cd $| && make -j "$$(nproc)" all-gcc all-target-libgcc

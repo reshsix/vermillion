@@ -15,6 +15,9 @@
 # Architecture configuration
 
 menu "Architecture"
+config ARM_CPU
+    string "Target CPU"
+    default cortex-a7
 config STACK_SIZE
     hex "Kernel stack size"
     default 0x8000
