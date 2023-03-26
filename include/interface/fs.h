@@ -18,7 +18,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define INTERFACE_FS_H
 
 #include <_types.h>
-#include <drivers/fat32.h>
 
 struct file;
 

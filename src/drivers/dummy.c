@@ -14,14 +14,9 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef CONFIG_VIDEO
-
 #include <_types.h>
 
-struct video
-{
-    u8 dummy;
-};
+#ifndef CONFIG_VIDEO
 
 extern bool
 _video_init(void)
@@ -33,6 +28,15 @@ extern void
 _video_clean(void)
 {
     return;
+}
+
+extern void
+video_info(u16 *width, u16 *height)
+{
+    if (width)
+        *width = 0;
+    if (height)
+        *height = 0;
 }
 
 extern void
@@ -50,13 +54,6 @@ video_clear(void)
 #endif
 
 #ifndef CONFIG_AUDIO
-
-#include <_types.h>
-
-struct audio
-{
-    u8 dummy;
-};
 
 extern bool
 _audio_init(void)
@@ -86,8 +83,6 @@ audio_sample(u16 freq, u8 *data, size_t size)
 
 #ifndef CONFIG_STORAGE
 
-#include <_types.h>
-
 extern bool
 _storage_init(void)
 {
@@ -103,19 +98,13 @@ _storage_clean(void)
 extern bool
 storage_read(u8 *buffer, u32 block, u32 count)
 {
+    (void)buffer, (void)block, (void)count;
     return true;
 }
 
 #endif
 
 #ifndef CONFIG_FS
-
-#include <_types.h>
-
-struct fs
-{
-    u8 dummy;
-};
 
 extern bool
 _fs_init(void)
@@ -167,7 +156,6 @@ fs_read(struct file *f, u32 sector, u8 *buffer)
 
 #ifndef CONFIG_SERIAL
 
-#include <_types.h>
 #include <interface/serial.h>
 
 extern bool
@@ -180,6 +168,12 @@ extern void
 _serial_clean(void)
 {
     return;
+}
+
+extern u8
+serial_ports(void)
+{
+    return 0;
 }
 
 extern bool
@@ -208,8 +202,6 @@ serial_write(u8 port, u16 data)
 
 #ifndef CONFIG_TIMER
 
-#include <_types.h>
-
 extern bool
 _timer_init(void)
 {
@@ -220,6 +212,12 @@ extern void
 _timer_clean(void)
 {
     return;
+}
+
+extern u32
+timer_clock(void)
+{
+    return 0;
 }
 
 extern void

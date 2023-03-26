@@ -18,7 +18,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define INTERFACE_GIC_H
 
 #include <_types.h>
-#include <drivers/gic.h>
 
 bool _gic_init(void);
 void _gic_clean(void);

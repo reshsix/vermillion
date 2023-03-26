@@ -208,6 +208,15 @@ _video_init(void)
 }
 
 extern void
+video_info(u16 *width, u16 *height)
+{
+    if (width)
+        *width = 480;
+    if (height)
+        *height = 320;
+}
+
+extern void
 video_update(u8* buffer, u16 x, u16 y, u16 w, u16 h)
 {
     ili9488_update(video.ili, buffer, x, y, w, h);

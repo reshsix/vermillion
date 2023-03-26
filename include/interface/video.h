@@ -18,12 +18,11 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define INTERFACE_VIDEO_H
 
 #include <_types.h>
-#include <drivers/dummy.h>
-#include <drivers/ili9488.h>
 
 bool _video_init(void);
 void _video_clean(void);
 
+void video_info(u16 *width, u16 *height);
 void video_update(u8 *buffer, u16 x, u16 y, u16 w, u16 h);
 void video_clear(void);
 

@@ -14,27 +14,14 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef DRIVERS_DUMMY_H
-#define DRIVERS_DUMMY_H
+#ifndef INTERFACE_STORAGE_H
+#define INTERFACE_STORAGE_H
 
-#ifndef CONFIG_VIDEO
+#include <_types.h>
 
-#define VIDEO_WIDTH  0
-#define VIDEO_HEIGHT 0
-#define VIDEO_DEPTH  0
+bool _storage_init(void);
+void _storage_clean(void);
 
-#endif
-
-#ifndef CONFIG_SERIAL
-
-#define SERIAL_PORTS 0
-
-#endif
-
-#ifndef CONFIG_TIMER
-
-#define TIMER_CLOCK 0
-
-#endif
+bool storage_read(u8 *buffer, u32 block, u32 count);
 
 #endif

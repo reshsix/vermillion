@@ -90,10 +90,10 @@ spi_config(u32 freq, u8 mode, bool lsb)
 
     if (freq == 0)
         spi.sleep = empty;
-    else if (freq <= TIMER_CLOCK / 2)
+    else if (freq <= timer_clock() / 2)
     {
         spi.sleep = timer_csleep;
-        spi.delay = TIMER_CLOCK / freq / 2;
+        spi.delay = timer_clock() / freq / 2;
     }
     else
     {

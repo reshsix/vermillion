@@ -322,6 +322,12 @@ _serial_clean(void)
 }
 
 static u32 ports[] = {UART0, UART1, UART2, UART3, R_UART};
+extern u8
+serial_ports(void)
+{
+    return sizeof(ports) / sizeof(u32);
+}
+
 extern bool
 serial_config(u8 port, u32 baud, enum serial_char c,
               enum serial_parity p, enum serial_stop s)

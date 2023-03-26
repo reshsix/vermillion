@@ -18,7 +18,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define INTERFACE_SERIAL_H
 
 #include <_types.h>
-#include <drivers/sunxi-uart.h>
 
 bool _serial_init(void);
 void _serial_clean(void);
@@ -46,6 +45,7 @@ enum serial_stop
     SERIAL_STOP_2B
 };
 
+u8 serial_ports(void);
 bool serial_config(u8 port, u32 baud, enum serial_char c,
                    enum serial_parity p, enum serial_stop s);
 u8 serial_read(u8 port);

@@ -142,6 +142,12 @@ _timer_clean(void)
     gic_config(CONFIG_SUNXI_TIMER_IRQ, NULL, false, 0);
 }
 
+extern u32
+timer_clock(void)
+{
+    return 24000000;
+}
+
 extern void
 timer_csleep(const u32 n)
 {

@@ -18,12 +18,11 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define INTERFACE_TIMER_H
 
 #include <_types.h>
-#include <drivers/dummy.h>
-#include <drivers/sunxi-timer.h>
 
 bool _timer_init(void);
 void _timer_clean(void);
 
+u32 timer_clock(void);
 void timer_csleep(const u32 n);
 void timer_usleep(const u32 n);
 void timer_msleep(const u32 n);

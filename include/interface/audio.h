@@ -18,8 +18,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define INTERFACE_AUDIO_H
 
 #include <_types.h>
-#include <drivers/dummy.h>
-#include <drivers/buzzer.h>
 
 bool _audio_init(void);
 void _audio_clean(void);
