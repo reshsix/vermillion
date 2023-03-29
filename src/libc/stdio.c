@@ -20,7 +20,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <string.h>
 
-#include <interface/fs.h>
+#include <vermillion/drivers.h>
 
 typedef struct _FILE
 {
@@ -44,7 +44,8 @@ fclose(FILE *f)
 
     if (f)
     {
-        fs_close(f->file);
+        const struct driver *fs = driver_find(DRIVER_TYPE_FS, 0);
+        fs->routines.fs.close(f->file);
         free(f);
         ret = 0;
     }
@@ -64,7 +65,8 @@ fopen(const char *path, const char *mode)
 
     if (ret)
     {
-        ret->file = fs_open((char*)path);
+        const struct driver *fs = driver_find(DRIVER_TYPE_FS, 0);
+        ret->file = fs->routines.fs.open((char*)path);
         if (!(ret->file))
         {
             errno = ENOENT;
@@ -83,13 +85,15 @@ fopen(const char *path, const char *mode)
 extern size_t
 fread(void *buffer, size_t size, size_t count, FILE *f)
 {
+    const struct driver *fs = driver_find(DRIVER_TYPE_FS, 0);
+
     size_t fsize = 0;
     size_t bytes = 0;
 
     if (f)
     {
         bytes = size * count;
-        fs_info(f->file, &fsize, NULL);
+        fs->routines.fs.info(f->file, &fsize, NULL);
         if ((f->position + bytes) >= fsize)
         {
             bytes = fsize - f->position - 1;
@@ -103,7 +107,7 @@ fread(void *buffer, size_t size, size_t count, FILE *f)
         u32 sector = f->position / 0x200;
         if (!(f->cached) || sector != f->cachedsect)
         {
-            if (fs_read(f->file, sector, f->cache))
+            if (fs->routines.fs.read(f->file, sector, f->cache))
             {
                 f->cachedsect = sector;
                 f->cached = true;
@@ -182,7 +186,8 @@ fseek(FILE *f, long offset, int origin)
     int ret = 0;
 
     size_t size = 0;
-    fs_info(f->file, &size, NULL);
+    const struct driver *fs = driver_find(DRIVER_TYPE_FS, 0);
+    fs->routines.fs.info(f->file, &size, NULL);
 
     switch (origin)
     {

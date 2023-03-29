@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
-include .config
+-include .config
 export PATH += :$(shell pwd)/deps/tools/bin
 
 # -------------------------------- Parameters -------------------------------- #
@@ -103,9 +103,8 @@ deps deps/tools build build/libc build/drivers build/scripts build/mount:
 
 # Generic recipes
 build/%.o: src/%.c deps/.gcc | build/libc build/drivers
+	@printf '%s\n' "  CC      $@"; true
 	@$(CC) $(CFLAGS) -c $< -o $@
-	@[ -n "$$(nm -P $@ | awk '$$2 == "T"')" ] && \
-    printf '%s\n' "  CC      $@"; true
 build/%.a:
 	@printf "  AR      $@\n"
 	@chronic ar ruv $@ $^
@@ -115,28 +114,20 @@ build/scripts/%: scripts/% | build/scripts
 	@printf "  CC      $@\n"
 	@$(CC) $(CFLAGS) -xc $< -E -P | grep -v '^#' > $@
 
-# Library definitions
-build/libc.a: build/libc/assert.o \
-              build/libc/ctype.o build/libc/diagnosis.o \
-              build/libc/errno.o build/libc/signal.o \
-              build/libc/stdio.o build/libc/stdlib.o \
-              build/libc/string.o build/libc/_utils.o
-build/libdrivers.a: build/drivers/dummy.o build/drivers/buzzer.o \
-                    build/drivers/ili9488.o build/drivers/fat32.o \
-                    build/drivers/sunxi-timer.o build/drivers/sunxi-uart.o \
-                    build/drivers/gic.o build/drivers/elf-fdpic.o \
-                    build/drivers/bitbang.o build/drivers/sunxi-mmc.o
+# Objects definitions
+CORE = build/drivers.o build/boot.o build/main.o
+include src/libc/make.list
+LIBC := $(addprefix build/libc/, $(LIBC))
+include src/drivers/make.list
+DRIVERS := $(addprefix build/drivers/, $(DRIVERS))
 
 # Specific recipes
 build/boot.o: boot.S deps/.gcc | build
 	@printf "  AS      $@\n"
 	@$(CC) $(CFLAGS) -c $< -o $@
-build/kernel.elf: build/scripts/linker.ld \
-                  build/libc.a build/libdrivers.a \
-                  build/main.o build/boot.o
+build/kernel.elf: build/scripts/linker.ld $(LIBC) $(DRIVERS) $(CORE)
 	@printf "  LD      $@\n"
-	@$(CC) $(CFLAGS) -T $< build/boot.o build/main.o -o $@ \
-     -Lbuild -Wl,--start-group -ldrivers -lc -Wl,--end-group -lgcc
+	@$(CC) $(CFLAGS) -T $< $(LIBC) $(DRIVERS) $(CORE) -o $@ -lgcc
 build/kernel.bin: build/kernel.elf | build
 	@printf "  OBJCOPY $@\n"
 	@$(TARGET)-objcopy $< -O binary $@

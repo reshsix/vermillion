@@ -31,16 +31,23 @@ config RAM_SIZE
     default 0x20000000
 endmenu
 
-menu "Generic Interrupt Controller"
+config ARCH_GIC
+    bool
+    default y
+menuconfig ARCH_GIC
+    prompt "Generic Interrupt Controller"
 config GIC_CPU
     hex "CPU address"
     default 0x01C82000
+    depends on ARCH_GIC
 config GIC_DIST
     hex "DIST address"
     default 0x01C81000
+    depends on ARCH_GIC
 choice GIC_TYPE
     prompt "Interrupt Type"
     default GIC_TYPE_2
+    depends on ARCH_GIC
 config GIC_TYPE_0
     bool "Low level"
 config GIC_TYPE_1
@@ -49,19 +56,6 @@ config GIC_TYPE_2
     bool "Low edge"
 config GIC_TYPE_3
     bool "High edge"
-endchoice
-endmenu
-
-endmenu
-
-# Runtime configuration
-
-menu "Runtime"
-
-choice LOADER_DEVICE
-    prompt "Format"
-config LOADER_FDPIC
-    bool "FDPIC ELF"
 endchoice
 
 endmenu
@@ -74,24 +68,20 @@ config VIDEO
 menuconfig VIDEO
     prompt "Video Output"
 
-choice VIDEO_DEVICE
-    prompt "Device"
-    depends on VIDEO
 config VIDEO_ILI9488_SPI
-    bool "Ili9488 (SPI)"
-    depends on SPI
-endchoice
-
-menu "Ili9488 (SPI)"
-    depends on VIDEO && VIDEO_ILI9488_SPI
+    bool
+    depends on VIDEO && SPI
+menuconfig VIDEO_ILI9488_SPI
+    prompt "Ili9488 (SPI)"
+    depends on VIDEO
 config ILI9488_DCRS
     string "DCRS pin"
     default PA12
+    depends on VIDEO_ILI9488_SPI
 config ILI9488_LEDS
     string "LEDS pin"
     default PA11
-endmenu
-
+    depends on VIDEO_ILI9488_SPI
 
 # Audio configuration
 
@@ -101,19 +91,16 @@ config AUDIO
 menuconfig AUDIO
     prompt "Audio Output"
 
-choice AUDIO_DEVICE
-    prompt "Device"
-    depends on AUDIO
 config AUDIO_BUZZER
-    bool "Buzzer"
-endchoice
-
-menu "Buzzer"
-    depends on AUDIO && AUDIO_BUZZER
+    bool
+    depends on AUDIO
+menuconfig AUDIO_BUZZER
+    prompt "Buzzer"
+    depends on AUDIO
 config BUZZER_PIN
     string "Output pin"
     default PA13
-endmenu
+    depends on AUDIO_BUZZER
 
 # Storage configuration
 
@@ -123,12 +110,9 @@ config STORAGE
 menuconfig STORAGE
     prompt "Storage"
 
-choice STORAGE_DEVICE
-    prompt "Device"
-    depends on STORAGE
 config STORAGE_SUNXI_MMC
     bool "Sunxi SD/MMC"
-endchoice
+    depends on STORAGE
 
 # Filesystem configuration
 
@@ -138,12 +122,21 @@ config FS
 menuconfig FS
     prompt "Filesystem"
 
-choice FS_FORMAT
-    prompt "Format"
-    depends on FS
 config FS_FAT32_MBR
     bool "Fat32 MBR"
-endchoice
+    depends on FS
+
+# Loader configuration
+
+config LOADER
+    bool
+    default y
+menuconfig LOADER
+    prompt "Loader"
+
+config LOADER_FDPIC
+    bool "FDPIC ELF"
+    depends on LOADER
 
 # Serial configuration
 
@@ -153,12 +146,9 @@ config SERIAL
 menuconfig SERIAL
     prompt "Serial"
 
-choice SERIAL_DEVICE
-    prompt "Device"
-    depends on SERIAL
 config SERIAL_SUNXI_UART
     bool "Sunxi UART"
-endchoice
+    depends on SERIAL
 
 # Timer configuration
 
@@ -168,19 +158,16 @@ config TIMER
 menuconfig TIMER
     prompt "Timer"
 
-choice TIMER_DEVICE
-    prompt "Device"
-    depends on TIMER
 config TIMER_SUNXI_TIMER
-    bool "Sunxi Timer"
-endchoice
-
-menu "Sunxi Timer"
-    depends on TIMER && TIMER_SUNXI_TIMER
+    bool
+    depends on TIMER
+menuconfig TIMER_SUNXI_TIMER
+    prompt "Sunxi Timer"
+    depends on TIMER
 config SUNXI_TIMER_IRQ
     int "Timer0 IRQ"
     default 50
-endmenu
+    depends on TIMER_SUNXI_TIMER
 
 # SPI configuration
 
@@ -190,25 +177,25 @@ config SPI
 menuconfig SPI
     prompt "SPI"
 
-choice SPI_DEVICE
-    prompt "Device"
-    depends on SPI
 config SPI_BITBANG
-    bool "Bitbang"
-endchoice
-
-menu "Bitbang"
-    depends on SPI && SPI_BITBANG
+    bool
+    depends on SPI
+menuconfig SPI_BITBANG
+    prompt "Bitbang"
+    depends on SPI
 config BITBANG_SPI_SS
     string "SS pin"
     default PA0
+    depends on SPI_BITBANG
 config BITBANG_SPI_SCK
     string "SCK pin"
     default PA1
+    depends on SPI_BITBANG
 config BITBANG_SPI_MOSI
     string "MOSI pin"
     default PA2
+    depends on SPI_BITBANG
 config BITBANG_SPI_MISO
     string "MISO pin"
     default PA3
-endmenu
+    depends on SPI_BITBANG

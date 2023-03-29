@@ -14,8 +14,6 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifdef CONFIG_LOADER_FDPIC
-
 /* Programs have to be compiled with the following flags:
     -shared -fPIE -fPIC -ffreestanding -nostdlib -Wl,-emain -Wl,-z,defs
 */
@@ -24,6 +22,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <vermillion/drivers.h>
 
 struct __attribute__((packed)) elf {
     u32 magic;
@@ -122,11 +121,7 @@ fdpic_loader(const char *path, u32 *entry)
     return ret ? buffer : NULL;
 }
 
-#endif
-
-#ifdef CONFIG_LOADER_FDPIC
-
-extern u8 *
+static u8 *
 loader_prog(const char *path, u32 *entry)
 {
     u8 *ret = NULL;
@@ -137,4 +132,11 @@ loader_prog(const char *path, u32 *entry)
     return ret;
 }
 
-#endif
+static const struct driver driver =
+{
+    .name = "FDPIC Loader",
+    .init = NULL, .clean = NULL,
+    .type = DRIVER_TYPE_LOADER,
+    .routines.loader.prog = loader_prog
+};
+driver_register(driver);

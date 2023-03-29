@@ -14,9 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifdef CONFIG_STORAGE_SUNXI_MMC
-
 #include <_types.h>
+#include <vermillion/drivers.h>
 
 #define SD 0x01C0F000
 #define SD_CFG   *(volatile u32*)(SD + 0x00)
@@ -27,19 +26,19 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define SD_STA   *(volatile u32*)(SD + 0x3C)
 #define SD_FIFO  *(volatile u32*)(SD + 0x200)
 
-extern bool
-_storage_init(void)
+static bool
+init(void)
 {
     return true;
 }
 
-extern void
-_storage_clean(void)
+static void
+clean(void)
 {
     return;
 }
 
-extern bool
+static bool
 storage_read(u8 *buffer, u32 block, u32 count)
 {
     if (count != 0)
@@ -73,4 +72,11 @@ storage_read(u8 *buffer, u32 block, u32 count)
     return true;
 }
 
-#endif
+static const struct driver driver =
+{
+    .name = "Sunxi SD/MMC Controller",
+    .init = init, .clean = clean,
+    .type = DRIVER_TYPE_STORAGE,
+    .routines.storage.read = storage_read
+};
+driver_register(driver);

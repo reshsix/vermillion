@@ -21,40 +21,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <h3/ports.h>
 
-#include <interface/video.h>
-#include <interface/audio.h>
-#include <interface/storage.h>
-#include <interface/fs.h>
-#include <interface/serial.h>
-#include <interface/timer.h>
-#include <interface/gic.h>
-#include <interface/spi.h>
+#include <vermillion/drivers.h>
 
 /* Initialization */
 
 #define R_PRCM 0x01F01400
 #define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)
-static void
-init_led(void)
-{
-    APB0_GATE = 1;
-
-    pin_config(PL10, PIN_CFG_OUT);
-    pin_write(PL10, true);
-}
-
-static void
-init_serial(void)
-{
-    serial_config(0, 115200, SERIAL_CHAR_8B, SERIAL_PARITY_NONE,
-                  SERIAL_STOP_1B);
-    print("\r\nVermillion ");
-    print(__VERMILLION__);
-    print(" (");
-    print(__COMPILATION__);
-    print(")\r\n");
-}
-
 extern void exit(int);
 extern int kernel_main(void);
 static void init_malloc(void);
@@ -63,74 +35,43 @@ __init(void)
 {
     int ret = 0;
 
-    init_led();
     init_malloc();
 
-    if (!ret)
-        ret = !_gic_init();
+    APB0_GATE = 1;
+    pin_config(PL10, PIN_CFG_OUT);
+    pin_write(PL10, true);
 
-    if (!ret)
-    {
-        ret = !_serial_init();
-        if (!ret)
-            init_serial();
-    }
+    _drivers_init(DRIVER_TYPE_SERIAL);
+    const struct driver *serial = driver_find(DRIVER_TYPE_SERIAL, 0);
+    serial->routines.serial.config(0, 115200, DRIVER_SERIAL_CHAR_8B,
+                                   DRIVER_SERIAL_PARITY_NONE,
+                                   DRIVER_SERIAL_STOP_1B);
+    print("\r\nVermillion ");
+    print(__VERMILLION__);
+    print(" (");
+    print(__COMPILATION__);
+    print(")\r\n\r\n");
 
-    if (!ret)
-    {
-        ret = !_spi_init();
-        if (ret)
-            print("Failed to initialize spi interface\r\n");
-    }
+    _drivers_init(DRIVER_TYPE_GIC);
+    _drivers_init(DRIVER_TYPE_SPI);
+    _drivers_init(DRIVER_TYPE_TIMER);
+    _drivers_init(DRIVER_TYPE_VIDEO);
+    _drivers_init(DRIVER_TYPE_AUDIO);
+    _drivers_init(DRIVER_TYPE_STORAGE);
+    _drivers_init(DRIVER_TYPE_FS);
+    _drivers_init(DRIVER_TYPE_LOADER);
 
-    if (!ret)
-    {
-        ret = !_timer_init();
-        if (ret)
-            print("Failed to initialize timer interface\r\n");
-    }
+    print("Executing kernel_main\r\n");
+    ret = kernel_main();
 
-    if (!ret)
-    {
-        ret = !_video_init();
-        if (ret)
-            print("Failed to initialize video interface\r\n");
-    }
-
-    if (!ret)
-    {
-        ret = !_audio_init();
-        if (ret)
-            print("Failed to initialize audio interface\r\n");
-    }
-
-    if (!ret)
-    {
-        ret = !_storage_init();
-        if (ret)
-            print("Failed to initialize storage interface\r\n");
-    }
-
-    if (!ret)
-    {
-        ret = !_fs_init();
-        if (ret)
-            print("Failed to initialize filesystem interface\r\n");
-    }
-
-    if (!ret)
-    {
-        ret = kernel_main();
-
-        _gic_clean();
-        _serial_clean();
-        _spi_clean();
-        _timer_clean();
-        _video_clean();
-        _audio_clean();
-        _storage_clean();
-        _fs_clean();
-    }
+    _drivers_clean(DRIVER_TYPE_LOADER);
+    _drivers_clean(DRIVER_TYPE_FS);
+    _drivers_clean(DRIVER_TYPE_STORAGE);
+    _drivers_clean(DRIVER_TYPE_AUDIO);
+    _drivers_clean(DRIVER_TYPE_VIDEO);
+    _drivers_clean(DRIVER_TYPE_TIMER);
+    _drivers_clean(DRIVER_TYPE_SPI);
+    _drivers_clean(DRIVER_TYPE_GIC);
 
     exit(ret);
 }
@@ -172,8 +113,9 @@ exit(int code)
     pin_config(PL10, PIN_CFG_OUT);
     pin_write(PL10, false);
 
+    const struct driver *gic = driver_find(DRIVER_TYPE_GIC, 0);
     for (;;)
-        gic_wait();
+        gic->routines.gic.wait();
 }
 
 extern int

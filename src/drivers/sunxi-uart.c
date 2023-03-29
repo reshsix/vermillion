@@ -14,9 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifdef CONFIG_SERIAL_SUNXI_UART
-
 #include <_types.h>
+#include <vermillion/drivers.h>
 
 enum uart
 {
@@ -303,34 +302,27 @@ uart_halt_change_update(enum uart p)
     UART_HLT(p) |= 1 << 2;
 }
 
-#endif
-
-#ifdef CONFIG_SERIAL_SUNXI_UART
-
-#include <interface/serial.h>
-
-extern bool
-_serial_init(void)
+static bool
+init(void)
 {
     return true;
 }
 
-extern void
-_serial_clean(void)
+static void
+clean(void)
 {
     return;
 }
 
 static u32 ports[] = {UART0, UART1, UART2, UART3, R_UART};
-extern u8
+static u8
 serial_ports(void)
 {
     return sizeof(ports) / sizeof(u32);
 }
 
-extern bool
-serial_config(u8 port, u32 baud, enum serial_char c,
-              enum serial_parity p, enum serial_stop s)
+static bool
+serial_config(u8 port, u32 baud, u8 ch, u8 parity, u8 stop)
 {
     bool ret = true;
 
@@ -343,17 +335,17 @@ serial_config(u8 port, u32 baud, enum serial_char c,
     enum uart_char uc = UART_CHAR_5B;
     if (ret)
     {
-        switch (c)
+        switch (ch)
         {
-            case SERIAL_CHAR_5B:
+            case DRIVER_SERIAL_CHAR_5B:
                 break;
-            case SERIAL_CHAR_6B:
+            case DRIVER_SERIAL_CHAR_6B:
                 uc = UART_CHAR_6B;
                 break;
-            case SERIAL_CHAR_7B:
+            case DRIVER_SERIAL_CHAR_7B:
                 uc = UART_CHAR_7B;
                 break;
-            case SERIAL_CHAR_8B:
+            case DRIVER_SERIAL_CHAR_8B:
                 uc = UART_CHAR_8B;
                 break;
             default:
@@ -365,14 +357,14 @@ serial_config(u8 port, u32 baud, enum serial_char c,
     enum uart_parity up = UART_PARITY_NONE;
     if (ret)
     {
-        switch (p)
+        switch (parity)
         {
-            case SERIAL_PARITY_NONE:
+            case DRIVER_SERIAL_PARITY_NONE:
                 break;
-            case SERIAL_PARITY_ODD:
+            case DRIVER_SERIAL_PARITY_ODD:
                 up = UART_PARITY_ODD;
                 break;
-            case SERIAL_PARITY_EVEN:
+            case DRIVER_SERIAL_PARITY_EVEN:
                 up = UART_PARITY_EVEN;
                 break;
             default:
@@ -384,14 +376,14 @@ serial_config(u8 port, u32 baud, enum serial_char c,
     enum uart_stop us = UART_STOP_1B;
     if (ret)
     {
-        switch (s)
+        switch (stop)
         {
-            case SERIAL_STOP_1B:
+            case DRIVER_SERIAL_STOP_1B:
                 break;
-            case SERIAL_STOP_1HB:
+            case DRIVER_SERIAL_STOP_1HB:
                 us = UART_STOP_1HB;
                 break;
-            case SERIAL_STOP_2B:
+            case DRIVER_SERIAL_STOP_2B:
                 us = UART_STOP_2B;
                 break;
             default:
@@ -406,7 +398,7 @@ serial_config(u8 port, u32 baud, enum serial_char c,
     return ret;
 }
 
-extern u8
+static u8
 serial_read(u8 port)
 {
     u8 ret = 0;
@@ -417,11 +409,21 @@ serial_read(u8 port)
     return ret;
 }
 
-extern void
+static void
 serial_write(u8 port, u16 data)
 {
     if (port < (sizeof(ports) / sizeof(u32)))
         uart_write(ports[port], data);
 }
 
-#endif
+static const struct driver driver =
+{
+    .name = "Sunxi UART Controller",
+    .init = init, .clean = clean,
+    .type = DRIVER_TYPE_SERIAL,
+    .routines.serial.ports  = serial_ports,
+    .routines.serial.config = serial_config,
+    .routines.serial.read   = serial_read,
+    .routines.serial.write  = serial_write
+};
+driver_register(driver);

@@ -16,6 +16,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <_types.h>
 #include <signal.h>
+#include <vermillion/drivers.h>
 
 enum
 {
@@ -277,8 +278,8 @@ handler_fiq(void)
     intr_fiq_ack(c, n);
 }
 
-extern bool
-_gic_init(void)
+static bool
+init(void)
 {
     ivt[IVT_UNDEF]    = handler_undef;
     ivt[IVT_SWI]      = handler_swi;
@@ -290,15 +291,15 @@ _gic_init(void)
     return true;
 }
 
-extern void
-_gic_clean(void)
+static void
+clean(void)
 {
     arm_disable_irq();
     gic_disable_dist();
     gic_disable();
 }
 
-extern void
+static void
 gic_config(u16 n, void (*f)(void), bool enable, u8 priority)
 {
     arm_disable_irq();
@@ -333,8 +334,18 @@ gic_config(u16 n, void (*f)(void), bool enable, u8 priority)
     arm_enable_irq();
 }
 
-extern void
+static void
 gic_wait(void)
 {
     arm_wait_interrupts();
 }
+
+static const struct driver driver =
+{
+    .name = "ARM General Interrupt Controller",
+    .init = init, .clean = clean,
+    .type = DRIVER_TYPE_GIC,
+    .routines.gic.config = gic_config,
+    .routines.gic.wait   = gic_wait
+};
+driver_register(driver);

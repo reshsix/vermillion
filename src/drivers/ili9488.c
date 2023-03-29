@@ -14,15 +14,13 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifdef CONFIG_VIDEO_ILI9488_SPI
-
 #include <_types.h>
 #include <stdarg.h>
 #include <stdlib.h>
 
 #include <h3/ports.h>
 
-#include <interface/timer.h>
+#include <vermillion/drivers.h>
 
 struct ili9488
 {
@@ -141,6 +139,8 @@ ili9488_clear(struct ili9488 *ili)
 static void
 ili9488_start(struct ili9488 *ili, u8 *splash, u16 splash_w, u16 splash_h)
 {
+    const struct driver *t0 = driver_find(DRIVER_TYPE_TIMER, 0);
+
     pin_config(ili->dcrs, PIN_CFG_OUT);
     pin_write(ili->leds, true);
     pin_config(ili->leds, PIN_CFG_OUT);
@@ -148,10 +148,10 @@ ili9488_start(struct ili9488 *ili, u8 *splash, u16 splash_w, u16 splash_h)
 
     ili9488_command(ili, 1, 0x00, 0);
     ili9488_command(ili, 1, 0x01, 0);
-    timer_msleep(10);
+    t0->routines.timer.msleep(10);
 
     ili9488_command(ili, 1, 0x11);
-    timer_msleep(5);
+    t0->routines.timer.msleep(5);
 
     ili9488_command(ili, 2, 0x36, 0xE8);
     ili9488_command(ili, 2, 0x3A, 0x06);
@@ -163,16 +163,10 @@ ili9488_start(struct ili9488 *ili, u8 *splash, u16 splash_w, u16 splash_h)
 
     ili9488_command(ili, 1, 0x13);
     ili9488_command(ili, 1, 0x29);
-    timer_msleep(10);
+    t0->routines.timer.msleep(10);
 
     pin_write(ili->leds, false);
 }
-
-#endif
-
-#ifdef CONFIG_VIDEO_ILI9488_SPI
-
-#include <interface/spi.h>
 
 struct video
 {
@@ -181,15 +175,16 @@ struct video
 
 static struct video video;
 
-extern void
-_video_clean(void)
+static void
+clean(void)
 {
     ili9488_del(video.ili);
 }
 
-void spi_write(u8 data){ spi_transfer(data); }
-extern bool
-_video_init(void)
+static struct driver *spi0 = NULL;
+static void spi_write(u8 data){ spi0->routines.spi.transfer(data); }
+static bool
+init(void)
 {
     bool ret = false;
 
@@ -197,17 +192,18 @@ _video_init(void)
                             spi_write);
     if (video.ili)
     {
-        spi_config(SPI_MAX, 0, false);
+        spi0 = driver_find(DRIVER_TYPE_SPI, 0);
+        spi0->routines.spi.config(DRIVER_SPI_MAX, 0, false);
         ili9488_start(video.ili, NULL, 0, 0);
         ret = true;
     }
     else
-        _video_clean();
+        clean();
 
     return ret;
 }
 
-extern void
+static void
 video_info(u16 *width, u16 *height)
 {
     if (width)
@@ -216,16 +212,25 @@ video_info(u16 *width, u16 *height)
         *height = 320;
 }
 
-extern void
+static void
 video_update(u8* buffer, u16 x, u16 y, u16 w, u16 h)
 {
     ili9488_update(video.ili, buffer, x, y, w, h);
 }
 
-extern void
+static void
 video_clear(void)
 {
     ili9488_clear(video.ili);
 }
 
-#endif
+static const struct driver driver =
+{
+    .name = "ILI9488 (SPI)",
+    .init = init, .clean = clean,
+    .type = DRIVER_TYPE_VIDEO,
+    .routines.video.info   = video_info,
+    .routines.video.update = video_update,
+    .routines.video.clear  = video_clear
+};
+driver_register(driver);

@@ -14,13 +14,11 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifdef CONFIG_SPI_BITBANG
-
 #include <stdlib.h>
 
 #include <h3/ports.h>
 
-#include <interface/timer.h>
+#include <vermillion/drivers.h>
 
 struct spi
 {
@@ -53,8 +51,8 @@ hsleep(const u32 n)
         asm volatile ("nop");
 }
 
-extern bool
-_spi_init(void)
+static bool
+init(void)
 {
     spi.ss = CONFIG_BITBANG_SPI_SS;
     spi.sck = CONFIG_BITBANG_SPI_SCK;
@@ -72,8 +70,8 @@ _spi_init(void)
     return true;
 }
 
-extern void
-_spi_clean(void)
+static void
+clean(void)
 {
     pin_config(spi.ss, PIN_CFG_OFF);
     pin_config(spi.sck, PIN_CFG_OFF);
@@ -81,19 +79,21 @@ _spi_clean(void)
     pin_config(spi.miso, PIN_CFG_OFF);
 }
 
-extern bool
+static bool
 spi_config(u32 freq, u8 mode, bool lsb)
 {
     spi.cpha = (mode & 0x1);
     spi.cpol = (mode & 0x2);
     spi.lsb = lsb;
 
+    const struct driver *t0 = driver_find(DRIVER_TYPE_TIMER, 0);
+    u32 clk = t0->routines.timer.clock();
     if (freq == 0)
         spi.sleep = empty;
-    else if (freq <= timer_clock() / 2)
+    else if (freq <= clk / 2)
     {
-        spi.sleep = timer_csleep;
-        spi.delay = timer_clock() / freq / 2;
+        spi.sleep = t0->routines.timer.csleep;
+        spi.delay = clk / freq / 2;
     }
     else
     {
@@ -107,7 +107,7 @@ spi_config(u32 freq, u8 mode, bool lsb)
     return true;
 }
 
-extern u8
+static u8
 spi_transfer(u8 x)
 {
     u8 ret = 0;
@@ -135,4 +135,12 @@ spi_transfer(u8 x)
     return (spi.cpol) ? ~ret : ret;
 }
 
-#endif
+static const struct driver driver =
+{
+    .name = "Bitbang SPI",
+    .init = init, .clean = clean,
+    .type = DRIVER_TYPE_SPI,
+    .routines.spi.config   = spi_config,
+    .routines.spi.transfer = spi_transfer
+};
+driver_register(driver);

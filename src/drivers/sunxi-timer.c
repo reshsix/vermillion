@@ -14,9 +14,9 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifdef CONFIG_TIMER_SUNXI_TIMER
-
 #include <_types.h>
+#include <_utils.h>
+#include <vermillion/drivers.h>
 
 #define TIMERS 0x01C20C00
 #define TMR_IRQ_EN  *(volatile u32*)(TIMERS + 0x0)
@@ -114,41 +114,34 @@ timer_stop(enum timer n)
     TMR_CTRL(n) &= ~0x1;
 }
 
-#endif
-
-#ifdef CONFIG_TIMER_SUNXI_TIMER
-
-#include <_types.h>
-#include <_utils.h>
-
-#include <interface/gic.h>
-
 static void
 irq_timer(void)
 {
     timer_ack(TIMER0);
 }
 
-extern bool
-_timer_init(void)
+static const struct driver *gic0 = NULL;
+static bool
+init(void)
 {
-    gic_config(CONFIG_SUNXI_TIMER_IRQ, irq_timer, true, 0);
+    gic0 = driver_find(DRIVER_TYPE_GIC, 0);
+    gic0->routines.gic.config(CONFIG_SUNXI_TIMER_IRQ, irq_timer, true, 0);
     return true;
 }
 
-extern void
-_timer_clean(void)
+static void
+clean(void)
 {
-    gic_config(CONFIG_SUNXI_TIMER_IRQ, NULL, false, 0);
+    gic0->routines.gic.config(CONFIG_SUNXI_TIMER_IRQ, NULL, false, 0);
 }
 
-extern u32
+static u32
 timer_clock(void)
 {
     return 24000000;
 }
 
-extern void
+static void
 timer_csleep(const u32 n)
 {
     timer_enable(TIMER0);
@@ -161,7 +154,7 @@ timer_csleep(const u32 n)
     timer_start(TIMER0);
     while (1)
     {
-        gic_wait();
+        gic0->routines.gic.wait();
         u32 x = timer_current_get(TIMER0);
         if (x == 0 || x > n)
             break;
@@ -171,25 +164,36 @@ timer_csleep(const u32 n)
     timer_disable(TIMER0);
 }
 
-extern void
+static void
 timer_usleep(const u32 n)
 {
     for (s64 a = n * 24; a > 0; a -= UINT32_MAX)
         timer_csleep((a < UINT32_MAX) ? a : UINT32_MAX);
 }
 
-extern void
+static void
 timer_msleep(const u32 n)
 {
     for (s64 a = n * 1000; a > 0; a -= UINT32_MAX)
         timer_usleep((a < UINT32_MAX) ? a : UINT32_MAX);
 }
 
-extern void
+static void
 timer_sleep(const u32 n)
 {
     for (s64 a = n * 1000; a > 0; a -= UINT32_MAX)
         timer_msleep((a < UINT32_MAX) ? a : UINT32_MAX);
 }
 
-#endif
+static const struct driver driver =
+{
+    .name = "Sunxi Timer",
+    .init = init, .clean = clean,
+    .type = DRIVER_TYPE_TIMER,
+    .routines.timer.clock  = timer_clock,
+    .routines.timer.csleep = timer_csleep,
+    .routines.timer.usleep = timer_usleep,
+    .routines.timer.msleep = timer_msleep,
+    .routines.timer.sleep  = timer_sleep
+};
+driver_register(driver);

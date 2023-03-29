@@ -14,11 +14,10 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifdef CONFIG_FS_FAT32_MBR
-
 #include <_types.h>
 #include <string.h>
 #include <stdlib.h>
+#include <vermillion/drivers.h>
 
 struct fat32br
 {
@@ -463,12 +462,6 @@ fat32_read(struct fat32 *f, struct fat32e *fe, u32 sector, u8 *out)
     return ret;
 }
 
-#endif
-
-#ifdef CONFIG_FS_FAT32_MBR
-
-#include <interface/storage.h>
-
 struct fs
 {
     struct fat32 *fat32;
@@ -482,21 +475,22 @@ struct file
     struct fat32e *fat32e;
 };
 
-extern void
-_fs_clean(void)
+static void
+clean(void)
 {
     fat32_del(fs.fat32);
 }
 
-extern bool
-_fs_init(void)
+static bool
+init(void)
 {
     bool ret = false;
 
-    if (storage_read(fat32_buf, 0, 1))
+    const struct driver *st0 = driver_find(DRIVER_TYPE_STORAGE, 0);
+    if (st0->routines.storage.read(fat32_buf, 0, 1))
     {
         u32 lba = ((u32*)&(fat32_buf[0x1BE]))[2];
-        fs.fat32 = fat32_new(lba, storage_read);
+        fs.fat32 = fat32_new(lba, st0->routines.storage.read);
         if (fs.fat32)
             ret = true;
     }
@@ -504,14 +498,14 @@ _fs_init(void)
     return ret;
 }
 
-extern struct file *
+static struct file *
 fs_close(struct file *f)
 {
     free(f);
     return NULL;
 }
 
-extern struct file *
+static struct file *
 fs_open(char *path)
 {
     struct file *ret = malloc(sizeof(struct file));
@@ -527,7 +521,7 @@ fs_open(char *path)
     return ret;
 }
 
-extern void
+static void
 fs_info(struct file *f, size_t *size, s32 *files)
 {
     if (f && size)
@@ -537,7 +531,7 @@ fs_info(struct file *f, size_t *size, s32 *files)
                   (s32)f->fat32e->files.count : -1;
 }
 
-extern struct file *
+static struct file *
 fs_index(struct file *f, u32 index)
 {
     struct file *ret = NULL;
@@ -554,7 +548,7 @@ fs_index(struct file *f, u32 index)
     return ret;
 }
 
-extern bool
+static bool
 fs_read(struct file *f, u32 sector, u8 *buffer)
 {
     bool ret = false;
@@ -565,4 +559,15 @@ fs_read(struct file *f, u32 sector, u8 *buffer)
     return ret;
 }
 
-#endif
+static const struct driver driver =
+{
+    .name = "FAT32/MBR",
+    .init = init, .clean = clean,
+    .type = DRIVER_TYPE_FS,
+    .routines.fs.open  = fs_open,
+    .routines.fs.close = fs_close,
+    .routines.fs.info  = fs_info,
+    .routines.fs.index = fs_index,
+    .routines.fs.read  = fs_read
+};
+driver_register(driver);

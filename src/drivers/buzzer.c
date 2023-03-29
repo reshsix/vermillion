@@ -14,14 +14,12 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifdef CONFIG_AUDIO_BUZZER
-
 #include <_types.h>
 #include <stdlib.h>
 
 #include <h3/ports.h>
 
-#include <interface/timer.h>
+#include <vermillion/drivers.h>
 
 struct buzzer
 {
@@ -57,29 +55,27 @@ buzzer_del(struct buzzer *bz)
 static void
 buzzer_note(struct buzzer *bz, u16 freq, u16 duration)
 {
+    const struct driver *t0 = driver_find(DRIVER_TYPE_TIMER, 0);
     const u32 delay = 1000000 / freq / 2;
     for (u32 i = 0; i < (duration * 1000) / (delay * 2); i++)
     {
         pin_write(bz->pin, true);
-        timer_usleep(delay);
+        t0->routines.timer.usleep(delay);
         pin_write(bz->pin, false);
-        timer_usleep(delay);
+        t0->routines.timer.usleep(delay);
     }
 }
 
 static void
 buzzer_sample(struct buzzer *bz, u16 freq, u8 *data, size_t size)
 {
+    const struct driver *t0 = driver_find(DRIVER_TYPE_TIMER, 0);
     for (size_t i = 0; i < size; i++)
     {
         pin_write(bz->pin, data[i] >= UINT8_MAX / 2);
-        timer_usleep(1000000 / freq);
+        t0->routines.timer.usleep(1000000 / freq);
     }
 }
-
-#endif
-
-#ifdef CONFIG_AUDIO_BUZZER
 
 struct audio
 {
@@ -88,14 +84,14 @@ struct audio
 
 static struct audio audio;
 
-extern void
-_audio_clean(void)
+static void
+clean(void)
 {
     buzzer_del(audio.bz);
 }
 
-extern bool
-_audio_init(void)
+static bool
+init(void)
 {
     bool ret = false;
 
@@ -103,21 +99,29 @@ _audio_init(void)
     if (audio.bz)
         ret = true;
     else
-        _audio_clean();
+        clean();
 
     return ret;
 }
 
-extern void
+static void
 audio_note(u16 freq, u16 duration)
 {
     buzzer_note(audio.bz, freq, duration);
 }
 
-extern void
+static void
 audio_sample(u16 freq, u8 *data, size_t size)
 {
     buzzer_sample(audio.bz, freq, data, size);
 }
 
-#endif
+static const struct driver driver =
+{
+    .name = "Buzzer",
+    .init = init, .clean = clean,
+    .type = DRIVER_TYPE_AUDIO,
+    .routines.audio.note   = audio_note,
+    .routines.audio.sample = audio_sample
+};
+driver_register(driver);

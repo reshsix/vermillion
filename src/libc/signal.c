@@ -19,7 +19,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <_types.h>
 #include <_utils.h>
 
-#include <interface/serial.h>
+#include <vermillion/drivers.h>
 
 static void (*handlers[SIGLAST + 1])(int) = {NULL};
 
@@ -51,7 +51,8 @@ signal_default(int n)
             break;
         case SIGTRAP:
             print("Press enter to continue...");
-            while (serial_read(0) != '\r');
+            const struct driver *serial = driver_find(DRIVER_TYPE_SERIAL, 0);
+            while (serial->routines.serial.read(0) != '\r');
             stop = false;
             break;
     }

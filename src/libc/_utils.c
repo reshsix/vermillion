@@ -18,29 +18,30 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <h3/ports.h>
 
-#include <interface/serial.h>
-#include <interface/timer.h>
+#include <vermillion/drivers.h>
 
 extern void
 print(const char *s)
 {
+    const struct driver *serial = driver_find(DRIVER_TYPE_SERIAL, 0);
     for (; s[0] != '\0'; s = &(s[1]))
     {
         if (s[0] != '\0')
-            serial_write(0, s[0]);
+            serial->routines.serial.write(0, s[0]);
     }
 }
 
 static void
 print_h8(const u8 n)
 {
+    const struct driver *serial = driver_find(DRIVER_TYPE_SERIAL, 0);
     for (u8 i = 1; i <= 1; i--)
     {
         u8 x = (n >> (i * 4)) & 0xF;
         if (x < 10)
-            serial_write(0, x + '0');
+            serial->routines.serial.write(0, x + '0');
         else
-            serial_write(0, x - 10 + 'A');
+            serial->routines.serial.write(0, x - 10 + 'A');
     }
 }
 
@@ -60,6 +61,8 @@ print_hex(const u32 n)
 extern void
 print_uint(const u32 n)
 {
+    const struct driver *serial = driver_find(DRIVER_TYPE_SERIAL, 0);
+
     bool start = false;
 
     u32 a = n;
@@ -71,7 +74,7 @@ print_uint(const u32 n)
 
         if (start)
         {
-            serial_write(0, d + '0');
+            serial->routines.serial.write(0, d + '0');
             a -= i * d;
         }
 
@@ -80,5 +83,5 @@ print_uint(const u32 n)
     }
 
     if (!start)
-        serial_write(0, '0');
+        serial->routines.serial.write(0, '0');
 }
