@@ -337,15 +337,44 @@ static const struct driver dummy[] =
 
 /* Extern functions */
 
-extern void
-_drivers_init(u8 type)
+static void
+drivers_init_type(u8 type)
 {
     if (type == DRIVER_TYPE_SERIAL)
     {
+        bool serial0 = false;
         for (u32 i = 0; i < (u32)&__drivers_c; i++)
         {
-            if (__drivers[i].type == type && __drivers[i].init)
-                __drivers[i].init();
+            if (__drivers[i].type != type)
+                continue;
+
+            bool status = (__drivers[i].init) ? __drivers[i].init() : true;
+            if (status && !serial0)
+            {
+                __drivers[i].routines.serial.config(115200,
+                                                    DRIVER_SERIAL_CHAR_8B,
+                                                    DRIVER_SERIAL_PARITY_NONE,
+                                                    DRIVER_SERIAL_STOP_1B);
+                print("\r\nVermillion ");
+                print(__VERMILLION__);
+                print(" (");
+                print(__COMPILATION__);
+                print(")\r\n\r\n");
+
+                serial0 = true;
+            }
+
+            if (serial0)
+            {
+                print("Initializing ");
+                print(__drivers[i].name);
+                print(": ");
+                if (status)
+                    print("Success");
+                else
+                    print("Failure");
+                print("\r\n");
+            }
         }
     }
     else
@@ -368,18 +397,63 @@ _drivers_init(u8 type)
 }
 
 extern void
-_drivers_clean(u8 type)
+_drivers_init(void)
 {
+    drivers_init_type(DRIVER_TYPE_SERIAL);
+
+    drivers_init_type(DRIVER_TYPE_GPIO);
+    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
+    gpio->routines.gpio.cfgpin(CONFIG_LED_SUCCESS_PIN,
+                               DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
+    gpio->routines.gpio.set(CONFIG_LED_SUCCESS_PIN, true);
+
+    drivers_init_type(DRIVER_TYPE_GIC);
+    drivers_init_type(DRIVER_TYPE_SPI);
+    drivers_init_type(DRIVER_TYPE_TIMER);
+    drivers_init_type(DRIVER_TYPE_VIDEO);
+    drivers_init_type(DRIVER_TYPE_AUDIO);
+    drivers_init_type(DRIVER_TYPE_STORAGE);
+    drivers_init_type(DRIVER_TYPE_FS);
+    drivers_init_type(DRIVER_TYPE_LOADER);
+}
+
+static void
+drivers_clean_type(u8 type)
+{
+    const struct driver *serial0 = NULL;
+
+    if (type == DRIVER_TYPE_SERIAL)
+        serial0 = driver_find(DRIVER_TYPE_SERIAL, 0);
+
     for (u32 i = 0; i < (u32)&__drivers_c; i++)
     {
-        if (__drivers[i].type == type && __drivers[i].clean)
+        if (__drivers[i].type == type)
         {
             print("Cleaning ");
             print(__drivers[i].name);
-            __drivers[i].clean();
+            if (__drivers[i].clean && &(__drivers[i]) != serial0)
+                __drivers[i].clean();
             print("\r\n");
         }
     }
+
+    if (type == DRIVER_TYPE_SERIAL && serial0->clean)
+        serial0->clean();
+}
+
+extern void
+_drivers_clean(void)
+{
+    drivers_clean_type(DRIVER_TYPE_LOADER);
+    drivers_clean_type(DRIVER_TYPE_FS);
+    drivers_clean_type(DRIVER_TYPE_STORAGE);
+    drivers_clean_type(DRIVER_TYPE_AUDIO);
+    drivers_clean_type(DRIVER_TYPE_VIDEO);
+    drivers_clean_type(DRIVER_TYPE_TIMER);
+    drivers_clean_type(DRIVER_TYPE_SPI);
+    drivers_clean_type(DRIVER_TYPE_GIC);
+    drivers_clean_type(DRIVER_TYPE_GPIO);
+    drivers_clean_type(DRIVER_TYPE_SERIAL);
 }
 
 extern u32

@@ -35,45 +35,12 @@ __init(void)
 
     init_malloc();
 
-    _drivers_init(DRIVER_TYPE_SERIAL);
-    const struct driver *serial = driver_find(DRIVER_TYPE_SERIAL, 0);
-    serial->routines.serial.config(115200, DRIVER_SERIAL_CHAR_8B,
-                                   DRIVER_SERIAL_PARITY_NONE,
-                                   DRIVER_SERIAL_STOP_1B);
-    print("\r\nVermillion ");
-    print(__VERMILLION__);
-    print(" (");
-    print(__COMPILATION__);
-    print(")\r\n\r\n");
-
-    _drivers_init(DRIVER_TYPE_GPIO);
-    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
-    gpio->routines.gpio.cfgpin(CONFIG_LED_SUCCESS_PIN,
-                               DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
-    gpio->routines.gpio.set(CONFIG_LED_SUCCESS_PIN, true);
-
-    _drivers_init(DRIVER_TYPE_GIC);
-    _drivers_init(DRIVER_TYPE_SPI);
-    _drivers_init(DRIVER_TYPE_TIMER);
-    _drivers_init(DRIVER_TYPE_VIDEO);
-    _drivers_init(DRIVER_TYPE_AUDIO);
-    _drivers_init(DRIVER_TYPE_STORAGE);
-    _drivers_init(DRIVER_TYPE_FS);
-    _drivers_init(DRIVER_TYPE_LOADER);
+    _drivers_init();
 
     print("Executing kernel_main\r\n");
     ret = kernel_main();
 
-    _drivers_clean(DRIVER_TYPE_LOADER);
-    _drivers_clean(DRIVER_TYPE_FS);
-    _drivers_clean(DRIVER_TYPE_STORAGE);
-    _drivers_clean(DRIVER_TYPE_AUDIO);
-    _drivers_clean(DRIVER_TYPE_VIDEO);
-    _drivers_clean(DRIVER_TYPE_TIMER);
-    _drivers_clean(DRIVER_TYPE_SPI);
-    _drivers_clean(DRIVER_TYPE_GIC);
-    _drivers_clean(DRIVER_TYPE_GPIO);
-    _drivers_clean(DRIVER_TYPE_SERIAL);
+    _drivers_clean();
 
     exit(ret);
 }

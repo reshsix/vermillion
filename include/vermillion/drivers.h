@@ -159,8 +159,8 @@ struct driver
 static const volatile struct driver *_driver_##x \
 __attribute__((used, section(".data.drivers"))) = &(x);
 
-void _drivers_init(u8 type);
-void _drivers_clean(u8 type);
+void _drivers_init(void);
+void _drivers_clean(void);
 
 u32 driver_count(u8 type);
 struct driver *driver_find(u8 type, u32 index);
