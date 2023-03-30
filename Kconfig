@@ -81,18 +81,11 @@ endmenu
 
 # Video configuration
 
-config VIDEO
-    bool
-    default y
-menuconfig VIDEO
-    prompt "Video Output"
-
+menu "Video Output"
 config VIDEO_ILI9488_SPI
     bool
-    depends on VIDEO && SPI
 menuconfig VIDEO_ILI9488_SPI
     prompt "Ili9488 (SPI)"
-    depends on VIDEO
 config ILI9488_DCRS
     int "DCRS pin"
     default 12
@@ -101,88 +94,56 @@ config ILI9488_LEDS
     int "LEDS pin"
     default 11
     depends on VIDEO_ILI9488_SPI
+endmenu
 
 # Audio configuration
 
-config AUDIO
-    bool
-    default y
-menuconfig AUDIO
-    prompt "Audio Output"
-
+menu "Audio Output"
 config AUDIO_BUZZER
     bool
-    depends on AUDIO
 menuconfig AUDIO_BUZZER
     prompt "Buzzer"
-    depends on AUDIO
 config BUZZER_PIN
     int "Output pin"
     default 13
     depends on AUDIO_BUZZER
+endmenu
 
 # Storage configuration
 
-config STORAGE
-    bool
-    default y
-menuconfig STORAGE
-    prompt "Storage"
-
+menu "Storage"
 config STORAGE_SUNXI_MMC
     bool "Sunxi SD/MMC"
-    depends on STORAGE
+endmenu
 
 # Filesystem configuration
 
-config FS
-    bool
-    default y
-menuconfig FS
-    prompt "Filesystem"
-
+menu "Filesystem"
 config FS_FAT32_MBR
     bool "Fat32 MBR"
-    depends on FS
+endmenu
 
 # Loader configuration
 
-config LOADER
-    bool
-    default y
-menuconfig LOADER
-    prompt "Loader"
-
+menu "Loader"
 config LOADER_FDPIC
     bool "FDPIC ELF"
-    depends on LOADER
+endmenu
 
 # Serial configuration
 
-config SERIAL
-    bool
-    default y
-menuconfig SERIAL
-    prompt "Serial"
-
+menu "Serial"
 config SERIAL_SUNXI_UART
     bool "Sunxi UART"
-    depends on SERIAL
+endmenu
 
 # Timer configuration
 
-config TIMER
-    bool
-    default y
-menuconfig TIMER
-    prompt "Timer"
-
+menu "Timer"
 config TIMER_SUNXI_TIMER
     bool
-    depends on TIMER
 menuconfig TIMER_SUNXI_TIMER
     prompt "Sunxi Timer"
-    depends on TIMER
 config SUNXI_TIMER0_IRQ
     int "Timer0 IRQ"
     default 50
@@ -191,21 +152,15 @@ config SUNXI_TIMER1_IRQ
     int "Timer1 IRQ"
     default 51
     depends on TIMER_SUNXI_TIMER
+endmenu
 
 # SPI configuration
 
-config SPI
-    bool
-    default y
-menuconfig SPI
-    prompt "SPI"
-
+menu "SPI"
 config SPI_BITBANG
     bool
-    depends on SPI
 menuconfig SPI_BITBANG
     prompt "Bitbang"
-    depends on SPI
 config BITBANG_SPI_SS
     int "SS pin"
     default 0
@@ -222,15 +177,11 @@ config BITBANG_SPI_MISO
     int "MISO pin"
     default 3
     depends on SPI_BITBANG
+endmenu
 
 # GPIO configuration
 
-config GPIO
-    bool
-    default y
-menuconfig GPIO
-    prompt "GPIO"
-
+menu "GPIO"
 config GPIO_SUNXI_GPIO
     bool "Sunxi GPIO"
-    depends on GPIO
+endmenu
