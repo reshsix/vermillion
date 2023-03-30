@@ -164,9 +164,13 @@ config TIMER_SUNXI_TIMER
 menuconfig TIMER_SUNXI_TIMER
     prompt "Sunxi Timer"
     depends on TIMER
-config SUNXI_TIMER_IRQ
+config SUNXI_TIMER0_IRQ
     int "Timer0 IRQ"
     default 50
+    depends on TIMER_SUNXI_TIMER
+config SUNXI_TIMER1_IRQ
+    int "Timer1 IRQ"
+    default 51
     depends on TIMER_SUNXI_TIMER
 
 # SPI configuration

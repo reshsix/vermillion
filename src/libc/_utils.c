@@ -27,7 +27,7 @@ print(const char *s)
     for (; s[0] != '\0'; s = &(s[1]))
     {
         if (s[0] != '\0')
-            serial->routines.serial.write(0, s[0]);
+            serial->routines.serial.write(s[0]);
     }
 }
 
@@ -39,9 +39,9 @@ print_h8(const u8 n)
     {
         u8 x = (n >> (i * 4)) & 0xF;
         if (x < 10)
-            serial->routines.serial.write(0, x + '0');
+            serial->routines.serial.write(x + '0');
         else
-            serial->routines.serial.write(0, x - 10 + 'A');
+            serial->routines.serial.write(x - 10 + 'A');
     }
 }
 
@@ -74,7 +74,7 @@ print_uint(const u32 n)
 
         if (start)
         {
-            serial->routines.serial.write(0, d + '0');
+            serial->routines.serial.write(d + '0');
             a -= i * d;
         }
 
@@ -83,5 +83,5 @@ print_uint(const u32 n)
     }
 
     if (!start)
-        serial->routines.serial.write(0, '0');
+        serial->routines.serial.write('0');
 }

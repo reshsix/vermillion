@@ -43,7 +43,7 @@ __init(void)
 
     _drivers_init(DRIVER_TYPE_SERIAL);
     const struct driver *serial = driver_find(DRIVER_TYPE_SERIAL, 0);
-    serial->routines.serial.config(0, 115200, DRIVER_SERIAL_CHAR_8B,
+    serial->routines.serial.config(115200, DRIVER_SERIAL_CHAR_8B,
                                    DRIVER_SERIAL_PARITY_NONE,
                                    DRIVER_SERIAL_STOP_1B);
     print("\r\nVermillion ");

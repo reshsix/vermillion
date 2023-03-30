@@ -135,7 +135,7 @@ spi_transfer(u8 x)
     return (spi.cpol) ? ~ret : ret;
 }
 
-static const struct driver driver =
+static const struct driver bitbang_spi =
 {
     .name = "Bitbang SPI",
     .init = init, .clean = clean,
@@ -143,4 +143,4 @@ static const struct driver driver =
     .routines.spi.config   = spi_config,
     .routines.spi.transfer = spi_transfer
 };
-driver_register(driver);
+driver_register(bitbang_spi);

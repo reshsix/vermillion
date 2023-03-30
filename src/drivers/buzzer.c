@@ -116,7 +116,7 @@ audio_sample(u16 freq, u8 *data, size_t size)
     buzzer_sample(audio.bz, freq, data, size);
 }
 
-static const struct driver driver =
+static const struct driver buzzer =
 {
     .name = "Buzzer",
     .init = init, .clean = clean,
@@ -124,4 +124,4 @@ static const struct driver driver =
     .routines.audio.note   = audio_note,
     .routines.audio.sample = audio_sample
 };
-driver_register(driver);
+driver_register(buzzer);

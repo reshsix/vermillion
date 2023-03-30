@@ -114,25 +114,21 @@ timer_stop(enum timer n)
     TMR_CTRL(n) &= ~0x1;
 }
 
-static void
-irq_timer(void)
-{
-    timer_ack(TIMER0);
-}
+/* Exported functions */
 
 static const struct driver *gic0 = NULL;
 static bool
-init(void)
+timer_init(u16 irq, void (*f)(void))
 {
     gic0 = driver_find(DRIVER_TYPE_GIC, 0);
-    gic0->routines.gic.config(CONFIG_SUNXI_TIMER_IRQ, irq_timer, true, 0);
+    gic0->routines.gic.config(irq, f, true, 0);
     return true;
 }
 
 static void
-clean(void)
+timer_clean(u16 irq)
 {
-    gic0->routines.gic.config(CONFIG_SUNXI_TIMER_IRQ, NULL, false, 0);
+    gic0->routines.gic.config(irq, NULL, false, 0);
 }
 
 static u32
@@ -142,58 +138,88 @@ timer_clock(void)
 }
 
 static void
-timer_csleep(const u32 n)
+timer_csleep(enum timer t, const u32 n)
 {
-    timer_enable(TIMER0);
-    timer_stop(TIMER0);
+    timer_enable(t);
+    timer_stop(t);
 
-    timer_interval_set(TIMER0, n);
-    timer_config(TIMER0, true, TIMER_CLK_24MHZ);
-    timer_reload(TIMER0);
+    timer_interval_set(t, n);
+    timer_config(t, true, TIMER_CLK_24MHZ);
+    timer_reload(t);
 
-    timer_start(TIMER0);
+    timer_start(t);
     while (1)
     {
         gic0->routines.gic.wait();
-        u32 x = timer_current_get(TIMER0);
+        u32 x = timer_current_get(t);
         if (x == 0 || x > n)
             break;
     }
 
-    timer_stop(TIMER0);
-    timer_disable(TIMER0);
+    timer_stop(t);
+    timer_disable(t);
 }
 
 static void
-timer_usleep(const u32 n)
+timer_usleep(enum timer t, const u32 n)
 {
     for (s64 a = n * 24; a > 0; a -= UINT32_MAX)
-        timer_csleep((a < UINT32_MAX) ? a : UINT32_MAX);
+        timer_csleep(t, (a < UINT32_MAX) ? a : UINT32_MAX);
 }
 
 static void
-timer_msleep(const u32 n)
+timer_msleep(enum timer t, const u32 n)
 {
     for (s64 a = n * 1000; a > 0; a -= UINT32_MAX)
-        timer_usleep((a < UINT32_MAX) ? a : UINT32_MAX);
+        timer_usleep(t, (a < UINT32_MAX) ? a : UINT32_MAX);
 }
 
 static void
-timer_sleep(const u32 n)
+timer_sleep(enum timer t, const u32 n)
 {
     for (s64 a = n * 1000; a > 0; a -= UINT32_MAX)
-        timer_msleep((a < UINT32_MAX) ? a : UINT32_MAX);
+        timer_msleep(t, (a < UINT32_MAX) ? a : UINT32_MAX);
 }
 
-static const struct driver driver =
+static void timer0_ack(void){ timer_ack(TIMER0); }
+static void timer1_ack(void){ timer_ack(TIMER1); }
+static bool timer0_init(void){ return timer_init(CONFIG_SUNXI_TIMER0_IRQ,
+                                                 timer0_ack); }
+static bool timer1_init(void){ return timer_init(CONFIG_SUNXI_TIMER1_IRQ,
+                                                 timer1_ack); }
+static void timer0_clean(void) { timer_clean(CONFIG_SUNXI_TIMER0_IRQ); }
+static void timer1_clean(void) { timer_clean(CONFIG_SUNXI_TIMER1_IRQ); }
+static void timer0_csleep(const u32 n) { timer_csleep(TIMER0, n); }
+static void timer1_csleep(const u32 n) { timer_csleep(TIMER1, n); }
+static void timer0_usleep(const u32 n) { timer_usleep(TIMER0, n); }
+static void timer1_usleep(const u32 n) { timer_usleep(TIMER1, n); }
+static void timer0_msleep(const u32 n) { timer_msleep(TIMER0, n); }
+static void timer1_msleep(const u32 n) { timer_msleep(TIMER1, n); }
+static void timer0_sleep(const u32 n)  { timer_sleep(TIMER0, n); }
+static void timer1_sleep(const u32 n)  { timer_sleep(TIMER1, n); }
+
+static const struct driver sunxi_timer1 =
 {
-    .name = "Sunxi Timer",
-    .init = init, .clean = clean,
+    .name = "Sunxi Timer 1",
+    .init = timer1_init, .clean = timer1_clean,
     .type = DRIVER_TYPE_TIMER,
     .routines.timer.clock  = timer_clock,
-    .routines.timer.csleep = timer_csleep,
-    .routines.timer.usleep = timer_usleep,
-    .routines.timer.msleep = timer_msleep,
-    .routines.timer.sleep  = timer_sleep
+    .routines.timer.csleep = timer1_csleep,
+    .routines.timer.usleep = timer1_usleep,
+    .routines.timer.msleep = timer1_msleep,
+    .routines.timer.sleep =  timer1_sleep
 };
-driver_register(driver);
+driver_register(sunxi_timer1);
+
+static const struct driver sunxi_timer0 =
+{
+    .name = "Sunxi Timer 0",
+    .init = timer0_init, .clean = timer0_clean,
+    .type = DRIVER_TYPE_TIMER,
+    .routines.timer.clock  = timer_clock,
+    .routines.timer.csleep = timer0_csleep,
+    .routines.timer.usleep = timer0_usleep,
+    .routines.timer.msleep = timer0_msleep,
+    .routines.timer.sleep =  timer0_sleep
+};
+driver_register(sunxi_timer0);

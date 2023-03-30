@@ -93,30 +93,23 @@ fs_read(struct file *f, u32 sector, u8 *buffer)
     return false;
 }
 
-static u8
-serial_ports(void)
-{
-    return 0;
-}
-
 static bool
-serial_config(u8 port, u32 baud, u8 ch, u8 parity, u8 stop)
+serial_config(u32 baud, u8 ch, u8 parity, u8 stop)
 {
-    (void)port, (void)baud, (void)ch, (void)parity, (void)stop;
+    (void)baud, (void)ch, (void)parity, (void)stop;
     return true;
 }
 
 static u8
-serial_read(u8 port)
+serial_read(void)
 {
-    (void)port;
     return 0;
 }
 
 static void
-serial_write(u8 port, u16 data)
+serial_write(u16 data)
 {
-    (void)port, (void)data;
+    (void)data;
 }
 
 static u8 *
@@ -250,7 +243,6 @@ static const struct driver dummy[] =
         .name = "Dummy UART Controller",
         .init = NULL, .clean = NULL,
         .type = DRIVER_TYPE_SERIAL,
-        .routines.serial.ports  = serial_ports,
         .routines.serial.config = serial_config,
         .routines.serial.read   = serial_read,
         .routines.serial.write  = serial_write,

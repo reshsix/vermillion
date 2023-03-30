@@ -224,13 +224,13 @@ video_clear(void)
     ili9488_clear(video.ili);
 }
 
-static const struct driver driver =
+static const struct driver ili9488_spi =
 {
-    .name = "ILI9488 (SPI)",
+    .name = "ILI9488 SPI",
     .init = init, .clean = clean,
     .type = DRIVER_TYPE_VIDEO,
     .routines.video.info   = video_info,
     .routines.video.update = video_update,
     .routines.video.clear  = video_clear
 };
-driver_register(driver);
+driver_register(ili9488_spi);

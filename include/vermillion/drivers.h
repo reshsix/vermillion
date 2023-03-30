@@ -108,10 +108,9 @@ struct driver
         } timer;
         struct
         {
-            u8   (*ports) (void);
-            bool (*config)(u8 port, u32 baud, u8 bits, u8 parity, u8 stop);
-            u8   (*read)  (u8 port);
-            void (*write) (u8 port, u16 data);
+            bool (*config)(u32 baud, u8 bits, u8 parity, u8 stop);
+            u8   (*read)  (void);
+            void (*write) (u16 data);
         } serial;
         struct
         {

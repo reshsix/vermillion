@@ -27,18 +27,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define SD_FIFO  *(volatile u32*)(SD + 0x200)
 
 static bool
-init(void)
-{
-    return true;
-}
-
-static void
-clean(void)
-{
-    return;
-}
-
-static bool
 storage_read(u8 *buffer, u32 block, u32 count)
 {
     if (count != 0)
@@ -72,11 +60,11 @@ storage_read(u8 *buffer, u32 block, u32 count)
     return true;
 }
 
-static const struct driver driver =
+static const struct driver sunxi_mmc =
 {
     .name = "Sunxi SD/MMC Controller",
-    .init = init, .clean = clean,
+    .init = NULL, .clean = NULL,
     .type = DRIVER_TYPE_STORAGE,
     .routines.storage.read = storage_read
 };
-driver_register(driver);
+driver_register(sunxi_mmc);

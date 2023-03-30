@@ -559,7 +559,7 @@ fs_read(struct file *f, u32 sector, u8 *buffer)
     return ret;
 }
 
-static const struct driver driver =
+static const struct driver fat32 =
 {
     .name = "FAT32/MBR",
     .init = init, .clean = clean,
@@ -570,4 +570,4 @@ static const struct driver driver =
     .routines.fs.index = fs_index,
     .routines.fs.read  = fs_read
 };
-driver_register(driver);
+driver_register(fat32);

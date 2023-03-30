@@ -52,7 +52,7 @@ signal_default(int n)
         case SIGTRAP:
             print("Press enter to continue...");
             const struct driver *serial = driver_find(DRIVER_TYPE_SERIAL, 0);
-            while (serial->routines.serial.read(0) != '\r');
+            while (serial->routines.serial.read() != '\r');
             stop = false;
             break;
     }

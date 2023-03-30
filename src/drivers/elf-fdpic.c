@@ -132,11 +132,11 @@ loader_prog(const char *path, u32 *entry)
     return ret;
 }
 
-static const struct driver driver =
+static const struct driver elf_fdpic =
 {
     .name = "FDPIC Loader",
     .init = NULL, .clean = NULL,
     .type = DRIVER_TYPE_LOADER,
     .routines.loader.prog = loader_prog
 };
-driver_register(driver);
+driver_register(elf_fdpic);
