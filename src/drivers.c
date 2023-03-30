@@ -56,7 +56,7 @@ static bool
 storage_read(u8 *buffer, u32 block, u32 count)
 {
     (void)buffer, (void)block, (void)count;
-    return true;
+    return false;
 }
 
 static struct file *
@@ -97,7 +97,7 @@ static bool
 serial_config(u32 baud, u8 ch, u8 parity, u8 stop)
 {
     (void)baud, (void)ch, (void)parity, (void)stop;
-    return true;
+    return false;
 }
 
 static u8
@@ -165,7 +165,7 @@ static bool
 spi_config(u32 freq, u8 mode, bool lsb)
 {
     (void)freq, (void)mode, (void)lsb;
-    return true;
+    return false;
 }
 
 static u8
@@ -203,7 +203,7 @@ static bool
 gpio_cfgpin(u16 pin, u8 role, u8 pull)
 {
     (void)pin, (void)role, (void)pull;
-    return true;
+    return false;
 }
 
 static void
