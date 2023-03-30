@@ -14,10 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef H3_PORTS_H
-#define H3_PORTS_H
-
 #include <_types.h>
+#include <vermillion/drivers.h>
 
 #define PN_CFG(c, n, i) *(volatile u32*)(c + (n * 0x24) + (0x4 * i))
 #define PN_DAT(c, n)    *(volatile u32*)(c + (n * 0x24) + 0x10)
@@ -31,13 +29,14 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #define PIO 0x01C20800
 #define R_PIO 0x01F02C00
-#define PORTA PN_DAT(PIO, 0)
-#define PORTC PN_DAT(PIO, 1)
-#define PORTD PN_DAT(PIO, 2)
-#define PORTE PN_DAT(PIO, 3)
-#define PORTF PN_DAT(PIO, 4)
-#define PORTG PN_DAT(PIO, 5)
-#define PORTL PN_DAT(R_PIO, 0)
+#define PORTX(c, n) (c + (n * 0x24) + 0x10)
+#define PORTA PORTX(PIO, 0)
+#define PORTC PORTX(PIO, 1)
+#define PORTD PORTX(PIO, 2)
+#define PORTE PORTX(PIO, 3)
+#define PORTF PORTX(PIO, 4)
+#define PORTG PORTX(PIO, 5)
+#define PORTL PORTX(R_PIO, 0)
 
 enum pin
 {
@@ -52,7 +51,7 @@ enum pin
     PF0 = 128, PF1, PF2, PF3, PF4, PF5, PF6,
     PG0 = 160, PG1, PG2, PG3, PG4, PG5, PG6, PG7, PG8, PG9, PG10,
     PG11, PG12, PG13,
-    PL0 = 256, PL1, PL2, PL3, PL4, PL5, PL6, PL7, PL8, PL9, PL10,
+    PL0 = 192, PL1, PL2, PL3, PL4, PL5, PL6, PL7, PL8, PL9, PL10,
     PL11
 };
 
@@ -250,4 +249,179 @@ eint_debounce(enum eint i, u8 prescale, bool osc24m)
     EINT_DEB(base, port) = (prescale & 0x7) << 4 | osc24m;
 }
 
-#endif
+/* Exported functions */
+
+#define R_PRCM 0x01F01400
+#define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)
+static bool
+init(void)
+{
+    APB0_GATE = 1;
+    return true;
+}
+
+static void
+clean(void)
+{
+    return;
+}
+
+static u32 gpio_ports[] = {PORTA, PORTC, PORTD, PORTE, PORTF, PORTG, PORTL};
+
+static void
+gpio_count(u8 *ports, u16 *pins, u16 *intrs)
+{
+    if (ports)
+        *ports = sizeof(gpio_ports) / sizeof(u32);
+    if (pins)
+        *pins = PL11 + 1;
+    if (intrs)
+        *intrs = PG_INT13 + 1;
+}
+
+static void
+gpio_write(u8 port, u32 data)
+{
+    if (port < (sizeof(gpio_ports) / sizeof(u32)))
+        *((volatile u32 *)gpio_ports[port]) = data;
+}
+
+static u32
+gpio_read(u8 port)
+{
+    u32 ret = 0;
+
+    if (port < (sizeof(gpio_ports) / sizeof(u32)))
+        ret = *((volatile u32 *)gpio_ports[port]);
+
+    return ret;
+}
+
+static bool
+gpio_cfgpin(u16 pin, u8 role, u8 pull)
+{
+    bool ret = (pin <= PL11);
+
+    enum pin_config c = PIN_CFG_OFF;
+    enum pin_pull pl = PIN_PULLOFF;
+    if (ret)
+    {
+        switch (role)
+        {
+            case DRIVER_GPIO_OFF:
+                break;
+            case DRIVER_GPIO_IN:
+                c = PIN_CFG_IN;
+                break;
+            case DRIVER_GPIO_OUT:
+                c = PIN_CFG_OUT;
+                break;
+            default:
+                c = role - DRIVER_GPIO_EXTRA;
+                break;
+        }
+
+        switch (pull)
+        {
+            case DRIVER_GPIO_PULLOFF:
+                break;
+            case DRIVER_GPIO_PULLUP:
+                pl = PIN_PULLUP;
+                break;
+            case DRIVER_GPIO_PULLDOWN:
+                pl = PIN_PULLDOWN;
+                break;
+            default:
+                ret = false;
+                break;
+        }
+    }
+
+    if (ret)
+    {
+        pin_config(pin, c);
+        pin_pull(pin, pl);
+    }
+
+    return ret;
+}
+
+static void
+gpio_set(u16 pin, bool value)
+{
+    if (pin <= PL11)
+        pin_write(pin, value);
+}
+
+static bool
+gpio_get(u16 pin)
+{
+    bool ret = false;
+
+    if (pin <= PL11)
+        ret = pin_read(pin);
+
+    return ret;
+}
+
+static bool
+gpio_cfgint(u16 intr, bool enable, u8 level)
+{
+    bool ret = (intr <= PG_INT13);
+
+    enum eint_config c = EINT_EDGE_H;
+    if (ret)
+    {
+        switch (level)
+        {
+            case DRIVER_GPIO_EDGE_H:
+                break;
+            case DRIVER_GPIO_EDGE_L:
+                c = EINT_EDGE_L;
+                break;
+            case DRIVER_GPIO_LEVEL_H:
+                c = EINT_LEVEL_H;
+                break;
+            case DRIVER_GPIO_LEVEL_L:
+                c = EINT_LEVEL_L;
+                break;
+            case DRIVER_GPIO_DOUBLE:
+                c = EINT_DOUBLE;
+                break;
+            default:
+                ret = false;
+                break;
+        }
+    }
+
+    if (ret)
+    {
+        eint_control(intr, enable);
+        eint_config(intr, c);
+    }
+
+    return ret;
+}
+
+static bool
+gpio_ack(u16 intr)
+{
+    eint_ack(intr);
+    return true;
+}
+
+static const struct driver sunxi_gpio =
+{
+    .name = "Sunxi GPIO",
+    .init = init, .clean = clean,
+    .type = DRIVER_TYPE_GPIO,
+    .routines.gpio.count  = gpio_count,
+    .routines.gpio.write  = gpio_write,
+    .routines.gpio.read   = gpio_read,
+    .routines.gpio.cfgpin = gpio_cfgpin,
+    .routines.gpio.set    = gpio_set,
+    .routines.gpio.get    = gpio_get,
+    .routines.gpio.cfgint = gpio_cfgint,
+    .routines.gpio.ack    = gpio_ack
+};
+driver_register(sunxi_gpio);

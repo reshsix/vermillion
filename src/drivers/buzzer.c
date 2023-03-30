@@ -16,24 +16,22 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <_types.h>
 #include <stdlib.h>
-
-#include <h3/ports.h>
-
 #include <vermillion/drivers.h>
 
 struct buzzer
 {
-    enum pin pin;
+    u16 pin;
 };
 
 static struct buzzer *
-buzzer_new(enum pin pin)
+buzzer_new(u16 pin)
 {
     struct buzzer *ret = malloc(sizeof(struct buzzer));
 
     if (ret)
     {
-        pin_config(pin, PIN_CFG_OUT);
+        const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
+        gpio->routines.gpio.cfgpin(pin, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
         ret->pin = pin;
     }
 
@@ -45,7 +43,9 @@ buzzer_del(struct buzzer *bz)
 {
     if (bz)
     {
-        pin_config(bz->pin, PIN_CFG_OFF);
+        const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
+        gpio->routines.gpio.cfgpin(bz->pin, DRIVER_GPIO_OFF,
+                                   DRIVER_GPIO_PULLOFF);
         free(bz);
     }
 
@@ -56,12 +56,13 @@ static void
 buzzer_note(struct buzzer *bz, u16 freq, u16 duration)
 {
     const struct driver *t0 = driver_find(DRIVER_TYPE_TIMER, 0);
+    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
     const u32 delay = 1000000 / freq / 2;
     for (u32 i = 0; i < (duration * 1000) / (delay * 2); i++)
     {
-        pin_write(bz->pin, true);
+        gpio->routines.gpio.set(bz->pin, true);
         t0->routines.timer.usleep(delay);
-        pin_write(bz->pin, false);
+        gpio->routines.gpio.set(bz->pin, false);
         t0->routines.timer.usleep(delay);
     }
 }
@@ -70,9 +71,10 @@ static void
 buzzer_sample(struct buzzer *bz, u16 freq, u8 *data, size_t size)
 {
     const struct driver *t0 = driver_find(DRIVER_TYPE_TIMER, 0);
+    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
     for (size_t i = 0; i < size; i++)
     {
-        pin_write(bz->pin, data[i] >= UINT8_MAX / 2);
+        gpio->routines.gpio.set(bz->pin, data[i] >= UINT8_MAX / 2);
         t0->routines.timer.usleep(1000000 / freq);
     }
 }

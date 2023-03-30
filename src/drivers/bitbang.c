@@ -15,17 +15,14 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <stdlib.h>
-
-#include <h3/ports.h>
-
 #include <vermillion/drivers.h>
 
 struct spi
 {
-    enum pin ss;
-    enum pin sck;
-    enum pin mosi;
-    enum pin miso;
+    u16 ss;
+    u16 sck;
+    u16 mosi;
+    u16 miso;
 
     bool lsb;
     bool cpol;
@@ -62,10 +59,11 @@ init(void)
     spi.delay = 0;
     spi.sleep = empty;
 
-    pin_config(spi.ss, PIN_CFG_OUT);
-    pin_config(spi.sck, PIN_CFG_OUT);
-    pin_config(spi.mosi, PIN_CFG_OUT);
-    pin_config(spi.miso, PIN_CFG_IN);
+    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
+    gpio->routines.gpio.cfgpin(spi.ss, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
+    gpio->routines.gpio.cfgpin(spi.sck, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
+    gpio->routines.gpio.cfgpin(spi.mosi, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
+    gpio->routines.gpio.cfgpin(spi.miso, DRIVER_GPIO_IN, DRIVER_GPIO_PULLDOWN);
 
     return true;
 }
@@ -73,10 +71,11 @@ init(void)
 static void
 clean(void)
 {
-    pin_config(spi.ss, PIN_CFG_OFF);
-    pin_config(spi.sck, PIN_CFG_OFF);
-    pin_config(spi.mosi, PIN_CFG_OFF);
-    pin_config(spi.miso, PIN_CFG_OFF);
+    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
+    gpio->routines.gpio.cfgpin(spi.ss, DRIVER_GPIO_OFF, DRIVER_GPIO_PULLOFF);
+    gpio->routines.gpio.cfgpin(spi.sck, DRIVER_GPIO_OFF, DRIVER_GPIO_PULLOFF);
+    gpio->routines.gpio.cfgpin(spi.mosi, DRIVER_GPIO_OFF, DRIVER_GPIO_PULLOFF);
+    gpio->routines.gpio.cfgpin(spi.miso, DRIVER_GPIO_OFF, DRIVER_GPIO_PULLOFF);
 }
 
 static bool
@@ -112,25 +111,26 @@ spi_transfer(u8 x)
 {
     u8 ret = 0;
 
-    pin_write(spi.ss, false);
-    pin_write(spi.sck, (spi.cpha) ? true : false);
+    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
+    gpio->routines.gpio.set(spi.ss, false);
+    gpio->routines.gpio.set(spi.sck, (spi.cpha) ? true : false);
     for (u8 i = 0; i < 8; i++)
     {
         if (spi.lsb) ret >>= 1;
         else        ret <<= 1;
-        ret |= pin_read(spi.miso) << ((spi.lsb) ? 7 : 0);
+        ret |= gpio->routines.gpio.get(spi.miso) << ((spi.lsb) ? 7 : 0);
 
         bool bit = (spi.lsb) ? x & 0x01 : x & 0x80;
-        pin_write(spi.mosi, (spi.cpol) ? !bit : bit);
+        gpio->routines.gpio.set(spi.mosi, (spi.cpol) ? !bit : bit);
         spi.sleep(spi.delay);
-        pin_write(spi.sck, (spi.cpha) ? false : true);
+        gpio->routines.gpio.set(spi.sck, (spi.cpha) ? false : true);
         spi.sleep(spi.delay);
-        pin_write(spi.sck, (spi.cpha) ? true : false);
+        gpio->routines.gpio.set(spi.sck, (spi.cpha) ? true : false);
 
         if (spi.lsb) x >>= 1;
         else        x <<= 1;
     }
-    pin_write(spi.ss, true);
+    gpio->routines.gpio.set(spi.ss, true);
 
     return (spi.cpol) ? ~ret : ret;
 }

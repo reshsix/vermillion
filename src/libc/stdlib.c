@@ -19,8 +19,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <_types.h>
 #include <_utils.h>
 
-#include <h3/ports.h>
-
 #include <vermillion/drivers.h>
 
 /* Initialization */
@@ -37,10 +35,6 @@ __init(void)
 
     init_malloc();
 
-    APB0_GATE = 1;
-    pin_config(PL10, PIN_CFG_OUT);
-    pin_write(PL10, true);
-
     _drivers_init(DRIVER_TYPE_SERIAL);
     const struct driver *serial = driver_find(DRIVER_TYPE_SERIAL, 0);
     serial->routines.serial.config(115200, DRIVER_SERIAL_CHAR_8B,
@@ -51,6 +45,12 @@ __init(void)
     print(" (");
     print(__COMPILATION__);
     print(")\r\n\r\n");
+
+    _drivers_init(DRIVER_TYPE_GPIO);
+    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
+    gpio->routines.gpio.cfgpin(CONFIG_LED_SUCCESS_PIN,
+                               DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
+    gpio->routines.gpio.set(CONFIG_LED_SUCCESS_PIN, true);
 
     _drivers_init(DRIVER_TYPE_GIC);
     _drivers_init(DRIVER_TYPE_SPI);
@@ -72,6 +72,8 @@ __init(void)
     _drivers_clean(DRIVER_TYPE_TIMER);
     _drivers_clean(DRIVER_TYPE_SPI);
     _drivers_clean(DRIVER_TYPE_GIC);
+    _drivers_clean(DRIVER_TYPE_GPIO);
+    _drivers_clean(DRIVER_TYPE_SERIAL);
 
     exit(ret);
 }
@@ -108,10 +110,13 @@ exit(int code)
     print("\r\nExited with code: ");
     print_hex(code);
 
-    pin_config(PA15, PIN_CFG_OUT);
-    pin_write(PA15, true);
-    pin_config(PL10, PIN_CFG_OUT);
-    pin_write(PL10, false);
+    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
+    gpio->routines.gpio.cfgpin(CONFIG_LED_FAILURE_PIN,
+                               DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
+    gpio->routines.gpio.set(CONFIG_LED_FAILURE_PIN, true);
+    gpio->routines.gpio.cfgpin(CONFIG_LED_SUCCESS_PIN,
+                               DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
+    gpio->routines.gpio.set(CONFIG_LED_SUCCESS_PIN, false);
 
     const struct driver *gic = driver_find(DRIVER_TYPE_GIC, 0);
     for (;;)

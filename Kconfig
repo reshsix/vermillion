@@ -58,6 +58,25 @@ config GIC_TYPE_3
     bool "High edge"
 endchoice
 
+config LED_SUCCESS
+    bool
+    default y
+menuconfig LED_SUCCESS
+    prompt "Board LED (Success)"
+config LED_SUCCESS_PIN
+    int "Pin"
+    default 202
+    depends on LED_SUCCESS
+config LED_FAILURE
+    bool
+    default y
+menuconfig LED_FAILURE
+    prompt "Board LED (Failure)"
+config LED_FAILURE_PIN
+    int "Pin"
+    default 15
+    depends on LED_FAILURE
+
 endmenu
 
 # Video configuration
@@ -75,12 +94,12 @@ menuconfig VIDEO_ILI9488_SPI
     prompt "Ili9488 (SPI)"
     depends on VIDEO
 config ILI9488_DCRS
-    string "DCRS pin"
-    default PA12
+    int "DCRS pin"
+    default 12
     depends on VIDEO_ILI9488_SPI
 config ILI9488_LEDS
-    string "LEDS pin"
-    default PA11
+    int "LEDS pin"
+    default 11
     depends on VIDEO_ILI9488_SPI
 
 # Audio configuration
@@ -98,8 +117,8 @@ menuconfig AUDIO_BUZZER
     prompt "Buzzer"
     depends on AUDIO
 config BUZZER_PIN
-    string "Output pin"
-    default PA13
+    int "Output pin"
+    default 13
     depends on AUDIO_BUZZER
 
 # Storage configuration
@@ -188,18 +207,30 @@ menuconfig SPI_BITBANG
     prompt "Bitbang"
     depends on SPI
 config BITBANG_SPI_SS
-    string "SS pin"
-    default PA0
+    int "SS pin"
+    default 0
     depends on SPI_BITBANG
 config BITBANG_SPI_SCK
-    string "SCK pin"
-    default PA1
+    int "SCK pin"
+    default 1
     depends on SPI_BITBANG
 config BITBANG_SPI_MOSI
-    string "MOSI pin"
-    default PA2
+    int "MOSI pin"
+    default 2
     depends on SPI_BITBANG
 config BITBANG_SPI_MISO
-    string "MISO pin"
-    default PA3
+    int "MISO pin"
+    default 3
     depends on SPI_BITBANG
+
+# GPIO configuration
+
+config GPIO
+    bool
+    default y
+menuconfig GPIO
+    prompt "GPIO"
+
+config GPIO_SUNXI_GPIO
+    bool "Sunxi GPIO"
+    depends on GPIO

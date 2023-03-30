@@ -17,15 +17,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <_types.h>
 #include <stdarg.h>
 #include <stdlib.h>
-
-#include <h3/ports.h>
-
 #include <vermillion/drivers.h>
 
 struct ili9488
 {
-    enum pin dcrs;
-    enum pin leds;
+    u16 dcrs;
+    u16 leds;
 
     void (*write)(u8);
 };
@@ -35,14 +32,15 @@ struct ili9488
    turn white on boot */
 
 static struct ili9488 *
-ili9488_new(enum pin dcrs, enum pin leds, void (*write)(u8))
+ili9488_new(u16 dcrs, u16 leds, void (*write)(u8))
 {
     struct ili9488 *ret = malloc(sizeof(struct ili9488));
 
     if (ret)
     {
-        pin_config(dcrs, PIN_CFG_OUT);
-        pin_config(leds, PIN_CFG_OUT);
+        const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
+        gpio->routines.gpio.cfgpin(dcrs, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
+        gpio->routines.gpio.cfgpin(leds, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
         ret->dcrs = dcrs;
         ret->leds = leds;
 
@@ -57,8 +55,11 @@ ili9488_del(struct ili9488 *ili)
 {
     if (!ili)
     {
-        pin_config(ili->dcrs, PIN_CFG_OFF);
-        pin_config(ili->leds, PIN_CFG_OFF);
+        const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
+        gpio->routines.gpio.cfgpin(ili->dcrs, DRIVER_GPIO_OFF,
+                                   DRIVER_GPIO_PULLOFF);
+        gpio->routines.gpio.cfgpin(ili->leds, DRIVER_GPIO_OFF,
+                                   DRIVER_GPIO_PULLOFF);
         free(ili);
     }
 
@@ -78,37 +79,40 @@ ili9488_command(struct ili9488 *ili, u8 c, ...)
     for (u8 i = 0; i < c; i++)
         buf[i] = va_arg(args, int);
 
-    pin_write(ili->dcrs, false);
+    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
+    gpio->routines.gpio.set(ili->dcrs, false);
     ili->write(buf[0]);
 
-    pin_write(ili->dcrs, true);
+    gpio->routines.gpio.set(ili->dcrs, true);
     for (u8 i = 1; i < c; i++)
         ili->write(buf[i]);
-    pin_write(ili->dcrs, false);
+    gpio->routines.gpio.set(ili->dcrs, false);
 }
 
 static void
 ili9488_command2(struct ili9488 *ili, u8 n, u8 *buf, size_t length)
 {
-    pin_write(ili->dcrs, false);
+    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
+    gpio->routines.gpio.set(ili->dcrs, false);
     ili->write(n);
 
-    pin_write(ili->dcrs, true);
+    gpio->routines.gpio.set(ili->dcrs, true);
     for (size_t i = 0; i < length; i++)
         ili->write(buf[i]);
-    pin_write(ili->dcrs, false);
+    gpio->routines.gpio.set(ili->dcrs, false);
 }
 
 static void
 ili9488_command3(struct ili9488 *ili, u8 n, u8 c, size_t length)
 {
-    pin_write(ili->dcrs, false);
+    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
+    gpio->routines.gpio.set(ili->dcrs, false);
     ili->write(n);
 
-    pin_write(ili->dcrs, true);
+    gpio->routines.gpio.set(ili->dcrs, true);
     for (size_t i = 0; i < length; i++)
         ili->write(c);
-    pin_write(ili->dcrs, false);
+    gpio->routines.gpio.set(ili->dcrs, false);
 }
 
 static void
@@ -140,11 +144,12 @@ static void
 ili9488_start(struct ili9488 *ili, u8 *splash, u16 splash_w, u16 splash_h)
 {
     const struct driver *t0 = driver_find(DRIVER_TYPE_TIMER, 0);
+    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
 
-    pin_config(ili->dcrs, PIN_CFG_OUT);
-    pin_write(ili->leds, true);
-    pin_config(ili->leds, PIN_CFG_OUT);
-    pin_write(ili->leds, true);
+    gpio->routines.gpio.cfgpin(ili->dcrs, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
+    gpio->routines.gpio.set(ili->leds, true);
+    gpio->routines.gpio.cfgpin(ili->leds, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
+    gpio->routines.gpio.set(ili->leds, true);
 
     ili9488_command(ili, 1, 0x00, 0);
     ili9488_command(ili, 1, 0x01, 0);
@@ -165,7 +170,7 @@ ili9488_start(struct ili9488 *ili, u8 *splash, u16 splash_w, u16 splash_h)
     ili9488_command(ili, 1, 0x29);
     t0->routines.timer.msleep(10);
 
-    pin_write(ili->leds, false);
+    gpio->routines.gpio.set(ili->leds, false);
 }
 
 struct video

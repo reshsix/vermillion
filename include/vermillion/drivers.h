@@ -47,6 +47,30 @@ enum
     DRIVER_SERIAL_STOP_2B
 };
 
+enum
+{
+    DRIVER_GPIO_OFF,
+    DRIVER_GPIO_IN,
+    DRIVER_GPIO_OUT,
+    DRIVER_GPIO_EXTRA
+};
+
+enum
+{
+    DRIVER_GPIO_PULLOFF,
+    DRIVER_GPIO_PULLUP,
+    DRIVER_GPIO_PULLDOWN
+};
+
+enum
+{
+    DRIVER_GPIO_EDGE_H,
+    DRIVER_GPIO_EDGE_L,
+    DRIVER_GPIO_LEVEL_H,
+    DRIVER_GPIO_LEVEL_L,
+    DRIVER_GPIO_DOUBLE
+};
+
 #define DRIVER_SPI_MAX 0
 
 struct driver
@@ -61,7 +85,7 @@ struct driver
         DRIVER_TYPE_VIDEO, DRIVER_TYPE_AUDIO,
         DRIVER_TYPE_STORAGE, DRIVER_TYPE_FS, DRIVER_TYPE_LOADER,
         DRIVER_TYPE_GIC, DRIVER_TYPE_TIMER,
-        DRIVER_TYPE_SERIAL, DRIVER_TYPE_SPI,
+        DRIVER_TYPE_SERIAL, DRIVER_TYPE_SPI, DRIVER_TYPE_GPIO,
         DRIVER_TYPE_DUMMY
     } type;
     union
@@ -117,6 +141,17 @@ struct driver
             bool (*config)(u32 freq, u8 mode, bool lsb);
             u8   (*transfer)(u8 x);
         } spi;
+        struct
+        {
+            void (*count) (u8 *ports, u16 *pins, u16 *intrs);
+            void (*write) (u8 port, u32 data);
+            u32  (*read)  (u8 port);
+            bool (*cfgpin)(u16 pin, u8 role, u8 pull);
+            void (*set)   (u16 pin, bool value);
+            bool (*get)   (u16 pin);
+            bool (*cfgint)(u16 intr, bool enable, u8 level);
+            bool (*ack)   (u16 intr);
+        } gpio;
     } routines;
 };
 

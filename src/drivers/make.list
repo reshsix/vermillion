@@ -40,6 +40,10 @@ ifdef CONFIG_STORAGE_SUNXI_MMC
 DRIVERS += sunxi-mmc.o
 endif
 
+ifdef CONFIG_GPIO_SUNXI_GPIO
+DRIVERS += sunxi-gpio.o
+endif
+
 ifdef CONFIG_TIMER_SUNXI_TIMER
 DRIVERS += sunxi-timer.o
 endif

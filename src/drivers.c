@@ -175,6 +175,64 @@ spi_transfer(u8 x)
     return 0;
 }
 
+static void
+gpio_count(u8 *ports, u16 *pins, u16 *intrs)
+{
+    if (ports)
+        *ports = 0;
+    if (pins)
+        *pins = 0;
+    if (intrs)
+        *intrs = 0;
+}
+
+static void
+gpio_write(u8 port, u32 data)
+{
+    (void)port, (void)data;
+}
+
+static u32
+gpio_read(u8 port)
+{
+    (void)port;
+    return 0;
+}
+
+static bool
+gpio_cfgpin(u16 pin, u8 role, u8 pull)
+{
+    (void)pin, (void)role, (void)pull;
+    return true;
+}
+
+static void
+gpio_set(u16 pin, bool value)
+{
+    (void)pin, (void)value;
+}
+
+static bool
+gpio_get(u16 pin)
+{
+    (void)pin;
+    return false;
+}
+
+static bool
+gpio_cfgint(u16 intr, bool enable, u8 level)
+{
+    (void)intr, (void)enable, (void)level;
+    return false;
+}
+
+static bool
+gpio_ack(u16 intr)
+{
+    (void)intr;
+    return false;
+}
+
 static const struct driver dummy[] =
 {
     [DRIVER_TYPE_VIDEO] =
@@ -254,6 +312,20 @@ static const struct driver dummy[] =
         .type = DRIVER_TYPE_SPI,
         .routines.spi.config    = spi_config,
         .routines.spi.transfer  = spi_transfer,
+    },
+    [DRIVER_TYPE_GPIO] =
+    {
+        .name = "Dummy GPIO Controller",
+        .init = NULL, .clean = NULL,
+        .type = DRIVER_TYPE_GPIO,
+        .routines.gpio.count  = gpio_count,
+        .routines.gpio.write  = gpio_write,
+        .routines.gpio.read   = gpio_read,
+        .routines.gpio.cfgpin = gpio_cfgpin,
+        .routines.gpio.set    = gpio_set,
+        .routines.gpio.get    = gpio_get,
+        .routines.gpio.cfgint = gpio_cfgint,
+        .routines.gpio.ack    = gpio_ack
     },
     [DRIVER_TYPE_DUMMY] =
     {
