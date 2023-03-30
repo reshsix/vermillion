@@ -18,17 +18,17 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 .global _start
 _start:
-    ldr pc, #(ivt + 0x0)
-    ldr pc, #(ivt + 0x4)
-    ldr pc, #(ivt + 0x8)
-    ldr pc, #(ivt + 0xC)
-    ldr pc, #(ivt + 0x10)
-    ldr pc, #(ivt + 0x14)
-    ldr pc, #(ivt + 0x18)
-    ldr pc, #(ivt + 0x1C)
+    ldr pc, #(__ivt + 0x0)
+    ldr pc, #(__ivt + 0x4)
+    ldr pc, #(__ivt + 0x8)
+    ldr pc, #(__ivt + 0xC)
+    ldr pc, #(__ivt + 0x10)
+    ldr pc, #(__ivt + 0x14)
+    ldr pc, #(__ivt + 0x18)
+    ldr pc, #(__ivt + 0x1C)
 
-.global ivt
-ivt:
+.global __ivt
+__ivt:
     .word 1f
     .word 0x0
     .word 0x0
@@ -46,8 +46,8 @@ ivt:
     bne 1f
 
     // Clearing bss with zeros
-    ldr r4, =_bss_s
-    ldr r5, =_bss_e
+    ldr r4, =__bss_s
+    ldr r5, =__bss_e
     eor r6, r6
     eor r7, r7
     eor r8, r8

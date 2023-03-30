@@ -30,7 +30,7 @@ enum
     IVT_FIQ
 };
 
-extern void *ivt[8];
+extern void *__ivt[8];
 
 #define interrupt(type) \
     __attribute__((target("general-regs-only"))) \
@@ -281,12 +281,12 @@ handler_fiq(void)
 static bool
 init(void)
 {
-    ivt[IVT_UNDEF]    = handler_undef;
-    ivt[IVT_SWI]      = handler_swi;
-    ivt[IVT_PREFETCH] = handler_prefetch;
-    ivt[IVT_DATA]     = handler_data;
-    ivt[IVT_IRQ]      = handler_irq;
-    ivt[IVT_FIQ]      = handler_fiq;
+    __ivt[IVT_UNDEF]    = handler_undef;
+    __ivt[IVT_SWI]      = handler_swi;
+    __ivt[IVT_PREFETCH] = handler_prefetch;
+    __ivt[IVT_DATA]     = handler_data;
+    __ivt[IVT_IRQ]      = handler_irq;
+    __ivt[IVT_FIQ]      = handler_fiq;
 
     return true;
 }
