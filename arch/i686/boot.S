@@ -14,13 +14,33 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef _UTILS_H
-#define _UTILS_H
+.section ".text.boot"
+.set MAGIC,    0x1BADB002
+.set FLAGS,    0x1
+.set CHECKSUM, -(MAGIC + FLAGS)
 
-#include <_types.h>
+.long MAGIC
+.long FLAGS
+.long CHECKSUM
 
-void print(const char *s);
-void print_hex(const u32 n);
-void print_uint(const u32 n);
+.global _start
+_start:
+    // Clearing bss with zeros
+    movl $__bss_s, %eax
+    movl $__bss_e, %ebx
+1:
+    movl $0, (%eax)
+    addl $4, %eax
+    cmp %ebx, %eax
+    jl 1b
 
-#endif
+    // Disable interrupts
+    cli
+
+    // Set stack and jump to C code */
+    movl $__stack, %esp
+    call __init
+1:
+    hlt
+    jmp 1b
+.size _start, . - _start

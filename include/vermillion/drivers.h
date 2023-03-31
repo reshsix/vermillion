@@ -19,8 +19,13 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <_types.h>
 
-extern struct driver *__drivers;
+extern void *__drivers;
 extern void *__drivers_c;
+
+static __attribute__((used)) struct driver **_drivers =
+    (struct driver **)&__drivers;
+static __attribute__((used)) u32 _drivers_c =
+    (u32)&__drivers_c;
 
 struct file;
 
@@ -37,7 +42,9 @@ enum
 {
     DRIVER_SERIAL_PARITY_NONE,
     DRIVER_SERIAL_PARITY_ODD,
-    DRIVER_SERIAL_PARITY_EVEN
+    DRIVER_SERIAL_PARITY_EVEN,
+    DRIVER_SERIAL_PARITY_MARK,
+    DRIVER_SERIAL_PARITY_SPACE
 };
 
 enum
@@ -73,7 +80,7 @@ enum
 
 #define DRIVER_SPI_MAX 0
 
-struct driver
+struct __attribute__((packed)) driver
 {
     char *name;
 

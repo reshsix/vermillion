@@ -12,21 +12,6 @@
 # You should have received a copy of the GNU General Public License
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
-include src/drivers/arm/make.list
-include src/drivers/i686/make.list
-
-ifdef CONFIG_SPI_BITBANG
-DRIVERS += bitbang.o
-endif
-
-ifdef CONFIG_AUDIO_BUZZER
-DRIVERS += buzzer.o
-endif
-
-ifdef CONFIG_FS_FAT32_MBR
-DRIVERS += fat32.o
-endif
-
-ifdef CONFIG_VIDEO_ILI9488_SPI
-DRIVERS += ili9488.o
+ifdef CONFIG_SERIAL_I686
+DRIVERS += i686/serial.o
 endif

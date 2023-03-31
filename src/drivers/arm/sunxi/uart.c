@@ -422,38 +422,16 @@ static void uart2_write(u16 data){ return serial_write(2, data); }
 static void uart3_write(u16 data){ return serial_write(3, data); }
 static void ruart_write(u16 data){ return serial_write(4, data); }
 
-static const struct driver sunxi_ruart =
+static const struct driver sunxi_uart0 =
 {
-    .name = "Sunxi R_UART",
-    .init = ruart_init, .clean = NULL,
-    .type = DRIVER_TYPE_SERIAL,
-    .routines.serial.config = ruart_config,
-    .routines.serial.read   = ruart_read,
-    .routines.serial.write  = ruart_write
-};
-driver_register(sunxi_ruart);
-
-static const struct driver sunxi_uart3 =
-{
-    .name = "Sunxi UART3",
+    .name = "Sunxi UART0",
     .init = NULL, .clean = NULL,
     .type = DRIVER_TYPE_SERIAL,
-    .routines.serial.config = uart3_config,
-    .routines.serial.read   = uart3_read,
-    .routines.serial.write  = uart3_write
+    .routines.serial.config = uart0_config,
+    .routines.serial.read   = uart0_read,
+    .routines.serial.write  = uart0_write
 };
-driver_register(sunxi_uart3);
-
-static const struct driver sunxi_uart2 =
-{
-    .name = "Sunxi UART2",
-    .init = NULL, .clean = NULL,
-    .type = DRIVER_TYPE_SERIAL,
-    .routines.serial.config = uart2_config,
-    .routines.serial.read   = uart2_read,
-    .routines.serial.write  = uart2_write
-};
-driver_register(sunxi_uart2);
+driver_register(sunxi_uart0);
 
 static const struct driver sunxi_uart1 =
 {
@@ -466,13 +444,35 @@ static const struct driver sunxi_uart1 =
 };
 driver_register(sunxi_uart1);
 
-static const struct driver sunxi_uart0 =
+static const struct driver sunxi_uart2 =
 {
-    .name = "Sunxi UART0",
+    .name = "Sunxi UART2",
     .init = NULL, .clean = NULL,
     .type = DRIVER_TYPE_SERIAL,
-    .routines.serial.config = uart0_config,
-    .routines.serial.read   = uart0_read,
-    .routines.serial.write  = uart0_write
+    .routines.serial.config = uart2_config,
+    .routines.serial.read   = uart2_read,
+    .routines.serial.write  = uart2_write
 };
-driver_register(sunxi_uart0);
+driver_register(sunxi_uart2);
+
+static const struct driver sunxi_uart3 =
+{
+    .name = "Sunxi UART3",
+    .init = NULL, .clean = NULL,
+    .type = DRIVER_TYPE_SERIAL,
+    .routines.serial.config = uart3_config,
+    .routines.serial.read   = uart3_read,
+    .routines.serial.write  = uart3_write
+};
+driver_register(sunxi_uart3);
+
+static const struct driver sunxi_ruart =
+{
+    .name = "Sunxi R_UART",
+    .init = ruart_init, .clean = NULL,
+    .type = DRIVER_TYPE_SERIAL,
+    .routines.serial.config = ruart_config,
+    .routines.serial.read   = ruart_read,
+    .routines.serial.write  = ruart_write
+};
+driver_register(sunxi_ruart);

@@ -198,19 +198,6 @@ static void timer1_msleep(const u32 n) { timer_msleep(TIMER1, n); }
 static void timer0_sleep(const u32 n)  { timer_sleep(TIMER0, n); }
 static void timer1_sleep(const u32 n)  { timer_sleep(TIMER1, n); }
 
-static const struct driver sunxi_timer1 =
-{
-    .name = "Sunxi Timer 1",
-    .init = timer1_init, .clean = timer1_clean,
-    .type = DRIVER_TYPE_TIMER,
-    .routines.timer.clock  = timer_clock,
-    .routines.timer.csleep = timer1_csleep,
-    .routines.timer.usleep = timer1_usleep,
-    .routines.timer.msleep = timer1_msleep,
-    .routines.timer.sleep =  timer1_sleep
-};
-driver_register(sunxi_timer1);
-
 static const struct driver sunxi_timer0 =
 {
     .name = "Sunxi Timer 0",
@@ -223,3 +210,16 @@ static const struct driver sunxi_timer0 =
     .routines.timer.sleep =  timer0_sleep
 };
 driver_register(sunxi_timer0);
+
+static const struct driver sunxi_timer1 =
+{
+    .name = "Sunxi Timer 1",
+    .init = timer1_init, .clean = timer1_clean,
+    .type = DRIVER_TYPE_TIMER,
+    .routines.timer.clock  = timer_clock,
+    .routines.timer.csleep = timer1_csleep,
+    .routines.timer.usleep = timer1_usleep,
+    .routines.timer.msleep = timer1_msleep,
+    .routines.timer.sleep =  timer1_sleep
+};
+driver_register(sunxi_timer1);

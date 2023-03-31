@@ -12,21 +12,18 @@
 # You should have received a copy of the GNU General Public License
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
-include src/drivers/arm/make.list
-include src/drivers/i686/make.list
-
-ifdef CONFIG_SPI_BITBANG
-DRIVERS += bitbang.o
+ifdef CONFIG_GPIO_SUNXI_GPIO
+DRIVERS += arm/sunxi/gpio.o
 endif
 
-ifdef CONFIG_AUDIO_BUZZER
-DRIVERS += buzzer.o
+ifdef CONFIG_STORAGE_SUNXI_MMC
+DRIVERS += arm/sunxi/mmc.o
 endif
 
-ifdef CONFIG_FS_FAT32_MBR
-DRIVERS += fat32.o
+ifdef CONFIG_TIMER_SUNXI_TIMER
+DRIVERS += arm/sunxi/timer.o
 endif
 
-ifdef CONFIG_VIDEO_ILI9488_SPI
-DRIVERS += ili9488.o
+ifdef CONFIG_SERIAL_SUNXI_UART
+DRIVERS += arm/sunxi/uart.o
 endif

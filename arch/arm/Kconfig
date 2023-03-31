@@ -12,21 +12,19 @@
 # You should have received a copy of the GNU General Public License
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
-include src/drivers/arm/make.list
-include src/drivers/i686/make.list
-
-ifdef CONFIG_SPI_BITBANG
-DRIVERS += bitbang.o
-endif
-
-ifdef CONFIG_AUDIO_BUZZER
-DRIVERS += buzzer.o
-endif
-
-ifdef CONFIG_FS_FAT32_MBR
-DRIVERS += fat32.o
-endif
-
-ifdef CONFIG_VIDEO_ILI9488_SPI
-DRIVERS += ili9488.o
-endif
+config DISK_SIZE
+    int "Disk size"
+    default 2
+    depends on ARCH_ARM
+config UBOOT_CONFIG
+    string "U-boot defconfig"
+    default orangepi_one_defconfig
+    depends on ARCH_ARM
+config UBOOT_IMAGE
+    string "U-boot image path"
+    default u-boot-sunxi-with-spl.bin
+    depends on ARCH_ARM
+config QEMU_MACHINE
+    string "QEMU machine"
+    default orangepi-pc
+    depends on ARCH_ARM

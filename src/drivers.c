@@ -121,7 +121,14 @@ gic_config(u16 n, void (*f)(void), bool enable, u8 priority)
 static void
 gic_wait(void)
 {
-    return;
+    #if defined(CONFIG_ARCH_ARM)
+    asm volatile ("wfi");
+    #elif defined(CONFIG_ARCH_I686)
+    asm volatile ("hlt");
+    #else
+    static volatile u8 a = 0;
+    while (a == 0);
+    #endif
 }
 
 static u32
@@ -329,18 +336,19 @@ drivers_init_type(u8 type)
     if (type == DRIVER_TYPE_SERIAL)
     {
         bool serial0 = false;
-        for (u32 i = 0; i < (u32)&__drivers_c; i++)
+        for (u32 i = 0; i < _drivers_c; i++)
         {
-            if (__drivers[i].type != type)
+            if (_drivers[i]->type != type)
                 continue;
 
-            bool status = (__drivers[i].init) ? __drivers[i].init() : true;
+            bool status = (_drivers[i]->init) ?
+                           _drivers[i]->init() : true;
             if (status && !serial0)
             {
-                __drivers[i].routines.serial.config(115200,
-                                                    DRIVER_SERIAL_CHAR_8B,
-                                                    DRIVER_SERIAL_PARITY_NONE,
-                                                    DRIVER_SERIAL_STOP_1B);
+                _drivers[i]->routines.serial.config(115200,
+                                                     DRIVER_SERIAL_CHAR_8B,
+                                                     DRIVER_SERIAL_PARITY_NONE,
+                                                     DRIVER_SERIAL_STOP_1B);
                 print("\r\nVermillion ");
                 print(__VERMILLION__);
                 print(" (");
@@ -353,7 +361,7 @@ drivers_init_type(u8 type)
             if (serial0)
             {
                 print("Initializing ");
-                print(__drivers[i].name);
+                print(_drivers[i]->name);
                 print(": ");
                 if (status)
                     print("Success");
@@ -365,14 +373,14 @@ drivers_init_type(u8 type)
     }
     else
     {
-        for (u32 i = 0; i < (u32)&__drivers_c; i++)
+        for (u32 i = 0; i < _drivers_c; i++)
         {
-            if (__drivers[i].type == type)
+            if (_drivers[i]->type == type)
             {
                 print("Initializing ");
-                print(__drivers[i].name);
+                print(_drivers[i]->name);
                 print(": ");
-                if (!(__drivers[i].init) || __drivers[i].init())
+                if (!(_drivers[i]->init) || _drivers[i]->init())
                     print("Success");
                 else
                     print("Failure");
@@ -410,14 +418,14 @@ drivers_clean_type(u8 type)
     if (type == DRIVER_TYPE_SERIAL)
         serial0 = driver_find(DRIVER_TYPE_SERIAL, 0);
 
-    for (u32 i = 0; i < (u32)&__drivers_c; i++)
+    for (u32 i = 0; i < _drivers_c; i++)
     {
-        if (__drivers[i].type == type)
+        if (_drivers[i]->type == type)
         {
             print("Cleaning ");
-            print(__drivers[i].name);
-            if (__drivers[i].clean && &(__drivers[i]) != serial0)
-                __drivers[i].clean();
+            print(_drivers[i]->name);
+            if (_drivers[i]->clean && _drivers[i] != serial0)
+                _drivers[i]->clean();
             print("\r\n");
         }
     }
@@ -445,9 +453,9 @@ driver_count(u8 type)
 {
     u32 ret = 0;
 
-    for (u32 i = 0; i < (u32)&__drivers_c; i++)
+    for (u32 i = 0; i < _drivers_c; i++)
     {
-        if (__drivers[i].type == type)
+        if (_drivers[i]->type == type)
             ret++;
     }
 
@@ -463,13 +471,13 @@ driver_find(u8 type, u32 index)
         type = DRIVER_TYPE_DUMMY;
     ret = (struct driver *)&(dummy[type]);
 
-    for (u32 i = 0; i < (u32)&__drivers_c; i++)
+    for (u32 i = 0; i < _drivers_c; i++)
     {
-        if (__drivers[i].type == type)
+        if (_drivers[i]->type == type)
         {
             if (index == 0)
             {
-                ret = &(__drivers[i]);
+                ret = _drivers[i];
                 break;
             }
             index--;

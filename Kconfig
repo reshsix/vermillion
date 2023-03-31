@@ -14,13 +14,38 @@
 
 # Architecture configuration
 
-menu "Architecture"
-config ARM_CPU
-    string "Target CPU"
-    default cortex-a7
+menu "General setup"
+
 config STACK_SIZE
     hex "Kernel stack size"
     default 0x8000
+
+choice ARCH
+    prompt "Architecture"
+config ARCH_ARM
+    bool "ARM"
+config ARCH_I686
+    bool "i686"
+endchoice
+
+menu "Architecture options"
+source arch/arm/Kconfig
+endmenu
+
+menu "Compilation"
+config ARCH
+    string "Arch name"
+    default arm if ARCH_ARM
+    default i686 if ARCH_I686
+config TARGET
+    string "Target triple"
+    default arm-none-eabi if ARCH_ARM
+    default i686-elf      if ARCH_I686
+config CFLAGS
+    string "Additional CFLAGS"
+    default "-fpic -mcpu=cortex-a7 -mfloat-abi=soft -Wl,--no-warn-rwx-segment"\
+            if ARCH_ARM
+endmenu
 
 menu "FDPIC Loader"
 config LOADER_FILE
@@ -34,38 +59,12 @@ endmenu
 menu "General purpose RAM"
 config RAM_ADDRESS
     hex "Mapped address"
-    default 0x40000000
+    default 0x40000000 if ARCH_ARM
+    default 0x100000   if ARCH_I686
 config RAM_SIZE
     hex "Full length"
     default 0x20000000
 endmenu
-
-config ARCH_GIC
-    bool
-    default y
-menuconfig ARCH_GIC
-    prompt "Generic Interrupt Controller"
-config GIC_CPU
-    hex "CPU address"
-    default 0x01C82000
-    depends on ARCH_GIC
-config GIC_DIST
-    hex "DIST address"
-    default 0x01C81000
-    depends on ARCH_GIC
-choice GIC_TYPE
-    prompt "Interrupt Type"
-    default GIC_TYPE_2
-    depends on ARCH_GIC
-config GIC_TYPE_0
-    bool "Low level"
-config GIC_TYPE_1
-    bool "High level"
-config GIC_TYPE_2
-    bool "Low edge"
-config GIC_TYPE_3
-    bool "High edge"
-endchoice
 
 config LED_SUCCESS
     bool
@@ -85,6 +84,44 @@ config LED_FAILURE_PIN
     int "Pin"
     default 15
     depends on LED_FAILURE
+
+endmenu
+
+# Driver configuration
+
+menu "Device drivers"
+
+# Architecture drivers
+
+menu "Architecture"
+
+config ARM_GIC
+    bool
+menuconfig ARM_GIC
+    prompt "Generic Interrupt Controller"
+    default y if ARCH_ARM
+    depends on ARCH_ARM
+config GIC_CPU
+    hex "CPU address"
+    default 0x01C82000
+    depends on ARM_GIC
+config GIC_DIST
+    hex "DIST address"
+    default 0x01C81000
+    depends on ARM_GIC
+choice GIC_TYPE
+    prompt "Interrupt Type"
+    default GIC_TYPE_2
+    depends on ARM_GIC
+config GIC_TYPE_0
+    bool "Low level"
+config GIC_TYPE_1
+    bool "High level"
+config GIC_TYPE_2
+    bool "Low edge"
+config GIC_TYPE_3
+    bool "High edge"
+endchoice
 
 endmenu
 
@@ -123,6 +160,7 @@ endmenu
 menu "Storage"
 config STORAGE_SUNXI_MMC
     bool "Sunxi SD/MMC"
+    depends on ARCH_ARM
 endmenu
 
 # Filesystem configuration
@@ -137,6 +175,11 @@ endmenu
 menu "Serial"
 config SERIAL_SUNXI_UART
     bool "Sunxi UART"
+    depends on ARCH_ARM
+config SERIAL_I686
+    bool "x86 serial ports"
+    default y if ARCH_I686
+    depends on ARCH_I686
 endmenu
 
 # Timer configuration
@@ -146,6 +189,7 @@ config TIMER_SUNXI_TIMER
     bool
 menuconfig TIMER_SUNXI_TIMER
     prompt "Sunxi Timer"
+    depends on ARCH_ARM
 config SUNXI_TIMER0_IRQ
     int "Timer0 IRQ"
     default 50
@@ -186,4 +230,7 @@ endmenu
 menu "GPIO"
 config GPIO_SUNXI_GPIO
     bool "Sunxi GPIO"
+    depends on ARCH_ARM
+endmenu
+
 endmenu
