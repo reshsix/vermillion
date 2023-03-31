@@ -22,6 +22,15 @@ config STACK_SIZE
     hex "Kernel stack size"
     default 0x8000
 
+menu "FDPIC Loader"
+config LOADER_FILE
+    string "Init file path"
+    default "init.bin"
+config LOADER_EMBED
+    bool "Embed init into kernel"
+    default n
+endmenu
+
 menu "General purpose RAM"
 config RAM_ADDRESS
     hex "Mapped address"
@@ -121,13 +130,6 @@ endmenu
 menu "Filesystem"
 config FS_FAT32_MBR
     bool "Fat32 MBR"
-endmenu
-
-# Loader configuration
-
-menu "Loader"
-config LOADER_FDPIC
-    bool "FDPIC ELF"
 endmenu
 
 # Serial configuration

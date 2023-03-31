@@ -24,6 +24,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <string.h>
 #include <vermillion/drivers.h>
 
+#ifdef CONFIG_LOADER_EMBED
+extern u8 _binary_init_bin_start[];
+#endif
+
 struct __attribute__((packed)) elf {
     u32 magic;
     u8 bits;
@@ -62,12 +66,26 @@ fdpic_loader(const char *path, u32 *entry)
 {
     u8 ret = true;
 
-    FILE *f = fopen(path, "rb");
-    ret = (f != NULL);
-
+    FILE *f = NULL;
     struct elf header = {0};
-    if (ret)
-        ret = fread(&header, 1, sizeof(struct elf), f) == sizeof(struct elf);
+    if (path)
+    {
+        f = fopen(path, "rb");
+        ret = (f != NULL);
+
+        if (ret)
+            ret = fread(&header, 1, sizeof(struct elf), f) ==
+                  sizeof(struct elf);
+    }
+    else
+    {
+        #ifdef CONFIG_LOADER_EMBED
+        (void)path;
+        memcpy(&header, _binary_init_bin_start, sizeof(struct elf));
+        #else
+        ret = false;
+        #endif
+    }
 
     if (ret)
     {
@@ -83,11 +101,22 @@ fdpic_loader(const char *path, u32 *entry)
 
     for (u16 i = 0; ret && i < header.progs_n; i++)
     {
-        ret = fseek(f, header.progs + (header.prog_s * i), SEEK_SET) == 0;
-
         struct elfp pheader = {0};
-        ret = ret && fread(&pheader, 1, sizeof(struct elfp), f) ==
-                     sizeof(struct elfp);
+        u32 offset = header.progs + (header.prog_s * i);
+
+        if (path)
+        {
+            ret = fseek(f, offset, SEEK_SET) == 0;
+            ret = ret && fread(&pheader, 1, sizeof(struct elfp), f) ==
+                         sizeof(struct elfp);
+        }
+        #ifdef CONFIG_LOADER_EMBED
+        else
+        {
+            memcpy(&pheader, &(_binary_init_bin_start[offset]),
+                   sizeof(struct elfp));
+        }
+        #endif
 
         if (ret && pheader.type == 1)
         {
@@ -104,9 +133,20 @@ fdpic_loader(const char *path, u32 *entry)
                 }
             }
 
-            ret = ret && fseek(f, pheader.offset, SEEK_SET) == 0;
-            ret = ret && fread(&(buffer[pheader.vaddr]), 1,
-                               pheader.size_f, f) == pheader.size_f;
+            if (path)
+            {
+                ret = ret && fseek(f, pheader.offset, SEEK_SET) == 0;
+                ret = ret && fread(&(buffer[pheader.vaddr]), 1,
+                                   pheader.size_f, f) == pheader.size_f;
+            }
+            #ifdef CONFIG_LOADER_EMBED
+            else
+            {
+                memcpy(&(buffer[pheader.vaddr]),
+                       &(_binary_init_bin_start[pheader.offset]),
+                       pheader.size_f);
+            }
+            #endif
         }
     }
 
@@ -121,7 +161,7 @@ fdpic_loader(const char *path, u32 *entry)
     return ret ? buffer : NULL;
 }
 
-static u8 *
+extern u8 *
 loader_prog(const char *path, u32 *entry)
 {
     u8 *ret = NULL;
@@ -131,12 +171,3 @@ loader_prog(const char *path, u32 *entry)
 
     return ret;
 }
-
-static const struct driver elf_fdpic =
-{
-    .name = "FDPIC Loader",
-    .init = NULL, .clean = NULL,
-    .type = DRIVER_TYPE_LOADER,
-    .routines.loader.prog = loader_prog
-};
-driver_register(elf_fdpic);

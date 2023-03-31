@@ -112,13 +112,6 @@ serial_write(u16 data)
     (void)data;
 }
 
-static u8 *
-loader_prog(const char *path, u32 *entry)
-{
-    (void)path, (void)entry;
-    return NULL;
-}
-
 static void
 gic_config(u16 n, void (*f)(void), bool enable, u8 priority)
 {
@@ -270,13 +263,6 @@ static const struct driver dummy[] =
         .routines.fs.index      = fs_index,
         .routines.fs.read       = fs_read
     },
-    [DRIVER_TYPE_LOADER] =
-    {
-        .name = "Dummy Loader",
-        .init = NULL, .clean = NULL,
-        .type = DRIVER_TYPE_LOADER,
-        .routines.loader.prog   = loader_prog
-    },
     [DRIVER_TYPE_GIC] =
     {
         .name = "Dummy Interrupts",
@@ -414,7 +400,6 @@ _drivers_init(void)
     drivers_init_type(DRIVER_TYPE_AUDIO);
     drivers_init_type(DRIVER_TYPE_STORAGE);
     drivers_init_type(DRIVER_TYPE_FS);
-    drivers_init_type(DRIVER_TYPE_LOADER);
 }
 
 static void
@@ -444,7 +429,6 @@ drivers_clean_type(u8 type)
 extern void
 _drivers_clean(void)
 {
-    drivers_clean_type(DRIVER_TYPE_LOADER);
     drivers_clean_type(DRIVER_TYPE_FS);
     drivers_clean_type(DRIVER_TYPE_STORAGE);
     drivers_clean_type(DRIVER_TYPE_AUDIO);

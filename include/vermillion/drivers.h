@@ -83,7 +83,7 @@ struct driver
     enum
     {
         DRIVER_TYPE_VIDEO, DRIVER_TYPE_AUDIO,
-        DRIVER_TYPE_STORAGE, DRIVER_TYPE_FS, DRIVER_TYPE_LOADER,
+        DRIVER_TYPE_STORAGE, DRIVER_TYPE_FS,
         DRIVER_TYPE_GIC, DRIVER_TYPE_TIMER,
         DRIVER_TYPE_SERIAL, DRIVER_TYPE_SPI, DRIVER_TYPE_GPIO,
         DRIVER_TYPE_DUMMY
@@ -113,10 +113,6 @@ struct driver
             struct file * (*index)(struct file *f, u32 index);
             bool   (*read) (struct file *f, u32 sector, u8 *buffer);
         } fs;
-        struct
-        {
-            u8 * (*prog)(const char *path, u32 *entry);
-        } loader;
         struct
         {
             void (*config)(u16 n, void (*f)(void), bool enable, u8 priority);

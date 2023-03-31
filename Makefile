@@ -115,13 +115,19 @@ build/scripts/%: scripts/% | build/scripts
 	@$(CC) $(CFLAGS) -xc $< -E -P | grep -v '^#' > $@
 
 # Objects definitions
-CORE = build/drivers.o build/boot.o build/main.o
+CORE = build/loader.o build/drivers.o build/boot.o build/main.o
 include src/libc/make.list
 LIBC := $(addprefix build/libc/, $(LIBC))
 include src/drivers/make.list
 DRIVERS := $(addprefix build/drivers/, $(DRIVERS))
 
 # Specific recipes
+ifdef CONFIG_LOADER_EMBED
+build/init.o: $(patsubst "%",%,$(CONFIG_LOADER_FILE))
+	@printf "  LD      $@\n"
+	@$(LD) -r -b binary -o $@ $<
+CORE += build/init.o
+endif
 build/boot.o: boot.S deps/.gcc | build
 	@printf "  AS      $@\n"
 	@$(CC) $(CFLAGS) -c $< -o $@

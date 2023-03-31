@@ -20,10 +20,6 @@ ifdef CONFIG_AUDIO_BUZZER
 DRIVERS += buzzer.o
 endif
 
-ifdef CONFIG_LOADER_FDPIC
-DRIVERS += elf-fdpic.o
-endif
-
 ifdef CONFIG_FS_FAT32_MBR
 DRIVERS += fat32.o
 endif

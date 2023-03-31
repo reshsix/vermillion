@@ -15,7 +15,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <_utils.h>
-#include <vermillion/drivers.h>
+#include <vermillion/loader.h>
+
+#define __STRING(x) #x
+#define _STRING(x) __STRING(x)
 
 extern int
 kernel_main(void)
@@ -23,13 +26,25 @@ kernel_main(void)
     int ret = 0;
 
     u32 entry = 0;
-    const struct driver *loader = driver_find(DRIVER_TYPE_LOADER, 0);
-    u8 *prog = loader->routines.loader.prog("/bin/init", &entry);
+
+    print("Loading ");
+    #ifndef CONFIG_LOADER_EMBED
+    print(_STRING(CONFIG_LOADER_FILE));
+    u8 *prog = loader_prog(_STRING(CONFIG_LOADER_FILE), &entry);
+    #else
+    extern u8 _binary_init_bin_start[];
+    print_hex((u32)_binary_init_bin_start);
+    u8 *prog = loader_prog(NULL, &entry);
+    #endif
+    print(": ");
+
     if (prog)
     {
-        print("Loading /bin/init\r\n");
+        print("Success\r\n");
         ret = ((int (*)(void))&(prog[entry]))();
     }
+    else
+        print("Failure\r\n");
 
     return ret;
 }
