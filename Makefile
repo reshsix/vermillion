@@ -27,7 +27,8 @@ CFLAGS += -O0 -ggdb3
 CFLAGS += -Iinclude -Iarch/$(ARCH)/include
 CFLAGS += -std=gnu99 -nostdlib -ffreestanding
 CFLAGS += -Wall -Wextra -Wno-attributes
-CFLAGS += $(shell echo $(CONFIG_CFLAGS))
+CFLAGS += $(shell echo $(CONFIG_CFLAGS_ARCH))
+CFLAGS += $(shell echo $(CONFIG_CFLAGS_BOARD))
 
 # Extra variables
 VERSION = 0.0a $$(git rev-parse --short HEAD)
@@ -93,6 +94,9 @@ build/%.a: deps/.$(TARGET)-binutils
 build/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 	@printf "  CC      $@\n"
 	@$(CC) $(CFLAGS) -xc $< -E -P | grep -v '^#' > $@
+%_defconfig: config/%_defconfig
+	@cp $< .config
+	@kconfig-conf --olddefconfig Kconfig
 
 # Objects definitions
 CORE = build/loader.o build/drivers.o build/boot.o build/main.o

@@ -396,10 +396,13 @@ _drivers_init(void)
     drivers_init_type(DRIVER_TYPE_SERIAL);
 
     drivers_init_type(DRIVER_TYPE_GPIO);
+
+    #ifdef CONFIG_LED_SUCCESS
     const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
     gpio->routines.gpio.cfgpin(CONFIG_LED_SUCCESS_PIN,
                                DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
     gpio->routines.gpio.set(CONFIG_LED_SUCCESS_PIN, true);
+    #endif
 
     drivers_init_type(DRIVER_TYPE_GIC);
     drivers_init_type(DRIVER_TYPE_SPI);

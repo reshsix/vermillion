@@ -30,6 +30,7 @@ endchoice
 
 menu "Architecture options"
 source arch/arm/Kconfig
+source arch/i686/Kconfig
 endmenu
 
 menu "Compilation"
@@ -41,10 +42,11 @@ config TARGET
     string "Target triple"
     default arm-none-eabi if ARCH_ARM
     default i686-elf      if ARCH_I686
-config CFLAGS
-    string "Additional CFLAGS"
-    default "-fpic -mcpu=cortex-a7 -mfloat-abi=soft -Wl,--no-warn-rwx-segment"\
-            if ARCH_ARM
+config CFLAGS_ARCH
+    string "Additional Arch CFLAGS"
+    default "-fpic -Wl,--no-warn-rwx-segment" if ARCH_ARM
+config CFLAGS_BOARD
+    string "Additional Board CFLAGS"
 endmenu
 
 menu "FDPIC Loader"
@@ -59,30 +61,24 @@ endmenu
 menu "General purpose RAM"
 config RAM_ADDRESS
     hex "Mapped address"
-    default 0x40000000 if ARCH_ARM
     default 0x100000   if ARCH_I686
 config RAM_SIZE
     hex "Full length"
-    default 0x20000000
 endmenu
 
 config LED_SUCCESS
     bool
-    default y
 menuconfig LED_SUCCESS
     prompt "Board LED (Success)"
 config LED_SUCCESS_PIN
     int "Pin"
-    default 202
     depends on LED_SUCCESS
 config LED_FAILURE
     bool
-    default y
 menuconfig LED_FAILURE
     prompt "Board LED (Failure)"
 config LED_FAILURE_PIN
     int "Pin"
-    default 15
     depends on LED_FAILURE
 
 endmenu
@@ -103,15 +99,12 @@ menuconfig ARM_GIC
     depends on ARCH_ARM
 config GIC_CPU
     hex "CPU address"
-    default 0x01C82000
     depends on ARM_GIC
 config GIC_DIST
     hex "DIST address"
-    default 0x01C81000
     depends on ARM_GIC
 choice GIC_TYPE
     prompt "Interrupt Type"
-    default GIC_TYPE_2
     depends on ARM_GIC
 config GIC_TYPE_0
     bool "Low level"
@@ -160,6 +153,7 @@ endmenu
 menu "Storage"
 config STORAGE_SUNXI_MMC
     bool "Sunxi SD/MMC"
+    default y if ARCH_ARM_SUNXI
     depends on ARCH_ARM
 endmenu
 
@@ -175,6 +169,7 @@ endmenu
 menu "Serial"
 config SERIAL_SUNXI_UART
     bool "Sunxi UART"
+    default y if ARCH_ARM_SUNXI
     depends on ARCH_ARM
 config SERIAL_I686
     bool "x86 serial ports"
@@ -189,14 +184,13 @@ config TIMER_SUNXI_TIMER
     bool
 menuconfig TIMER_SUNXI_TIMER
     prompt "Sunxi Timer"
+    default y if ARCH_ARM_SUNXI
     depends on ARCH_ARM
 config SUNXI_TIMER0_IRQ
     int "Timer0 IRQ"
-    default 50
     depends on TIMER_SUNXI_TIMER
 config SUNXI_TIMER1_IRQ
     int "Timer1 IRQ"
-    default 51
     depends on TIMER_SUNXI_TIMER
 endmenu
 
@@ -230,6 +224,7 @@ endmenu
 menu "GPIO"
 config GPIO_SUNXI_GPIO
     bool "Sunxi GPIO"
+    default y if ARCH_ARM_SUNXI
     depends on ARCH_ARM
 endmenu
 

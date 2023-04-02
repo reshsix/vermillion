@@ -12,24 +12,11 @@
 # You should have received a copy of the GNU General Public License
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
-choice ARM_SUBARCH
-    prompt "ARM architecture"
-    depends on ARCH_ARM
-config ARCH_ARM_GENERIC
-    bool "Generic"
-config ARCH_ARM_SUNXI
-    bool "Sunxi"
-endchoice
+CONFIG_ARCH_I686=y
 
-config DISK_SIZE
-    int "Disk size"
-    depends on ARCH_ARM
-config UBOOT_CONFIG
-    string "U-boot defconfig"
-    depends on ARCH_ARM
-config UBOOT_IMAGE
-    string "U-boot image path"
-    depends on ARCH_ARM
-config QEMU_MACHINE
-    string "QEMU machine"
-    depends on ARCH_ARM
+CONFIG_DISK_SIZE=2
+
+CONFIG_RAM_ADDRESS=0x100000
+CONFIG_RAM_SIZE=0x20000000
+
+CONFIG_SERIAL_I686=y

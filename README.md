@@ -1,21 +1,29 @@
 # Vermillion
-An embedded operating system for Orange Pi One
+An embedded operating system for ARM Cortex-A and x86-32 boards
 
 ## Build
-The building process will compile binutils, gcc and cross-compile u-boot before
-compiling the kernel and making a disk image for it.
+You may need the following packages, which are necessary to build the
+cross-compiler, install the bootloader, go through the compilation
+process and debug the resulting image
 ```sh
-sudo apt-get install gcc make git rsync g++ bison flex texinfo libncurses-dev \
-                     swig python3-dev bc u-boot-tools moreutils
-sudo apt-get install kconfig-frontends
-make menuconfig
-make
-FLASH_DEVICE=/dev/sdf make flash
-UART_DEVICE=/dev/ttyUSB0 make uart
+gcc make git rsync g++ bison flex texinfo libncurses-dev
+kconfig-frontends moreutils swig python3-dev bc
+u-boot-tools grub2-common qemu-system-arm qemu-system-i686
+gdb-multiarch
+```
 
-sudo apt-get install qemu-system-arm gdb-multiarch
+The image will be created in build/
+```sh
+make ${BOARD}_defconfig
+make
 make debug
 ```
+
+## Supported boards
+| Name | Configuration |
+| ---- | ------------- |
+| Orange Pi One | orangepi\_one\_defconfig |
+| x86 generic | i686\_defconfig |
 
 ## Libc missing features
 General

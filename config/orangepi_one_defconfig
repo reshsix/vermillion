@@ -12,24 +12,27 @@
 # You should have received a copy of the GNU General Public License
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
-choice ARM_SUBARCH
-    prompt "ARM architecture"
-    depends on ARCH_ARM
-config ARCH_ARM_GENERIC
-    bool "Generic"
-config ARCH_ARM_SUNXI
-    bool "Sunxi"
-endchoice
+CONFIG_ARCH_ARM=y
+CONFIG_ARCH_ARM_SUNXI=y
 
-config DISK_SIZE
-    int "Disk size"
-    depends on ARCH_ARM
-config UBOOT_CONFIG
-    string "U-boot defconfig"
-    depends on ARCH_ARM
-config UBOOT_IMAGE
-    string "U-boot image path"
-    depends on ARCH_ARM
-config QEMU_MACHINE
-    string "QEMU machine"
-    depends on ARCH_ARM
+CONFIG_DISK_SIZE=2
+CONFIG_UBOOT_CONFIG="orangepi_one_defconfig"
+CONFIG_UBOOT_IMAGE="u-boot-sunxi-with-spl.bin"
+CONFIG_QEMU_MACHINE="orangepi-pc"
+
+CONFIG_CFLAGS_BOARD="-mcpu=cortex-a7 -mfloat-abi=soft"
+
+CONFIG_RAM_ADDRESS=0x40000000
+CONFIG_RAM_SIZE=0x20000000
+CONFIG_LED_SUCCESS=y
+CONFIG_LED_SUCCESS_PIN=202
+CONFIG_LED_FAILURE=y
+CONFIG_LED_FAILURE_PIN=15
+
+CONFIG_GIC_CPU=0x01C82000
+CONFIG_GIC_DIST=0x01C81000
+CONFIG_GIC_TYPE_2=y
+
+CONFIG_FS_FAT32_MBR=y
+CONFIG_SUNXI_TIMER0_IRQ=50
+CONFIG_SUNXI_TIMER1_IRQ=51

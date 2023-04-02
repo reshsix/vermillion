@@ -78,12 +78,19 @@ exit(int code)
     print_hex(code);
 
     const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
+    (void)gpio;
+
+    #ifdef CONFIG_LED_FAILURE
     gpio->routines.gpio.cfgpin(CONFIG_LED_FAILURE_PIN,
                                DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
     gpio->routines.gpio.set(CONFIG_LED_FAILURE_PIN, true);
+    #endif
+
+    #ifdef CONFIG_LED_SUCCESS
     gpio->routines.gpio.cfgpin(CONFIG_LED_SUCCESS_PIN,
                                DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
     gpio->routines.gpio.set(CONFIG_LED_SUCCESS_PIN, false);
+    #endif
 
     const struct driver *gic = driver_find(DRIVER_TYPE_GIC, 0);
     for (;;)
