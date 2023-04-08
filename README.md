@@ -25,8 +25,8 @@ process and debug the resulting image
 ```sh
 gcc make git rsync g++ bison flex texinfo libncurses-dev
 kconfig-frontends moreutils swig python3-dev bc
-u-boot-tools grub2-common qemu-system-arm qemu-system-i686
-gdb-multiarch
+u-boot-tools grub2-common xorriso
+qemu-system-arm qemu-system-i386 gdb-multiarch
 ```
 
 The image will be created in build/

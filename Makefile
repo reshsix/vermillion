@@ -23,7 +23,7 @@ TARGET = $(shell echo $(CONFIG_TARGET))
 # Compilation parameters
 CC = $(TARGET)-gcc
 LD = $(TARGET)-ld
-CFLAGS += -O0 -ggdb3
+CFLAGS += -O2 -ggdb3
 CFLAGS += -Iinclude -Iarch/$(ARCH)/include
 CFLAGS += -std=gnu99 -nostdlib -ffreestanding
 CFLAGS += -Wall -Wextra -Wno-attributes
@@ -95,6 +95,7 @@ build/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 	@printf "  CC      $@\n"
 	@$(CC) $(CFLAGS) -xc $< -E -P | grep -v '^#' > $@
 %_defconfig: config/%_defconfig
+	@rm -rf build
 	@cp $< .config
 	@kconfig-conf --olddefconfig Kconfig
 

@@ -37,7 +37,7 @@ _start:
     // Disable interrupts
     cli
 
-    // Set stack and jump to C code */
+    // Set stack and jump to C code
     movl $__stack, %esp
     call __init
 1:

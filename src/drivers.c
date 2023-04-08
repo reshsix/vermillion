@@ -341,9 +341,9 @@ drivers_init_type(u8 type)
             if (_drivers[i]->type != type)
                 continue;
 
-            bool status = (_drivers[i]->init) ?
-                           _drivers[i]->init() : true;
-            if (status && !serial0)
+            _drivers[i]->status = (_drivers[i]->init) ?
+                                   _drivers[i]->init() : true;
+            if (_drivers[i]->status && !serial0)
             {
                 _drivers[i]->routines.serial.config(115200,
                                                      DRIVER_SERIAL_CHAR_8B,
@@ -363,7 +363,7 @@ drivers_init_type(u8 type)
                 print("Initializing ");
                 print(_drivers[i]->name);
                 print(": ");
-                if (status)
+                if (_drivers[i]->status)
                     print("Success");
                 else
                     print("Failure");
@@ -380,7 +380,9 @@ drivers_init_type(u8 type)
                 print("Initializing ");
                 print(_drivers[i]->name);
                 print(": ");
-                if (!(_drivers[i]->init) || _drivers[i]->init())
+                _drivers[i]->status = (!(_drivers[i]->init) ||
+                                         _drivers[i]->init());
+                if (_drivers[i]->status)
                     print("Success");
                 else
                     print("Failure");
@@ -458,7 +460,7 @@ driver_count(u8 type)
 
     for (u32 i = 0; i < _drivers_c; i++)
     {
-        if (_drivers[i]->type == type)
+        if (_drivers[i]->type == type && _drivers[i]->status)
             ret++;
     }
 
@@ -476,7 +478,7 @@ driver_find(u8 type, u32 index)
 
     for (u32 i = 0; i < _drivers_c; i++)
     {
-        if (_drivers[i]->type == type)
+        if (_drivers[i]->type == type && _drivers[i]->status)
         {
             if (index == 0)
             {

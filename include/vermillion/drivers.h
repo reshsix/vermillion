@@ -83,6 +83,7 @@ enum
 struct __attribute__((packed)) driver
 {
     char *name;
+    bool status;
 
     bool (*init)(void);
     void (*clean)(void);
@@ -159,8 +160,11 @@ struct __attribute__((packed)) driver
 };
 
 #define driver_register(x) \
+_Pragma("GCC push_options"); \
+_Pragma("GCC optimize \"-fno-toplevel-reorder\""); \
 static const volatile struct driver *_driver_##x \
-__attribute__((used, section(".data.drivers"))) = &(x);
+__attribute__((used, section(".data.drivers"))) = &(x); \
+_Pragma("GCC pop_options");
 
 void _drivers_init(void);
 void _drivers_clean(void);
