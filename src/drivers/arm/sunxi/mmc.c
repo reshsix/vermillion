@@ -41,7 +41,7 @@ struct card
 struct card card;
 
 static bool
-storage_init(void)
+init(void)
 {
     while (SD_CMD & (1 << 31));
     SD_ARG = 0x0;
@@ -53,47 +53,49 @@ storage_init(void)
 }
 
 static bool
-storage_read(u8 *buffer, u32 block, u32 count)
+block_read(u8 *buffer, u32 block)
 {
-    if (count != 0)
+    SD_BLK = 0x200;
+    SD_CFG = 1 << 31;
+
+    while (SD_CMD >> 31);
+
+    SD_CNT = 0x200;
+    if (!(card.mmc))
+        SD_ARG = block;
+    else
+        SD_ARG = block * 0x200;
+
+    SD_CMD = 0x80002251;
+    while (SD_CMD >> 31);
+    while (SD_STA & (1 << 10));
+
+    for (u32 i = 0; i < (0x200 / 4); i++)
     {
-        SD_BLK = 0x200;
-        SD_CFG = 1 << 31;
+        while (SD_STA & (1 << 2));
 
-        while (SD_CMD >> 31);
-
-        SD_CNT = count * 0x200;
-        if (!(card.mmc))
-            SD_ARG = block;
-        else
-            SD_ARG = block * 0x200;
-
-        if (count != 1)
-            SD_CMD = 0x80003252;
-        else
-            SD_CMD = 0x80002251;
-
-        while (SD_CMD >> 31);
-        while (SD_STA & (1 << 10));
-
-        for (u32 i = 0; i < (count * 0x200 / 4); i++)
-        {
-            while (SD_STA & (1 << 2));
-
-            u32 x = SD_FIFO;
-            for (u8 j = 0; j < 4; j++)
-                buffer[(i * 4) + j] = ((u8*)&x)[j];
-        }
+        u32 x = SD_FIFO;
+        for (u8 j = 0; j < 4; j++)
+            buffer[(i * 4) + j] = ((u8*)&x)[j];
     }
 
     return true;
 }
 
+static bool
+block_write(u8 *buffer, u32 block)
+{
+    (void)buffer, (void)block;
+    return false;
+}
+
 static const struct driver sunxi_mmc =
 {
-    .name = "Sunxi SD/MMC Controller",
-    .init = storage_init, .clean = NULL,
+    .name = "sunxi-mmc",
+    .init = init, .clean = NULL,
+    .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_STORAGE,
-    .routines.storage.read = storage_read
+    .interface.block.read =  block_read,
+    .interface.block.write = block_write
 };
 driver_register(sunxi_mmc);

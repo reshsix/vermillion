@@ -14,18 +14,31 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef _ERRNO_H
-#define _ERRNO_H
+#include <_types.h>
+#include <string.h>
+#include <vermillion/drivers.h>
 
-extern int errno;
+static bool
+block_read(u8 *buffer, u32 block)
+{
+    memcpy(buffer, (void*)(block * 0x200), 0x200);
+    return true;
+}
 
-#define EDOM 1
-#define ERANGE 2
-#define ENOMEM 3
-#define EINVAL 4
-#define ENOENT 5
-#define EROFS 6
-#define EBADF 7
-#define ESPIPE 8
-#define EIO 9
-#endif
+static bool
+block_write(u8 *buffer, u32 block)
+{
+    memcpy((void*)(block * 0x200), buffer, 0x200);
+    return true;
+}
+
+static const struct driver memory =
+{
+    .name = "memory",
+    .init = NULL, .clean = NULL,
+    .api = DRIVER_API_BLOCK,
+    .type = DRIVER_TYPE_STORAGE,
+    .interface.block.read =  block_read,
+    .interface.block.write = block_write
+};
+driver_register(memory);

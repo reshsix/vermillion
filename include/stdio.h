@@ -20,7 +20,14 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <_types.h>
 #include <stddef.h>
 
+void _stdio_init(void);
+void _stdio_clean(void);
+
 typedef struct _FILE FILE;
+extern FILE *stdin;
+extern FILE *stdout;
+extern FILE *stderr;
+
 typedef u32 fpos_t;
 
 #define EOF (-1)
@@ -33,9 +40,14 @@ FILE *fopen(const char *path, const char *mode);
 int fclose(FILE *f);
 
 size_t fread(void *buffer, size_t size, size_t count, FILE *f);
+size_t fwrite(const void *buffer, size_t size, size_t count, FILE *f);
 
 int fgetc(FILE *f);
 int getc(FILE *f);
+int getchar(void);
+int fputc(int c, FILE *f);
+int putc(int c, FILE *f);
+int putchar(int c);
 
 long ftell(FILE *f);
 int fgetpos(FILE *f, fpos_t *pos);

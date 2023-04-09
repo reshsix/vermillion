@@ -137,8 +137,9 @@ spi_transfer(u8 x)
 
 static const struct driver bitbang_spi =
 {
-    .name = "Bitbang SPI",
+    .name = "bitbang-spi",
     .init = init, .clean = clean,
+    .api = DRIVER_API_GENERIC,
     .type = DRIVER_TYPE_SPI,
     .routines.spi.config   = spi_config,
     .routines.spi.transfer = spi_transfer

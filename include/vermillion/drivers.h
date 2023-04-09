@@ -27,6 +27,8 @@ static __attribute__((used)) struct driver **_drivers =
 static __attribute__((used)) u32 _drivers_c =
     (u32)&__drivers_c;
 
+/* Definitions for specific driver types */
+
 struct file;
 
 enum
@@ -35,7 +37,6 @@ enum
     DRIVER_SERIAL_CHAR_6B,
     DRIVER_SERIAL_CHAR_7B,
     DRIVER_SERIAL_CHAR_8B,
-    DRIVER_SERIAL_CHAR_9B,
 };
 
 enum
@@ -80,6 +81,8 @@ enum
 
 #define DRIVER_SPI_MAX 0
 
+/* Driver structure */
+
 struct __attribute__((packed)) driver
 {
     char *name;
@@ -90,12 +93,31 @@ struct __attribute__((packed)) driver
 
     enum
     {
+        DRIVER_API_GENERIC,
+        DRIVER_API_BLOCK, DRIVER_API_STREAM
+    } api;
+    enum
+    {
         DRIVER_TYPE_VIDEO, DRIVER_TYPE_AUDIO,
         DRIVER_TYPE_STORAGE, DRIVER_TYPE_FS,
         DRIVER_TYPE_GIC, DRIVER_TYPE_TIMER,
         DRIVER_TYPE_SERIAL, DRIVER_TYPE_SPI, DRIVER_TYPE_GPIO,
+
         DRIVER_TYPE_DUMMY
     } type;
+    union
+    {
+        struct
+        {
+            bool (*read) (u8 *buffer, u32 block);
+            bool (*write)(u8 *buffer, u32 block);
+        } block;
+        struct
+        {
+            bool (*read)  (u8 *data);
+            bool (*write) (u8 data);
+        } stream;
+    } interface;
     union
     {
         struct
@@ -111,15 +133,14 @@ struct __attribute__((packed)) driver
         } audio;
         struct
         {
-            bool (*read)(u8 *buffer, u32 block, u32 count);
         } storage;
         struct
         {
             struct file * (*open) (char *path);
             struct file * (*close)(struct file *f);
-            void   (*info) (struct file *f, size_t *size, s32 *files);
+            void          (*info) (struct file *f, size_t *size, s32 *files);
             struct file * (*index)(struct file *f, u32 index);
-            bool   (*read) (struct file *f, u32 sector, u8 *buffer);
+            bool          (*read) (struct file *f, u32 sector, u8 *buffer);
         } fs;
         struct
         {
@@ -137,8 +158,6 @@ struct __attribute__((packed)) driver
         struct
         {
             bool (*config)(u32 baud, u8 bits, u8 parity, u8 stop);
-            u8   (*read)  (void);
-            void (*write) (u16 data);
         } serial;
         struct
         {
@@ -159,6 +178,8 @@ struct __attribute__((packed)) driver
     } routines;
 };
 
+/* External interface */
+
 #define driver_register(x) \
 _Pragma("GCC push_options"); \
 _Pragma("GCC optimize \"-fno-toplevel-reorder\""); \
@@ -171,5 +192,6 @@ void _drivers_clean(void);
 
 u32 driver_count(u8 type);
 struct driver *driver_find(u8 type, u32 index);
+struct driver *driver_find_name(const char *name);
 
 #endif

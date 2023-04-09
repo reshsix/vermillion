@@ -231,8 +231,9 @@ video_clear(void)
 
 static const struct driver ili9488_spi =
 {
-    .name = "ILI9488 SPI",
+    .name = "ili9488-spi",
     .init = init, .clean = clean,
+    .api = DRIVER_API_GENERIC,
     .type = DRIVER_TYPE_VIDEO,
     .routines.video.info   = video_info,
     .routines.video.update = video_update,

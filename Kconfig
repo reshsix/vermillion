@@ -66,6 +66,15 @@ config RAM_SIZE
     hex "Full length"
 endmenu
 
+menu "Libc options"
+config STDIO_STDIN
+    string "Stdin driver"
+config STDIO_STDOUT
+    string "Stdout driver"
+config STDIO_STDERR
+    string "Stderr driver"
+endmenu
+
 config LED_SUCCESS
     bool
 menuconfig LED_SUCCESS
@@ -151,6 +160,8 @@ endmenu
 # Storage configuration
 
 menu "Storage"
+config STORAGE_MEMORY
+    bool "Memory device"
 config STORAGE_SUNXI_MMC
     bool "Sunxi SD/MMC"
     default y if ARCH_ARM_SUNXI

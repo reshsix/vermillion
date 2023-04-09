@@ -120,8 +120,9 @@ audio_sample(u16 freq, u8 *data, size_t size)
 
 static const struct driver buzzer =
 {
-    .name = "Buzzer",
+    .name = "buzzer",
     .init = init, .clean = clean,
+    .api = DRIVER_API_GENERIC,
     .type = DRIVER_TYPE_AUDIO,
     .routines.audio.note   = audio_note,
     .routines.audio.sample = audio_sample

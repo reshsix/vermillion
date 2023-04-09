@@ -78,7 +78,7 @@ struct fat32
     u32 *table;
     struct fat32e root;
 
-    bool (*read)(u8*, u32, u32);
+    bool (*read)(u8*, u32);
 };
 
 static u8 fat32_buf[0x200] __attribute__((aligned(32)));
@@ -273,7 +273,8 @@ fat32_directory(struct fat32 *f, u32 cluster, struct fat32e *out)
 
     cluster &= 0xFFFFFFF;
     u32 firstsect = fat32_fsector(f, cluster);
-    ret = f->read(f->buffer, f->lba + firstsect, f->br.sectspercluster);
+    for (u8 i = 0; ret && i < f->br.sectspercluster; i++)
+        ret = f->read(&(f->buffer[0x200 * i]), f->lba + firstsect + i);
 
     bool finished = false;
     static char name[(255 * 4) + 1] = {0};
@@ -370,7 +371,7 @@ fat32_del(struct fat32 *f)
 }
 
 static struct fat32 *
-fat32_new(u32 lba, bool (*read)(u8*, u32, u32))
+fat32_new(u32 lba, bool (*read)(u8*, u32))
 {
     struct fat32 *ret = calloc(1, sizeof(struct fat32));
 
@@ -379,7 +380,7 @@ fat32_new(u32 lba, bool (*read)(u8*, u32, u32))
         ret->lba = lba;
         ret->read = read;
 
-        if (!ret->read(fat32_buf, ret->lba, 1))
+        if (!ret->read(fat32_buf, ret->lba))
             ret = fat32_del(ret);
     }
 
@@ -396,7 +397,12 @@ fat32_new(u32 lba, bool (*read)(u8*, u32, u32))
     if (ret)
     {
         u32 lba = ret->lba + ret->br.reservedsects;
-        if (!ret->read((u8*)ret->table, lba, ret->br.sectspertable))
+
+        bool success = true;
+        for (u8 i = 0; success && i < ret->br.sectspertable; i++)
+            success = ret->read(&(ret->buffer[0x200 * i]), lba + i);
+
+        if (!success)
             ret = fat32_del(ret);
     }
 
@@ -456,7 +462,7 @@ fat32_read(struct fat32 *f, struct fat32e *fe, u32 sector, u8 *out)
     {
         cluster &= 0xFFFFFFF;
         u32 firstsect = fat32_fsector(f, cluster);
-        ret = f->read(out, f->lba + firstsect + sector_n, 1);
+        ret = f->read(out, f->lba + firstsect + sector_n);
     }
 
     return ret;
@@ -487,10 +493,10 @@ init(void)
     bool ret = false;
 
     const struct driver *st0 = driver_find(DRIVER_TYPE_STORAGE, 0);
-    if (st0->routines.storage.read(fat32_buf, 0, 1))
+    if (st0->interface.block.read(fat32_buf, 0))
     {
         u32 lba = ((u32*)&(fat32_buf[0x1BE]))[2];
-        fs.fat32 = fat32_new(lba, st0->routines.storage.read);
+        fs.fat32 = fat32_new(lba, st0->interface.block.read);
         if (fs.fat32)
             ret = true;
     }
@@ -561,8 +567,9 @@ fs_read(struct file *f, u32 sector, u8 *buffer)
 
 static const struct driver fat32 =
 {
-    .name = "FAT32/MBR",
+    .name = "mbr-fat32",
     .init = init, .clean = clean,
+    .api = DRIVER_API_GENERIC,
     .type = DRIVER_TYPE_FS,
     .routines.fs.open  = fs_open,
     .routines.fs.close = fs_close,

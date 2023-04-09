@@ -14,6 +14,7 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <_types.h>
@@ -36,10 +37,12 @@ __init(void)
     init_malloc();
 
     _drivers_init();
+    _stdio_init();
 
     print("Executing kernel_main\r\n");
     ret = kernel_main();
 
+    _stdio_clean();
     _drivers_clean();
 
     exit(ret);

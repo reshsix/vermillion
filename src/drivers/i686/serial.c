@@ -55,7 +55,7 @@ serial_config(u8 port, u32 baud, u8 ch, u8 parity, u8 stop)
 {
     bool ret = true;
 
-    if (!baud || baud > 112500 || 115200 % baud != 0)
+    if (!baud || baud > 115200 || 115200 % baud != 0)
         ret = false;
 
     u8 c = 0;
@@ -147,18 +147,20 @@ serial_config(u8 port, u32 baud, u8 ch, u8 parity, u8 stop)
     return ret;
 }
 
-static u8
-serial_read(u8 port)
+static bool
+serial_read(u8 port, u8 *data)
 {
     while (!(in8(IO_LSR(ports[port])) & 0x1));
-    return in8(IO_DAT(ports[port]));
+    *data = in8(IO_DAT(ports[port]));
+    return true;
 }
 
-static void
-serial_write(u8 port, u16 data)
+static bool
+serial_write(u8 port, u8 data)
 {
     while (!(in8(IO_LSR(ports[port])) & 0x20));
     out8(IO_DAT(ports[port]), data);
+    return true;
 }
 
 static bool com1_init(void){ return serial_init(0); }
@@ -177,56 +179,59 @@ static bool com3_config(u32 baud, u8 ch, u8 parity, u8 stop)
 { return serial_config(2, baud, ch, parity, stop); }
 static bool com4_config(u32 baud, u8 ch, u8 parity, u8 stop)
 { return serial_config(3, baud, ch, parity, stop); }
-static u8 com1_read(void){ return serial_read(0); }
-static u8 com2_read(void){ return serial_read(1); }
-static u8 com3_read(void){ return serial_read(2); }
-static u8 com4_read(void){ return serial_read(3); }
-static void com1_write(u16 data){ return serial_write(0, data); }
-static void com2_write(u16 data){ return serial_write(1, data); }
-static void com3_write(u16 data){ return serial_write(2, data); }
-static void com4_write(u16 data){ return serial_write(3, data); }
+static bool com1_read(u8 *data){ return serial_read(0, data); }
+static bool com2_read(u8 *data){ return serial_read(1, data); }
+static bool com3_read(u8 *data){ return serial_read(2, data); }
+static bool com4_read(u8 *data){ return serial_read(3, data); }
+static bool com1_write(u8 data){ return serial_write(0, data); }
+static bool com2_write(u8 data){ return serial_write(1, data); }
+static bool com3_write(u8 data){ return serial_write(2, data); }
+static bool com4_write(u8 data){ return serial_write(3, data); }
 
 static const struct driver x86_com1 =
 {
-    .name = "x86 COM1 Port",
+    .name = "i686-com1",
     .init = com1_init, .clean = com1_clean,
+    .api = DRIVER_API_STREAM,
     .type = DRIVER_TYPE_SERIAL,
     .routines.serial.config = com1_config,
-    .routines.serial.read   = com1_read,
-    .routines.serial.write  = com1_write
+    .interface.stream.read  = com1_read,
+    .interface.stream.write = com1_write
 };
 driver_register(x86_com1);
 
 static const struct driver x86_com2 =
 {
-    .name = "x86 COM2 Port",
+    .name = "i686-com2",
     .init = com2_init, .clean = com2_clean,
+    .api = DRIVER_API_STREAM,
     .type = DRIVER_TYPE_SERIAL,
     .routines.serial.config = com2_config,
-    .routines.serial.read   = com2_read,
-    .routines.serial.write  = com2_write
+    .interface.stream.read  = com2_read,
+    .interface.stream.write = com2_write
 };
 driver_register(x86_com2);
 
 static const struct driver x86_com3 =
 {
-    .name = "x86 COM3 Port",
+    .name = "i686-com3",
     .init = com3_init, .clean = com3_clean,
+    .api = DRIVER_API_STREAM,
     .type = DRIVER_TYPE_SERIAL,
     .routines.serial.config = com3_config,
-    .routines.serial.read   = com3_read,
-    .routines.serial.write  = com3_write
+    .interface.stream.read  = com3_read,
+    .interface.stream.write = com3_write
 };
 driver_register(x86_com3);
 
 static const struct driver x86_com4 =
 {
-    .name = "x86 COM4 Port",
+    .name = "i686-com4",
     .init = com4_init, .clean = com4_clean,
+    .api = DRIVER_API_STREAM,
     .type = DRIVER_TYPE_SERIAL,
     .routines.serial.config = com4_config,
-    .routines.serial.read   = com4_read,
-    .routines.serial.write  = com4_write
+    .interface.stream.read  = com4_read,
+    .interface.stream.write = com4_write
 };
 driver_register(x86_com4);
-

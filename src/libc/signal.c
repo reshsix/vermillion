@@ -14,12 +14,11 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <_types.h>
 #include <_utils.h>
-
-#include <vermillion/drivers.h>
 
 static void (*handlers[SIGLAST + 1])(int) = {NULL};
 
@@ -51,8 +50,7 @@ signal_default(int n)
             break;
         case SIGTRAP:
             print("Press enter to continue...");
-            const struct driver *serial = driver_find(DRIVER_TYPE_SERIAL, 0);
-            while (serial->routines.serial.read() != '\r');
+            while (fgetc(stdin) != '\r');
             stop = false;
             break;
     }

@@ -342,8 +342,9 @@ gic_wait(void)
 
 static const struct driver gic =
 {
-    .name = "ARM General Interrupt Controller",
+    .name = "arm-gic",
     .init = init, .clean = clean,
+    .api = DRIVER_API_GENERIC,
     .type = DRIVER_TYPE_GIC,
     .routines.gic.config = gic_config,
     .routines.gic.wait   = gic_wait

@@ -412,8 +412,9 @@ gpio_ack(u16 intr)
 
 static const struct driver sunxi_gpio =
 {
-    .name = "Sunxi GPIO",
+    .name = "sunxi-gpio",
     .init = init, .clean = clean,
+    .api = DRIVER_API_GENERIC,
     .type = DRIVER_TYPE_GPIO,
     .routines.gpio.count  = gpio_count,
     .routines.gpio.write  = gpio_write,

@@ -30,3 +30,7 @@ endif
 ifdef CONFIG_VIDEO_ILI9488_SPI
 DRIVERS += ili9488.o
 endif
+
+ifdef CONFIG_STORAGE_MEMORY
+DRIVERS += memory.o
+endif

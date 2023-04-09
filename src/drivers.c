@@ -14,10 +14,38 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <_utils.h>
+#include <string.h>
 #include <vermillion/drivers.h>
 
 /* Dummy driver */
+
+static bool
+block_read(u8 *buffer, u32 block)
+{
+    (void)buffer, (void)block;
+    return false;
+}
+
+static bool
+block_write(u8 *buffer, u32 block)
+{
+    (void)buffer, (void)block;
+    return false;
+}
+
+static bool
+stream_read(u8 *data)
+{
+    (void)data;
+    return false;
+}
+
+static bool
+stream_write(u8 data)
+{
+    (void)data;
+    return false;
+}
 
 static void
 video_info(u16 *width, u16 *height)
@@ -50,13 +78,6 @@ static void
 audio_sample(u16 freq, u8 *data, size_t size)
 {
     (void)freq, (void)data, (void)size;
-}
-
-static bool
-storage_read(u8 *buffer, u32 block, u32 count)
-{
-    (void)buffer, (void)block, (void)count;
-    return false;
 }
 
 static struct file *
@@ -98,18 +119,6 @@ serial_config(u32 baud, u8 ch, u8 parity, u8 stop)
 {
     (void)baud, (void)ch, (void)parity, (void)stop;
     return false;
-}
-
-static u8
-serial_read(void)
-{
-    return 0;
-}
-
-static void
-serial_write(u16 data)
-{
-    (void)data;
 }
 
 static void
@@ -237,8 +246,9 @@ static const struct driver dummy[] =
 {
     [DRIVER_TYPE_VIDEO] =
     {
-        .name = "Dummy Video",
+        .name = "dummy-video",
         .init = NULL, .clean = NULL,
+        .api = DRIVER_API_GENERIC,
         .type = DRIVER_TYPE_VIDEO,
         .routines.video.info    = video_info,
         .routines.video.update  = video_update,
@@ -246,23 +256,27 @@ static const struct driver dummy[] =
     },
     [DRIVER_TYPE_AUDIO] =
     {
-        .name = "Dummy Audio",
+        .name = "dummy-audio",
         .init = NULL, .clean = NULL,
+        .api = DRIVER_API_GENERIC,
         .type = DRIVER_TYPE_AUDIO,
         .routines.audio.note    = audio_note,
         .routines.audio.sample  = audio_sample
     },
     [DRIVER_TYPE_STORAGE] =
     {
-        .name = "Dummy Storage",
+        .name = "dummy-storage",
         .init = NULL, .clean = NULL,
+        .api = DRIVER_API_BLOCK,
         .type = DRIVER_TYPE_STORAGE,
-        .routines.storage.read  = storage_read
+        .interface.block.read  = block_read,
+        .interface.block.write = block_write
     },
     [DRIVER_TYPE_FS] =
     {
-        .name = "Dummy Filesystem",
+        .name = "dummy-fs",
         .init = NULL, .clean = NULL,
+        .api = DRIVER_API_GENERIC,
         .type = DRIVER_TYPE_FS,
         .routines.fs.open       = fs_open,
         .routines.fs.close      = fs_close,
@@ -272,16 +286,18 @@ static const struct driver dummy[] =
     },
     [DRIVER_TYPE_GIC] =
     {
-        .name = "Dummy Interrupts",
+        .name = "dummy-gic",
         .init = NULL, .clean = NULL,
+        .api = DRIVER_API_GENERIC,
         .type = DRIVER_TYPE_GIC,
         .routines.gic.config    = gic_config,
         .routines.gic.wait      = gic_wait
     },
     [DRIVER_TYPE_TIMER] =
     {
-        .name = "Dummy Timer",
+        .name = "dummy-timer",
         .init = NULL, .clean = NULL,
+        .api = DRIVER_API_GENERIC,
         .type = DRIVER_TYPE_TIMER,
         .routines.timer.clock   = timer_clock,
         .routines.timer.csleep  = timer_csleep,
@@ -291,25 +307,28 @@ static const struct driver dummy[] =
     },
     [DRIVER_TYPE_SERIAL] =
     {
-        .name = "Dummy UART Controller",
+        .name = "dummy-serial",
         .init = NULL, .clean = NULL,
+        .api = DRIVER_API_STREAM,
         .type = DRIVER_TYPE_SERIAL,
         .routines.serial.config = serial_config,
-        .routines.serial.read   = serial_read,
-        .routines.serial.write  = serial_write,
+        .interface.stream.read  = stream_read,
+        .interface.stream.write = stream_write,
     },
     [DRIVER_TYPE_SPI] =
     {
-        .name = "Dummy SPI Controller",
+        .name = "dummy-spi",
         .init = NULL, .clean = NULL,
+        .api = DRIVER_API_GENERIC,
         .type = DRIVER_TYPE_SPI,
         .routines.spi.config    = spi_config,
         .routines.spi.transfer  = spi_transfer,
     },
     [DRIVER_TYPE_GPIO] =
     {
-        .name = "Dummy GPIO Controller",
+        .name = "dummy-gpio",
         .init = NULL, .clean = NULL,
+        .api = DRIVER_API_GENERIC,
         .type = DRIVER_TYPE_GPIO,
         .routines.gpio.count  = gpio_count,
         .routines.gpio.write  = gpio_write,
@@ -322,81 +341,84 @@ static const struct driver dummy[] =
     },
     [DRIVER_TYPE_DUMMY] =
     {
-        .name = "Dummy-type Dummy",
+        .name = "dummy",
         .init = NULL, .clean = NULL,
+        .api = DRIVER_API_GENERIC,
         .type = DRIVER_TYPE_DUMMY
     }
 };
 
 /* Extern functions */
 
+static struct driver *serial = NULL;
 static void
-drivers_init_type(u8 type)
+serial_print(const char *s)
 {
-    if (type == DRIVER_TYPE_SERIAL)
+    if (serial)
     {
-        bool serial0 = false;
-        for (u32 i = 0; i < _drivers_c; i++)
+        for (; s[0] != '\0'; s = &(s[1]))
         {
-            if (_drivers[i]->type != type)
-                continue;
-
-            _drivers[i]->status = (_drivers[i]->init) ?
-                                   _drivers[i]->init() : true;
-            if (_drivers[i]->status && !serial0)
-            {
-                _drivers[i]->routines.serial.config(115200,
-                                                     DRIVER_SERIAL_CHAR_8B,
-                                                     DRIVER_SERIAL_PARITY_NONE,
-                                                     DRIVER_SERIAL_STOP_1B);
-                print("\r\nVermillion ");
-                print(__VERMILLION__);
-                print(" (");
-                print(__COMPILATION__);
-                print(")\r\n\r\n");
-
-                serial0 = true;
-            }
-
-            if (serial0)
-            {
-                print("Initializing ");
-                print(_drivers[i]->name);
-                print(": ");
-                if (_drivers[i]->status)
-                    print("Success");
-                else
-                    print("Failure");
-                print("\r\n");
-            }
-        }
-    }
-    else
-    {
-        for (u32 i = 0; i < _drivers_c; i++)
-        {
-            if (_drivers[i]->type == type)
-            {
-                print("Initializing ");
-                print(_drivers[i]->name);
-                print(": ");
-                _drivers[i]->status = (!(_drivers[i]->init) ||
-                                         _drivers[i]->init());
-                if (_drivers[i]->status)
-                    print("Success");
-                else
-                    print("Failure");
-                print("\r\n");
-            }
+            if (s[0] != '\0')
+                serial->interface.stream.write(s[0]);
         }
     }
 }
 
+static void
+drivers_init_type(u8 type)
+{
+    for (u32 i = 0; i < _drivers_c; i++)
+    {
+        if (_drivers[i]->type == type && _drivers[i] != serial)
+        {
+            serial_print("Initializing ");
+            serial_print(_drivers[i]->name);
+            serial_print(": ");
+            _drivers[i]->status = (!(_drivers[i]->init) ||
+                                     _drivers[i]->init());
+            if (_drivers[i]->status)
+                serial_print("Success");
+            else
+                serial_print("Failure");
+            serial_print("\r\n");
+        }
+    }
+}
+
+#define __STRING(x) #x
+#define _STRING(x) __STRING(x)
+
 extern void
 _drivers_init(void)
 {
-    drivers_init_type(DRIVER_TYPE_SERIAL);
+    serial = driver_find_name(_STRING(CONFIG_STDIO_STDOUT));
+    if (serial && serial->type == DRIVER_TYPE_SERIAL)
+    {
+        if ((!(serial->init) || serial->init()) &&
+            serial->routines.serial.config(115200, DRIVER_SERIAL_CHAR_8B,
+                                                   DRIVER_SERIAL_PARITY_NONE,
+                                                   DRIVER_SERIAL_STOP_1B))
+        {
+            serial_print("\r\nVermillion ");
+            serial_print(__VERMILLION__);
+            serial_print(" (");
+            serial_print(__COMPILATION__);
+            serial_print(")\r\n\r\n");
 
+            serial_print("Initializing ");
+            serial_print(serial->name);
+            serial_print(": Success\r\n");
+        }
+        else
+        {
+            serial->clean();
+            serial = NULL;
+        }
+    }
+    else
+        serial = NULL;
+
+    drivers_init_type(DRIVER_TYPE_SERIAL);
     drivers_init_type(DRIVER_TYPE_GPIO);
 
     #ifdef CONFIG_LED_SUCCESS
@@ -427,11 +449,11 @@ drivers_clean_type(u8 type)
     {
         if (_drivers[i]->type == type)
         {
-            print("Cleaning ");
-            print(_drivers[i]->name);
+            serial_print("Cleaning ");
+            serial_print(_drivers[i]->name);
             if (_drivers[i]->clean && _drivers[i] != serial0)
                 _drivers[i]->clean();
-            print("\r\n");
+            serial_print("\r\n");
         }
     }
 
@@ -486,6 +508,23 @@ driver_find(u8 type, u32 index)
                 break;
             }
             index--;
+        }
+    }
+
+    return ret;
+}
+
+extern struct driver *
+driver_find_name(const char *name)
+{
+    struct driver *ret = (struct driver *)&(dummy[DRIVER_TYPE_DUMMY]);
+
+    for (u32 i = 0; i < _drivers_c; i++)
+    {
+        if (!(strcmp(_drivers[i]->name, name)))
+        {
+            ret = _drivers[i];
+            break;
         }
     }
 
