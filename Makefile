@@ -100,7 +100,8 @@ build/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 	@kconfig-conf --olddefconfig Kconfig
 
 # Objects definitions
-CORE = build/loader.o build/drivers.o build/boot.o build/main.o
+CORE = build/loader.o build/interrupts.o build/drivers.o \
+       build/boot.o build/main.o
 include src/libc/make.list
 LIBC := $(addprefix build/libc/, $(LIBC))
 include src/drivers/make.list

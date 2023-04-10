@@ -13,7 +13,3 @@
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 include src/drivers/arm/sunxi/make.list
-
-ifdef CONFIG_ARM_GIC
-DRIVERS += arm/gic.o
-endif

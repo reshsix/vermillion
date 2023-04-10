@@ -21,6 +21,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <_utils.h>
 
 #include <vermillion/drivers.h>
+#include <vermillion/interrupts.h>
 
 /* Initialization */
 
@@ -36,6 +37,7 @@ __init(void)
 
     init_malloc();
 
+    _interrupts_init();
     _drivers_init();
     _stdio_init();
 
@@ -44,6 +46,7 @@ __init(void)
 
     _stdio_clean();
     _drivers_clean();
+    _interrupts_clean();
 
     exit(ret);
 }
@@ -95,9 +98,8 @@ exit(int code)
     gpio->routines.gpio.set(CONFIG_LED_SUCCESS_PIN, false);
     #endif
 
-    const struct driver *gic = driver_find(DRIVER_TYPE_GIC, 0);
     for (;;)
-        gic->routines.gic.wait();
+        intr_wait();
 }
 
 extern int

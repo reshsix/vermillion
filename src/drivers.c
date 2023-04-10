@@ -121,25 +121,6 @@ serial_config(u32 baud, u8 ch, u8 parity, u8 stop)
     return false;
 }
 
-static void
-gic_config(u16 n, void (*f)(void), bool enable, u8 priority)
-{
-    (void)n, (void)f, (void)enable, (void)priority;
-}
-
-static void
-gic_wait(void)
-{
-    #if defined(CONFIG_ARCH_ARM)
-    asm volatile ("wfi");
-    #elif defined(CONFIG_ARCH_I686)
-    asm volatile ("hlt");
-    #else
-    static volatile u8 a = 0;
-    while (a == 0);
-    #endif
-}
-
 static u32
 timer_clock(void)
 {
@@ -284,15 +265,6 @@ static const struct driver dummy[] =
         .routines.fs.index      = fs_index,
         .routines.fs.read       = fs_read
     },
-    [DRIVER_TYPE_GIC] =
-    {
-        .name = "dummy-gic",
-        .init = NULL, .clean = NULL,
-        .api = DRIVER_API_GENERIC,
-        .type = DRIVER_TYPE_GIC,
-        .routines.gic.config    = gic_config,
-        .routines.gic.wait      = gic_wait
-    },
     [DRIVER_TYPE_TIMER] =
     {
         .name = "dummy-timer",
@@ -428,7 +400,6 @@ _drivers_init(void)
     gpio->routines.gpio.set(CONFIG_LED_SUCCESS_PIN, true);
     #endif
 
-    drivers_init_type(DRIVER_TYPE_GIC);
     drivers_init_type(DRIVER_TYPE_SPI);
     drivers_init_type(DRIVER_TYPE_TIMER);
     drivers_init_type(DRIVER_TYPE_VIDEO);
@@ -470,7 +441,6 @@ _drivers_clean(void)
     drivers_clean_type(DRIVER_TYPE_VIDEO);
     drivers_clean_type(DRIVER_TYPE_TIMER);
     drivers_clean_type(DRIVER_TYPE_SPI);
-    drivers_clean_type(DRIVER_TYPE_GIC);
     drivers_clean_type(DRIVER_TYPE_GPIO);
     drivers_clean_type(DRIVER_TYPE_SERIAL);
 }

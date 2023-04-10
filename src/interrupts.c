@@ -16,7 +16,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <_types.h>
 #include <signal.h>
-#include <vermillion/drivers.h>
+#include <vermillion/interrupts.h>
+
+#if defined(CONFIG_ARCH_ARM)
 
 enum
 {
@@ -278,8 +280,8 @@ handler_fiq(void)
     intr_fiq_ack(c, n);
 }
 
-static bool
-init(void)
+extern bool
+_interrupts_init(void)
 {
     __ivt[IVT_UNDEF]    = handler_undef;
     __ivt[IVT_SWI]      = handler_swi;
@@ -291,16 +293,16 @@ init(void)
     return true;
 }
 
-static void
-clean(void)
+extern void
+_interrupts_clean(void)
 {
     arm_disable_irq();
     gic_disable_dist();
     gic_disable();
 }
 
-static void
-gic_config(u16 n, void (*f)(void), bool enable, u8 priority)
+extern bool
+intr_config(u16 n, void (*f)(void), bool enable, u8 priority)
 {
     arm_disable_irq();
 
@@ -332,21 +334,69 @@ gic_config(u16 n, void (*f)(void), bool enable, u8 priority)
     gic_enable_dist();
 
     arm_enable_irq();
+
+    return true;
 }
 
-static void
-gic_wait(void)
+extern void
+intr_wait(void)
 {
     arm_wait_interrupts();
 }
 
-static const struct driver gic =
+#elif defined(CONFIG_ARCH_I686)
+
+extern bool
+_interrupts_init(void)
 {
-    .name = "arm-gic",
-    .init = init, .clean = clean,
-    .api = DRIVER_API_GENERIC,
-    .type = DRIVER_TYPE_GIC,
-    .routines.gic.config = gic_config,
-    .routines.gic.wait   = gic_wait
-};
-driver_register(gic);
+    return true;
+}
+
+extern void
+_interrupts_clean(void)
+{
+    return;
+}
+
+extern bool
+intr_config(u16 n, void (*f)(void), bool enable, u8 priority)
+{
+    (void)n, (void)f, (void)enable, (void)priority;
+    return false;
+}
+
+extern void
+intr_wait(void)
+{
+    asm volatile ("hlt");
+}
+
+#else
+
+extern bool
+_interrupts_init(void)
+{
+    return true;
+}
+
+extern void
+_interrupts_clean(void)
+{
+    return;
+}
+
+extern bool
+intr_config(u16 n, void (*f)(void), bool enable, u8 priority)
+{
+    (void)n, (void)f, (void)enable, (void)priority;
+    return false;
+}
+
+extern void
+intr_wait(void)
+{
+    static volatile u8 a = 0;
+    while (a == 0);
+}
+
+#endif

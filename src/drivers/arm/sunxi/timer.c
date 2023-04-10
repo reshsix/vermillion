@@ -17,6 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <_types.h>
 #include <_utils.h>
 #include <vermillion/drivers.h>
+#include <vermillion/interrupts.h>
 
 #define TIMERS 0x01C20C00
 #define TMR_IRQ_EN  *(volatile u32*)(TIMERS + 0x0)
@@ -116,19 +117,17 @@ timer_stop(enum timer n)
 
 /* Exported functions */
 
-static const struct driver *gic0 = NULL;
 static bool
 timer_init(u16 irq, void (*f)(void))
 {
-    gic0 = driver_find(DRIVER_TYPE_GIC, 0);
-    gic0->routines.gic.config(irq, f, true, 0);
+    intr_config(irq, f, true, 0);
     return true;
 }
 
 static void
 timer_clean(u16 irq)
 {
-    gic0->routines.gic.config(irq, NULL, false, 0);
+    intr_config(irq, NULL, false, 0);
 }
 
 static u32
@@ -150,7 +149,7 @@ timer_csleep(enum timer t, const u32 n)
     timer_start(t);
     while (1)
     {
-        gic0->routines.gic.wait();
+        intr_wait();
         u32 x = timer_current_get(t);
         if (x == 0 || x > n)
             break;

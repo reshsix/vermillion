@@ -21,6 +21,25 @@ config ARCH_ARM_SUNXI
     bool "Sunxi"
 endchoice
 
+menu "Generic Interrupt Controller"
+    depends on ARCH_ARM
+config GIC_CPU
+    hex "CPU address"
+config GIC_DIST
+    hex "DIST address"
+choice GIC_TYPE
+    prompt "Interrupt Type"
+config GIC_TYPE_0
+    bool "Low level"
+config GIC_TYPE_1
+    bool "High level"
+config GIC_TYPE_2
+    bool "Low edge"
+config GIC_TYPE_3
+    bool "High edge"
+endchoice
+endmenu
+
 config DISK_SIZE
     int "Disk size"
     depends on ARCH_ARM

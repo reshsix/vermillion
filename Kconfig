@@ -96,37 +96,6 @@ endmenu
 
 menu "Device drivers"
 
-# Architecture drivers
-
-menu "Architecture"
-
-config ARM_GIC
-    bool
-menuconfig ARM_GIC
-    prompt "Generic Interrupt Controller"
-    default y if ARCH_ARM
-    depends on ARCH_ARM
-config GIC_CPU
-    hex "CPU address"
-    depends on ARM_GIC
-config GIC_DIST
-    hex "DIST address"
-    depends on ARM_GIC
-choice GIC_TYPE
-    prompt "Interrupt Type"
-    depends on ARM_GIC
-config GIC_TYPE_0
-    bool "Low level"
-config GIC_TYPE_1
-    bool "High level"
-config GIC_TYPE_2
-    bool "Low edge"
-config GIC_TYPE_3
-    bool "High edge"
-endchoice
-
-endmenu
-
 # Video configuration
 
 menu "Video Output"
