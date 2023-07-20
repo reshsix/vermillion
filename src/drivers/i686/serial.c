@@ -15,53 +15,85 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <_types.h>
+#include <stdlib.h>
+#include <string.h>
 #include <_i686-env.h>
 #include <vermillion/drivers.h>
 
 #define IO_DAT(x)  (x + 0)
 #define IO_IER(x)  (x + 1)
-#define IO_IIR(x)  (x + 2)
 #define IO_LCR(x)  (x + 3)
 #define IO_MCR(x)  (x + 4)
 #define IO_LSR(x)  (x + 5)
 #define IO_DIVL(x) (x + 0)
 #define IO_DIVH(x) (x + 1)
 
-static u16 ports[] = {0x3F8, 0x2F8, 0x3E8, 0x2E8};
-
-static bool
-serial_init(u8 port)
+struct serial
 {
-    bool ret = true;
+    u16 port;
+    union config config;
+};
 
-    out8(IO_IER(ports[port]), 0x0);
-    out8(IO_MCR(ports[port]), 0x1F);
-    out8(IO_DAT(ports[port]), 0x66);
-    ret = in8(IO_DAT(ports[port])) == 0x66;
-    out8(IO_MCR(ports[port]), 0xF);
+static void
+init(void **ctx, u16 port)
+{
+    struct serial *ret = calloc(1, sizeof(struct serial));
 
-    return ret;
+    if (ret)
+    {
+        ret->port = port;
+
+        out8(IO_IER(port), 0x0);
+        out8(IO_MCR(port), 0x1F);
+
+        out8(IO_DAT(port), 0x66);
+        if (in8(IO_DAT(port)) == 0x66)
+            *ctx = ret;
+        else
+            free(ret);
+
+        out8(IO_MCR(port), 0xF);
+    }
 }
 
 static void
-serial_clean(u8 port)
+clean(void *ctx)
 {
-    out8(IO_IER(ports[port]), 0x0);
-    out8(IO_MCR(ports[port]), 0x0);
+    if (ctx)
+    {
+        struct serial *com = ctx;
+        out8(IO_IER(com->port), 0x0);
+        out8(IO_MCR(com->port), 0x0);
+    }
+    free(ctx);
 }
 
 static bool
-serial_config(u8 port, u32 baud, u8 ch, u8 parity, u8 stop)
+config_get(void *ctx, union config *cfg)
+{
+    struct serial *com = ctx;
+    memcpy(cfg, &(com->config), sizeof(union config));
+    return true;
+}
+
+static bool
+config_set(void *ctx, union config *cfg)
 {
     bool ret = true;
 
-    if (!baud || baud > 115200 || 115200 % baud != 0)
-        ret = false;
+    if (ret)
+    {
+        if (!(cfg->serial.baud))
+            cfg->serial.baud = 115200;
+        else if (cfg->serial.baud > 115200 ||
+                 115200 % cfg->serial.baud != 0)
+            ret = false;
+    }
 
     u8 c = 0;
     if (ret)
     {
-        switch (ch)
+        switch (cfg->serial.bits)
         {
             case DRIVER_SERIAL_CHAR_5B:
                 break;
@@ -83,7 +115,7 @@ serial_config(u8 port, u32 baud, u8 ch, u8 parity, u8 stop)
     u8 p = 0;
     if (ret)
     {
-        switch (parity)
+        switch (cfg->serial.parity)
         {
             case DRIVER_SERIAL_PARITY_NONE:
                 break;
@@ -108,18 +140,18 @@ serial_config(u8 port, u32 baud, u8 ch, u8 parity, u8 stop)
     u8 s = 0;
     if (ret)
     {
-        switch (stop)
+        switch (cfg->serial.stop)
         {
             case DRIVER_SERIAL_STOP_1B:
                 break;
             case DRIVER_SERIAL_STOP_1HB:
-                if (ch == DRIVER_SERIAL_CHAR_5B)
+                if (cfg->serial.bits == DRIVER_SERIAL_CHAR_5B)
                     s = 1;
                 else
                     ret = false;
                 break;
             case DRIVER_SERIAL_STOP_2B:
-                if (ch != DRIVER_SERIAL_CHAR_5B)
+                if (cfg->serial.bits != DRIVER_SERIAL_CHAR_5B)
                     s = 1;
                 else
                     ret = false;
@@ -132,106 +164,51 @@ serial_config(u8 port, u32 baud, u8 ch, u8 parity, u8 stop)
 
     if (ret)
     {
-        u16 divisor = 115200 / baud;
-        u8 LCR = in8(IO_LCR(ports[port]));
-        out8(IO_LCR(ports[port]), LCR | 0x80);
+        struct serial *com = ctx;
+        memcpy(&(com->config), cfg, sizeof(union config));
 
-        out8(IO_DIVL(ports[port]), divisor & 0xFF);
-        out8(IO_DIVH(ports[port]), divisor >> 8);
+        u16 divisor = 115200 / cfg->serial.baud;
+        u8 LCR = in8(IO_LCR(com->port));
+        out8(IO_LCR(com->port), LCR | 0x80);
+
+        out8(IO_DIVL(com->port), divisor & 0xFF);
+        out8(IO_DIVH(com->port), divisor >> 8);
 
         LCR |= c | p << 5 | s << 2;
 
-        out8(IO_LCR(ports[port]), LCR & ~0x80);
+        out8(IO_LCR(com->port), LCR & ~0x80);
     }
 
     return ret;
 }
 
 static bool
-serial_read(u8 port, u8 *data)
+stream_read(void *ctx, u8 *data)
 {
-    while (!(in8(IO_LSR(ports[port])) & 0x1));
-    *data = in8(IO_DAT(ports[port]));
+    struct serial *com = ctx;
+    while (!(in8(IO_LSR(com->port)) & 0x1));
+    *data = in8(IO_DAT(com->port));
     return true;
 }
 
 static bool
-serial_write(u8 port, u8 data)
+stream_write(void *ctx, u8 data)
 {
-    while (!(in8(IO_LSR(ports[port])) & 0x20));
-    out8(IO_DAT(ports[port]), data);
+    struct serial *com = ctx;
+    while (!(in8(IO_LSR(com->port)) & 0x20));
+    out8(IO_DAT(com->port), data);
     return true;
 }
 
-static bool com1_init(void){ return serial_init(0); }
-static bool com2_init(void){ return serial_init(1); }
-static bool com3_init(void){ return serial_init(2); }
-static bool com4_init(void){ return serial_init(3); }
-static void com1_clean(void){ serial_clean(0); }
-static void com2_clean(void){ serial_clean(1); }
-static void com3_clean(void){ serial_clean(2); }
-static void com4_clean(void){ serial_clean(3); }
-static bool com1_config(u32 baud, u8 ch, u8 parity, u8 stop)
-{ return serial_config(0, baud, ch, parity, stop); }
-static bool com2_config(u32 baud, u8 ch, u8 parity, u8 stop)
-{ return serial_config(1, baud, ch, parity, stop); }
-static bool com3_config(u32 baud, u8 ch, u8 parity, u8 stop)
-{ return serial_config(2, baud, ch, parity, stop); }
-static bool com4_config(u32 baud, u8 ch, u8 parity, u8 stop)
-{ return serial_config(3, baud, ch, parity, stop); }
-static bool com1_read(u8 *data){ return serial_read(0, data); }
-static bool com2_read(u8 *data){ return serial_read(1, data); }
-static bool com3_read(u8 *data){ return serial_read(2, data); }
-static bool com4_read(u8 *data){ return serial_read(3, data); }
-static bool com1_write(u8 data){ return serial_write(0, data); }
-static bool com2_write(u8 data){ return serial_write(1, data); }
-static bool com3_write(u8 data){ return serial_write(2, data); }
-static bool com4_write(u8 data){ return serial_write(3, data); }
-
-static const struct driver x86_com1 =
+static const struct driver i686_com =
 {
-    .name = "i686-com1",
-    .init = com1_init, .clean = com1_clean,
+    .name = "i686-com",
+    .init = init, .clean = clean,
     .api = DRIVER_API_STREAM,
     .type = DRIVER_TYPE_SERIAL,
-    .routines.serial.config = com1_config,
-    .interface.stream.read  = com1_read,
-    .interface.stream.write = com1_write
+    .config.get = config_get,
+    .config.set = config_set,
+    .interface.stream.read  = stream_read,
+    .interface.stream.write = stream_write
 };
-driver_register(x86_com1);
-
-static const struct driver x86_com2 =
-{
-    .name = "i686-com2",
-    .init = com2_init, .clean = com2_clean,
-    .api = DRIVER_API_STREAM,
-    .type = DRIVER_TYPE_SERIAL,
-    .routines.serial.config = com2_config,
-    .interface.stream.read  = com2_read,
-    .interface.stream.write = com2_write
-};
-driver_register(x86_com2);
-
-static const struct driver x86_com3 =
-{
-    .name = "i686-com3",
-    .init = com3_init, .clean = com3_clean,
-    .api = DRIVER_API_STREAM,
-    .type = DRIVER_TYPE_SERIAL,
-    .routines.serial.config = com3_config,
-    .interface.stream.read  = com3_read,
-    .interface.stream.write = com3_write
-};
-driver_register(x86_com3);
-
-static const struct driver x86_com4 =
-{
-    .name = "i686-com4",
-    .init = com4_init, .clean = com4_clean,
-    .api = DRIVER_API_STREAM,
-    .type = DRIVER_TYPE_SERIAL,
-    .routines.serial.config = com4_config,
-    .interface.stream.read  = com4_read,
-    .interface.stream.write = com4_write
-};
-driver_register(x86_com4);
+driver_register(i686_com);

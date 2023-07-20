@@ -47,6 +47,8 @@ config CFLAGS_ARCH
     default "-fpic -Wl,--no-warn-rwx-segment" if ARCH_ARM
 config CFLAGS_BOARD
     string "Additional Board CFLAGS"
+config DEVICE_TREE
+    string "Board device tree"
 endmenu
 
 menu "FDPIC Loader"
@@ -66,30 +68,6 @@ config RAM_SIZE
     hex "Full length"
 endmenu
 
-menu "Libc options"
-config STDIO_STDIN
-    string "Stdin driver"
-config STDIO_STDOUT
-    string "Stdout driver"
-config STDIO_STDERR
-    string "Stderr driver"
-endmenu
-
-config LED_SUCCESS
-    bool
-menuconfig LED_SUCCESS
-    prompt "Board LED (Success)"
-config LED_SUCCESS_PIN
-    int "Pin"
-    depends on LED_SUCCESS
-config LED_FAILURE
-    bool
-menuconfig LED_FAILURE
-    prompt "Board LED (Failure)"
-config LED_FAILURE_PIN
-    int "Pin"
-    depends on LED_FAILURE
-
 endmenu
 
 # Driver configuration
@@ -99,31 +77,15 @@ menu "Device drivers"
 # Video configuration
 
 menu "Video Output"
-config VIDEO_ILI9488_SPI
-    bool
-menuconfig VIDEO_ILI9488_SPI
-    prompt "Ili9488 (SPI)"
-config ILI9488_DCRS
-    int "DCRS pin"
-    default 12
-    depends on VIDEO_ILI9488_SPI
-config ILI9488_LEDS
-    int "LEDS pin"
-    default 11
-    depends on VIDEO_ILI9488_SPI
+config VIDEO_ILI9488
+    bool "Ili9488"
 endmenu
 
 # Audio configuration
 
 menu "Audio Output"
 config AUDIO_BUZZER
-    bool
-menuconfig AUDIO_BUZZER
-    prompt "Buzzer"
-config BUZZER_PIN
-    int "Output pin"
-    default 13
-    depends on AUDIO_BUZZER
+    bool "Buzzer"
 endmenu
 
 # Storage configuration
@@ -161,42 +123,16 @@ endmenu
 
 menu "Timer"
 config TIMER_SUNXI_TIMER
-    bool
-menuconfig TIMER_SUNXI_TIMER
-    prompt "Sunxi Timer"
+    bool "Sunxi Timer"
     default y if ARCH_ARM_SUNXI
     depends on ARCH_ARM
-config SUNXI_TIMER0_IRQ
-    int "Timer0 IRQ"
-    depends on TIMER_SUNXI_TIMER
-config SUNXI_TIMER1_IRQ
-    int "Timer1 IRQ"
-    depends on TIMER_SUNXI_TIMER
 endmenu
 
 # SPI configuration
 
 menu "SPI"
 config SPI_BITBANG
-    bool
-menuconfig SPI_BITBANG
-    prompt "Bitbang"
-config BITBANG_SPI_SS
-    int "SS pin"
-    default 0
-    depends on SPI_BITBANG
-config BITBANG_SPI_SCK
-    int "SCK pin"
-    default 1
-    depends on SPI_BITBANG
-config BITBANG_SPI_MOSI
-    int "MOSI pin"
-    default 2
-    depends on SPI_BITBANG
-config BITBANG_SPI_MISO
-    int "MISO pin"
-    default 3
-    depends on SPI_BITBANG
+    bool "Bitbang"
 endmenu
 
 # GPIO configuration

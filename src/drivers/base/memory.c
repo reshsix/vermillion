@@ -19,15 +19,17 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <vermillion/drivers.h>
 
 static bool
-block_read(u8 *buffer, u32 block)
+block_read(void *ctx, u8 *buffer, u32 block)
 {
+    (void)(ctx);
     memcpy(buffer, (void*)(block * 0x200), 0x200);
     return true;
 }
 
 static bool
-block_write(u8 *buffer, u32 block)
+block_write(void *ctx, u8 *buffer, u32 block)
 {
+    (void)(ctx);
     memcpy((void*)(block * 0x200), buffer, 0x200);
     return true;
 }
@@ -35,10 +37,9 @@ block_write(u8 *buffer, u32 block)
 static const struct driver memory =
 {
     .name = "memory",
-    .init = NULL, .clean = NULL,
     .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_STORAGE,
-    .interface.block.read =  block_read,
+    .interface.block.read  = block_read,
     .interface.block.write = block_write
 };
 driver_register(memory);

@@ -14,11 +14,15 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <_utils.h>
 #include <stdlib.h>
 #include <vermillion/drivers.h>
 
 struct spi
 {
+    struct device *gpio;
+    struct device *timer;
+
     u16 ss;
     u16 sck;
     u16 mosi;
@@ -29,119 +33,182 @@ struct spi
     bool cpha;
 
     u32 delay;
-    void (*sleep)(u32);
+    void (*sleep)(struct device *, u32);
 };
 
-static struct spi spi;
-
 static void
-empty(u32 x)
+empty(struct device *tmr, u32 x)
 {
-    (void)(x);
+    (void)(tmr), (void)(x);
     return;
 }
 
 static void
-hsleep(const u32 n)
+hsleep(struct device *tmr, u32 n)
 {
+    (void)(tmr);
     for (register u32 i = 0; i < (n / 4); i++)
         asm volatile ("nop");
 }
 
-static bool
-init(void)
-{
-    spi.ss = CONFIG_BITBANG_SPI_SS;
-    spi.sck = CONFIG_BITBANG_SPI_SCK;
-    spi.mosi = CONFIG_BITBANG_SPI_MOSI;
-    spi.miso = CONFIG_BITBANG_SPI_MISO;
-
-    spi.delay = 0;
-    spi.sleep = empty;
-
-    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
-    gpio->routines.gpio.cfgpin(spi.ss, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
-    gpio->routines.gpio.cfgpin(spi.sck, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
-    gpio->routines.gpio.cfgpin(spi.mosi, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
-    gpio->routines.gpio.cfgpin(spi.miso, DRIVER_GPIO_IN, DRIVER_GPIO_PULLDOWN);
-
-    return true;
-}
-
-static void
-clean(void)
-{
-    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
-    gpio->routines.gpio.cfgpin(spi.ss, DRIVER_GPIO_OFF, DRIVER_GPIO_PULLOFF);
-    gpio->routines.gpio.cfgpin(spi.sck, DRIVER_GPIO_OFF, DRIVER_GPIO_PULLOFF);
-    gpio->routines.gpio.cfgpin(spi.mosi, DRIVER_GPIO_OFF, DRIVER_GPIO_PULLOFF);
-    gpio->routines.gpio.cfgpin(spi.miso, DRIVER_GPIO_OFF, DRIVER_GPIO_PULLOFF);
-}
-
-static bool
-spi_config(u32 freq, u8 mode, bool lsb)
-{
-    spi.cpha = (mode & 0x1);
-    spi.cpol = (mode & 0x2);
-    spi.lsb = lsb;
-
-    const struct driver *t0 = driver_find(DRIVER_TYPE_TIMER, 0);
-    u32 clk = t0->routines.timer.clock();
-    if (freq == 0)
-        spi.sleep = empty;
-    else if (freq <= clk / 2)
-    {
-        spi.sleep = t0->routines.timer.csleep;
-        spi.delay = clk / freq / 2;
-    }
-    else
-    {
-        if (freq > 240000000)
-            freq = 240000000;
-
-        spi.sleep = hsleep;
-        spi.delay = 480000000 / freq / 2;
-    }
-
-    return true;
-}
-
 static u8
-spi_transfer(u8 x)
+spi_transfer(struct spi *spi, u8 x)
 {
     u8 ret = 0;
 
-    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
-    gpio->routines.gpio.set(spi.ss, false);
-    gpio->routines.gpio.set(spi.sck, (spi.cpha) ? true : false);
+    pin_set(spi->gpio, spi->ss, false);
+    pin_set(spi->gpio, spi->sck, (spi->cpha) ? true : false);
     for (u8 i = 0; i < 8; i++)
     {
-        if (spi.lsb) ret >>= 1;
-        else        ret <<= 1;
-        ret |= gpio->routines.gpio.get(spi.miso) << ((spi.lsb) ? 7 : 0);
+        if (spi->lsb) ret >>= 1;
+        else          ret <<= 1;
 
-        bool bit = (spi.lsb) ? x & 0x01 : x & 0x80;
-        gpio->routines.gpio.set(spi.mosi, (spi.cpol) ? !bit : bit);
-        spi.sleep(spi.delay);
-        gpio->routines.gpio.set(spi.sck, (spi.cpha) ? false : true);
-        spi.sleep(spi.delay);
-        gpio->routines.gpio.set(spi.sck, (spi.cpha) ? true : false);
+        bool state = false;
+        pin_get(spi->gpio, spi->miso, &state);
+        ret |= state << ((spi->lsb) ? 7 : 0);
 
-        if (spi.lsb) x >>= 1;
-        else        x <<= 1;
+        bool bit = (spi->lsb) ? x & 0x01 : x & 0x80;
+        pin_set(spi->gpio, spi->mosi, (spi->cpol) ? !bit : bit);
+        spi->sleep(spi->timer->context, spi->delay);
+
+        pin_set(spi->gpio, spi->sck, (spi->cpha) ? false : true);
+        spi->sleep(spi->timer->context, spi->delay);
+        pin_set(spi->gpio, spi->sck, (spi->cpha) ? true : false);
+
+        if (spi->lsb) x >>= 1;
+        else          x <<= 1;
     }
-    gpio->routines.gpio.set(spi.ss, true);
+    pin_set(spi->gpio, spi->ss, true);
 
-    return (spi.cpol) ? ~ret : ret;
+    return (spi->cpol) ? ~ret : ret;
+}
+
+static void
+init(void **ctx, struct device *gpio, u16 ss, u16 sck, u16 mosi, u16 miso,
+     struct device *timer)
+{
+    struct spi *ret = NULL;
+
+    if (gpio && timer)
+        ret = calloc(1, sizeof(struct spi));
+
+    if (ret)
+    {
+        ret->ss = ss;
+        ret->sck = sck;
+        ret->mosi = mosi;
+        ret->miso = miso;
+
+        ret->delay = 0;
+        ret->sleep = empty;
+
+        ret->gpio = gpio;
+        ret->timer = timer;
+
+        union config config = {0};
+        ret->gpio->driver->config.get(ret->gpio->context, &config);
+        config.gpio.pin(ret->gpio->context, ret->ss, DRIVER_GPIO_OUT,
+                        DRIVER_GPIO_PULLOFF);
+        config.gpio.pin(ret->gpio->context, ret->sck, DRIVER_GPIO_OUT,
+                        DRIVER_GPIO_PULLOFF);
+        config.gpio.pin(ret->gpio->context, ret->mosi, DRIVER_GPIO_OUT,
+                        DRIVER_GPIO_PULLOFF);
+        config.gpio.pin(ret->gpio->context, ret->miso, DRIVER_GPIO_IN,
+                        DRIVER_GPIO_PULLOFF);
+
+        *ctx = ret;
+    }
+}
+
+static void
+clean(void *ctx)
+{
+    struct spi *spi = ctx;
+
+    union config config = {0};
+    spi->gpio->driver->config.get(spi->gpio->context, &config);
+    config.gpio.pin(spi->gpio->context, spi->ss, DRIVER_GPIO_OFF,
+                    DRIVER_GPIO_PULLOFF);
+    config.gpio.pin(spi->gpio->context, spi->sck, DRIVER_GPIO_OFF,
+                    DRIVER_GPIO_PULLOFF);
+    config.gpio.pin(spi->gpio->context, spi->mosi, DRIVER_GPIO_OFF,
+                    DRIVER_GPIO_PULLOFF);
+    config.gpio.pin(spi->gpio->context, spi->miso, DRIVER_GPIO_OFF,
+                    DRIVER_GPIO_PULLOFF);
+}
+
+static bool
+config_get(void *ctx, union config *cfg)
+{
+    struct spi *spi = ctx;
+    cfg->spi.mode = spi->cpol << 1 | spi->cpha;
+    cfg->spi.lsb = spi->lsb;
+
+    if (spi->sleep == empty)
+        cfg->spi.freq = 0;
+    else if (spi->sleep == hsleep)
+        cfg->spi.freq = 480000000 / (spi->delay * 2);
+    else
+        cfg->spi.freq = clock(spi->timer) / (spi->delay * 2);
+
+    return true;
+}
+
+static bool
+config_set(void *ctx, union config *cfg)
+{
+    bool ret = false;
+
+    if (cfg->spi.freq > 240000000)
+    {
+        struct spi *spi = ctx;
+        spi->cpha = (cfg->spi.mode & 0x1);
+        spi->cpol = (cfg->spi.mode & 0x2);
+        spi->lsb = cfg->spi.lsb;
+
+        u32 clk = clock(spi->timer);
+        if (cfg->spi.freq == 0)
+            spi->sleep = empty;
+        else if (cfg->spi.freq <= clk / 2)
+        {
+            spi->sleep = csleep;
+            spi->delay = clk / cfg->spi.freq / 2;
+        }
+        else
+        {
+            spi->sleep = hsleep;
+            spi->delay = 480000000 / cfg->spi.freq / 2;
+        }
+
+        ret = true;
+    }
+
+    return ret;
+}
+
+static bool
+stream_read(void *ctx, u8 *data)
+{
+    *data = spi_transfer(ctx, 0x0);
+    return true;
+}
+
+static bool
+stream_write(void *ctx, u8 data)
+{
+    spi_transfer(ctx, data);
+    return true;
 }
 
 static const struct driver bitbang_spi =
 {
     .name = "bitbang-spi",
     .init = init, .clean = clean,
-    .api = DRIVER_API_GENERIC,
+    .api = DRIVER_API_STREAM,
     .type = DRIVER_TYPE_SPI,
-    .routines.spi.config   = spi_config,
-    .routines.spi.transfer = spi_transfer
+    .config.get = config_get,
+    .config.set = config_set,
+    .interface.stream.read = stream_read,
+    .interface.stream.write = stream_write
 };
 driver_register(bitbang_spi);

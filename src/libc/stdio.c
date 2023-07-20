@@ -29,9 +29,9 @@ typedef struct _FILE
     int error;
     bool eof;
 
-    struct driver *io;
+    struct device *io;
 
-    struct driver *fs;
+    struct device *fs;
     struct file *file;
 
     u8 cache[0x200];
@@ -42,19 +42,21 @@ typedef struct _FILE
 
 /* Initialization */
 
+struct device *root;
+
 FILE *stdin;
 FILE *stdout;
 FILE *stderr;
 
-#define __STRING(x) #x
-#define _STRING(x) __STRING(x)
-
+static FILE *fopen_io(const char *path, const char *mode);
 extern void
-_stdio_init(void)
+_stdio_init(struct device *rootfs, char *fd0, char *fd1, char *fd2)
 {
-    stdin  = fopen(":" _STRING(CONFIG_STDIO_STDIN),  "r");
-    stdout = fopen(":" _STRING(CONFIG_STDIO_STDOUT), "w");
-    stderr = fopen(":" _STRING(CONFIG_STDIO_STDERR), "w");
+    root = rootfs;
+
+    stdin  = fopen_io(fd0,  "r");
+    stdout = fopen_io(fd1,  "w");
+    stderr = fopen_io(fd2,  "w");
 }
 
 extern void
@@ -95,10 +97,10 @@ fopen_io(const char *path, const char *mode)
         if (!(strcmp(mode, "r")) || !(strcmp(mode, "rb")))
             ret->readonly = true;
 
-        ret->io = driver_find_name(path);
+        ret->io = device_find(path);
         if (!(ret->io) ||
-            !(ret->io->api == DRIVER_API_BLOCK ||
-              ret->io->api == DRIVER_API_STREAM))
+            !(ret->io->driver->api == DRIVER_API_BLOCK ||
+              ret->io->driver->api == DRIVER_API_STREAM))
         {
             errno = ENOENT;
             fclose_io(ret);
@@ -119,7 +121,7 @@ fclose_fs(FILE *f)
     if (f)
     {
         if (f->file)
-            f->fs->routines.fs.close(f->file);
+            f->fs->driver->interface.fs.close(f->file);
         free(f);
         ret = 0;
     }
@@ -139,16 +141,18 @@ fopen_fs(const char *path, const char *mode)
 
     if (ret)
     {
-        ret->readonly = true;
-
-        ret->fs = driver_find(DRIVER_TYPE_FS, 0);
+        ret->fs = root;
         if (ret->fs)
-            ret->file = ret->fs->routines.fs.open((char*)path);
+        {
+            ret->readonly = true;
+            ret->file = ret->fs->driver->interface.fs.open(ret->fs->context,
+                                                           (char*)path);
+        }
 
-        if (!(ret->fs && ret->file))
+        if (!(ret->file))
         {
             errno = ENOENT;
-            fclose_fs(ret);
+            free(ret);
             ret = NULL;
         }
     }
@@ -197,12 +201,13 @@ fread_io(void *buffer, size_t size, size_t count, FILE *f)
     size_t ret = 0;
 
     size_t bytes = size * count;
-    if (f->io->api == DRIVER_API_BLOCK)
+    if (f->io->driver->api == DRIVER_API_BLOCK)
     {
         while (bytes != 0)
         {
             u32 sector = f->position / 0x200;
-            if (f->io->interface.block.read(f->cache, sector))
+            if (f->io->driver->interface.block.read(f->io->context,
+                                                    f->cache, sector))
             {
                 u16 partial = (bytes > 0x200 - (f->position % 0x200)) ?
                                        0x200 - (f->position % 0x200)  : bytes;
@@ -224,7 +229,7 @@ fread_io(void *buffer, size_t size, size_t count, FILE *f)
         for (size_t i = 0; i < bytes; i++)
         {
             u8 c = 0;
-            if (f->io->interface.stream.read(&c))
+            if (f->io->driver->interface.stream.read(f->io->context, &c))
             {
                 ((u8*)buffer)[i] = c;
                 ret++;
@@ -246,14 +251,16 @@ fwrite_io(const void *buffer, size_t size, size_t count, FILE *f)
     size_t ret = 0;
 
     size_t bytes = size * count;
-    if (f->io->api == DRIVER_API_BLOCK)
+    if (f->io->driver->api == DRIVER_API_BLOCK)
     {
         while (bytes != 0)
         {
             bool failure = false;
 
             u32 sector = f->position / 0x200;
-            if (f->io->interface.block.read(f->cache, sector))
+            if ((bytes == 0x200 && !(f->position % 0x200)) ||
+                f->io->driver->interface.block.read(f->io->context,
+                                                    f->cache, sector))
             {
                 u16 partial = (bytes > 0x200 - (f->position % 0x200)) ?
                                        0x200 - (f->position % 0x200)  : bytes;
@@ -264,7 +271,8 @@ fwrite_io(const void *buffer, size_t size, size_t count, FILE *f)
                 buffer = &(((u8*)buffer)[partial]);
                 bytes -= partial;
 
-                if (!(f->io->interface.block.write(f->cache, sector)))
+                if (!(f->io->driver->interface.block.write(f->io->context,
+                                                           f->cache, sector)))
                     failure = true;
             }
             else
@@ -281,7 +289,8 @@ fwrite_io(const void *buffer, size_t size, size_t count, FILE *f)
     {
         for (size_t i = 0; i < bytes; i++)
         {
-            if (f->io->interface.stream.write(((u8*)buffer)[i]))
+            if (f->io->driver->interface.stream.write(f->io->context,
+                                                      ((u8*)buffer)[i]))
                 ret++;
             else
             {
@@ -300,7 +309,7 @@ fread_fs(void *buffer, size_t size, size_t count, FILE *f)
     size_t bytes = size * count;
 
     size_t fsize = 0;
-    f->fs->routines.fs.info(f->file, &fsize, NULL);
+    f->fs->driver->interface.fs.info(f->file, &fsize, NULL);
     if ((f->position + bytes) >= fsize)
     {
         bytes = fsize - f->position - 1;
@@ -313,7 +322,7 @@ fread_fs(void *buffer, size_t size, size_t count, FILE *f)
         u32 sector = f->position / 0x200;
         if (!(f->cached) || sector != f->cachedsect)
         {
-            if (f->fs->routines.fs.read(f->file, sector, f->cache))
+            if (f->fs->driver->interface.fs.read(f->file, sector, f->cache))
             {
                 f->cachedsect = sector;
                 f->cached = true;
@@ -471,7 +480,7 @@ fseek_io(FILE *f, long offset, int origin)
 {
     int ret = 0;
 
-    if (f->io->api == DRIVER_API_BLOCK)
+    if (f->io->driver->api == DRIVER_API_BLOCK)
     {
         switch (origin)
         {
@@ -484,7 +493,7 @@ fseek_io(FILE *f, long offset, int origin)
                 break;
 
             case SEEK_END:;
-                f->position = offset + UINT32_MAX - 1;
+                f->position = offset + UINT32_MAX;
                 break;
 
             default:
@@ -493,7 +502,7 @@ fseek_io(FILE *f, long offset, int origin)
                 break;
         }
 
-        if (!ret && f->position >= UINT32_MAX)
+        if (!ret && f->position == UINT32_MAX)
             f->eof = true;
         else
             f->eof = false;
@@ -510,7 +519,7 @@ fseek_fs(FILE *f, long offset, int origin)
     int ret = 0;
 
     size_t size = 0;
-    f->fs->routines.fs.info(f->file, &size, NULL);
+    f->fs->driver->interface.fs.info(f->file, &size, NULL);
 
     switch (origin)
     {
@@ -523,7 +532,7 @@ fseek_fs(FILE *f, long offset, int origin)
             break;
 
         case SEEK_END:;
-            f->position = offset + size - 1;
+            f->position = offset + size;
             break;
 
         default:
@@ -534,7 +543,7 @@ fseek_fs(FILE *f, long offset, int origin)
 
     if (!ret && f->position >= size)
     {
-        f->position = size - 1;
+        f->position = size;
         f->eof = true;
     }
     else

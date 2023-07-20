@@ -15,116 +15,89 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <_types.h>
+#include <_utils.h>
 #include <stdlib.h>
+#include <string.h>
 #include <vermillion/drivers.h>
 
 struct buzzer
 {
+    struct device *timer;
+    struct device *gpio;
     u16 pin;
+
+    union config config;
 };
 
-static struct buzzer *
-buzzer_new(u16 pin)
+static void
+init(void **ctx, struct device *gpio, u16 pin, struct device *timer)
 {
-    struct buzzer *ret = malloc(sizeof(struct buzzer));
+    struct buzzer *ret = NULL;
+
+    if (timer && gpio)
+        ret = calloc(1, sizeof(struct buzzer));
 
     if (ret)
     {
-        const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
-        gpio->routines.gpio.cfgpin(pin, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
+        ret->timer = timer;
+        ret->gpio = gpio;
         ret->pin = pin;
-    }
 
-    return ret;
-}
+        ret->config.audio.freq = 48000;
+        ret->config.audio.format = DRIVER_AUDIO_FORMAT_PCM8;
 
-static struct buzzer *
-buzzer_del(struct buzzer *bz)
-{
-    if (bz)
-    {
-        const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
-        gpio->routines.gpio.cfgpin(bz->pin, DRIVER_GPIO_OFF,
-                                   DRIVER_GPIO_PULLOFF);
-        free(bz);
-    }
+        union config config = {0};
+        bool ok = ret->gpio->driver->config.get(ret->gpio->context, &config);
+        ok = ok && config.gpio.pin(ret->gpio->context, ret->pin,
+                                   DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
 
-    return NULL;
-}
-
-static void
-buzzer_note(struct buzzer *bz, u16 freq, u16 duration)
-{
-    const struct driver *t0 = driver_find(DRIVER_TYPE_TIMER, 0);
-    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
-    const u32 delay = 1000000 / freq / 2;
-    for (u32 i = 0; i < (duration * 1000) / (delay * 2); i++)
-    {
-        gpio->routines.gpio.set(bz->pin, true);
-        t0->routines.timer.usleep(delay);
-        gpio->routines.gpio.set(bz->pin, false);
-        t0->routines.timer.usleep(delay);
+        if (ok)
+            *ctx = ret;
+        else
+            free(ret);
     }
 }
 
 static void
-buzzer_sample(struct buzzer *bz, u16 freq, u8 *data, size_t size)
+clean(void *ctx)
 {
-    const struct driver *t0 = driver_find(DRIVER_TYPE_TIMER, 0);
-    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
-    for (size_t i = 0; i < size; i++)
-    {
-        gpio->routines.gpio.set(bz->pin, data[i] >= UINT8_MAX / 2);
-        t0->routines.timer.usleep(1000000 / freq);
-    }
-}
+    struct buzzer *bz = ctx;
 
-struct audio
-{
-    struct buzzer *bz;
-};
+    union config config = {0};
+    bz->gpio->driver->config.get(bz->gpio->context, &config);
+    config.gpio.pin(bz->gpio->context, bz->pin, DRIVER_GPIO_OFF,
+                    DRIVER_GPIO_PULLOFF);
 
-static struct audio audio;
-
-static void
-clean(void)
-{
-    buzzer_del(audio.bz);
+    free(bz);
 }
 
 static bool
-init(void)
+config_get(void *ctx, union config *cfg)
+{
+    struct buzzer *bz = ctx;
+    memcpy(cfg, &(bz->config), sizeof(union config));
+    return true;
+}
+
+static bool
+stream_write(void *ctx, u8 data)
 {
     bool ret = false;
 
-    audio.bz = buzzer_new(CONFIG_BUZZER_PIN);
-    if (audio.bz)
-        ret = true;
-    else
-        clean();
+    struct buzzer *bz = ctx;
+    ret = pin_set(bz->gpio, bz->pin, data >= UINT8_MAX / 2);
+    usleep(bz->timer, 1000000000 / 48000);
 
     return ret;
-}
-
-static void
-audio_note(u16 freq, u16 duration)
-{
-    buzzer_note(audio.bz, freq, duration);
-}
-
-static void
-audio_sample(u16 freq, u8 *data, size_t size)
-{
-    buzzer_sample(audio.bz, freq, data, size);
 }
 
 static const struct driver buzzer =
 {
     .name = "buzzer",
     .init = init, .clean = clean,
-    .api = DRIVER_API_GENERIC,
+    .api = DRIVER_API_STREAM,
     .type = DRIVER_TYPE_AUDIO,
-    .routines.audio.note   = audio_note,
-    .routines.audio.sample = audio_sample
+    .config.get = config_get,
+    .interface.stream.write = stream_write
 };
 driver_register(buzzer);

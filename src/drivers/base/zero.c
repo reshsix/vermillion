@@ -14,24 +14,31 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef _UTILS_H
-#define _UTILS_H
-
 #include <_types.h>
+#include <string.h>
 #include <vermillion/drivers.h>
 
-void print(const char *s);
-void print_hex(const u32 n);
-void print_uint(const u32 n);
+static bool
+stream_read(void *ctx, u8 *buffer)
+{
+    (void)(ctx);
+    *buffer = 0;
+    return true;
+}
 
-u32 clock(struct device *tmr);
-void csleep(struct device *tmr, const u32 n);
-void usleep(struct device *tmr, const u32 n);
-void msleep(struct device *tmr, const u32 n);
-void sleep(struct device *tmr, const u32 n);
+static bool
+stream_write(void *ctx, u8 buffer)
+{
+    (void)(ctx), (void)(buffer);
+    return false;
+}
 
-bool pin_cfg(struct device *gpio, u16 pin, u8 role, u8 pull);
-bool pin_set(struct device *gpio, u16 pin, bool data);
-bool pin_get(struct device *gpio, u16 pin, bool *data);
-
-#endif
+static const struct driver zero =
+{
+    .name = "zero",
+    .api = DRIVER_API_STREAM,
+    .type = DRIVER_TYPE_GENERIC,
+    .interface.stream.read  = stream_read,
+    .interface.stream.write = stream_write
+};
+driver_register(zero);

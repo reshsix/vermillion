@@ -17,64 +17,77 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 /* Considers card to have already been initialized by u-boot */
 
 #include <_types.h>
+#include <stdlib.h>
 #include <vermillion/drivers.h>
 
-#define SD 0x01C0F000
-#define SD_CFG   *(volatile u32*)(SD + 0x00)
-#define SD_BLK   *(volatile u32*)(SD + 0x10)
-#define SD_CNT   *(volatile u32*)(SD + 0x14)
-#define SD_CMD   *(volatile u32*)(SD + 0x18)
-#define SD_ARG   *(volatile u32*)(SD + 0x1C)
-#define SD_RES0  *(volatile u32*)(SD + 0x20)
-#define SD_RES1  *(volatile u32*)(SD + 0x24)
-#define SD_RES2  *(volatile u32*)(SD + 0x28)
-#define SD_RES3  *(volatile u32*)(SD + 0x2C)
-#define SD_RAW   *(volatile u32*)(SD + 0x38)
-#define SD_STA   *(volatile u32*)(SD + 0x3C)
-#define SD_FIFO  *(volatile u32*)(SD + 0x200)
+#define SD_CFG(x)   *(volatile u32*)(x + 0x00)
+#define SD_BLK(x)   *(volatile u32*)(x + 0x10)
+#define SD_CNT(x)   *(volatile u32*)(x + 0x14)
+#define SD_CMD(x)   *(volatile u32*)(x + 0x18)
+#define SD_ARG(x)   *(volatile u32*)(x + 0x1C)
+#define SD_RES0(x)  *(volatile u32*)(x + 0x20)
+#define SD_RES1(x)  *(volatile u32*)(x + 0x24)
+#define SD_RES2(x)  *(volatile u32*)(x + 0x28)
+#define SD_RES3(x)  *(volatile u32*)(x + 0x2C)
+#define SD_RAW(x)   *(volatile u32*)(x + 0x38)
+#define SD_STA(x)   *(volatile u32*)(x + 0x3C)
+#define SD_FIFO(x)  *(volatile u32*)(x + 0x200)
 
 struct card
 {
+    u32 base;
     bool mmc;
 };
 
-struct card card;
-
-static bool
-init(void)
+static void
+init(void **ctx, u32 base)
 {
-    while (SD_CMD & (1 << 31));
-    SD_ARG = 0x0;
-    SD_CMD = 1 << 31 | 1 << 6 | 58;
-    while (SD_CMD & (1 << 31));
-    card.mmc = (SD_RAW & (1 << 1) || SD_RES1 & (1 << 2));
+    struct card *ret = calloc(1, sizeof(struct card));
 
-    return true;
+    if (ret)
+    {
+        ret->base = base;
+        while (SD_CMD(ret->base) & (1 << 31));
+        SD_ARG(ret->base) = 0x0;
+        SD_CMD(ret->base) = 1 << 31 | 1 << 6 | 58;
+        while (SD_CMD(ret->base) & (1 << 31));
+        ret->mmc = (SD_RAW(ret->base)  & (1 << 1) ||
+                    SD_RES1(ret->base) & (1 << 2));
+        *ctx = ret;
+    }
+}
+
+static void
+clean(void *ctx)
+{
+    free(ctx);
 }
 
 static bool
-block_read(u8 *buffer, u32 block)
+block_read(void *ctx, u8 *buffer, u32 block)
 {
-    SD_BLK = 0x200;
-    SD_CFG = 1 << 31;
+    struct card *card = ctx;
 
-    while (SD_CMD >> 31);
+    SD_BLK(card->base) = 0x200;
+    SD_CFG(card->base) = 1 << 31;
 
-    SD_CNT = 0x200;
-    if (!(card.mmc))
-        SD_ARG = block;
+    while (SD_CMD(card->base) >> 31);
+
+    SD_CNT(card->base) = 0x200;
+    if (!(card->mmc))
+        SD_ARG(card->base) = block;
     else
-        SD_ARG = block * 0x200;
+        SD_ARG(card->base) = block * 0x200;
 
-    SD_CMD = 0x80002251;
-    while (SD_CMD >> 31);
-    while (SD_STA & (1 << 10));
+    SD_CMD(card->base) = 0x80002251;
+    while (SD_CMD(card->base) >> 31);
+    while (SD_STA(card->base) & (1 << 10));
 
     for (u32 i = 0; i < (0x200 / 4); i++)
     {
-        while (SD_STA & (1 << 2));
+        while (SD_STA(card->base) & (1 << 2));
 
-        u32 x = SD_FIFO;
+        u32 x = SD_FIFO(card->base);
         for (u8 j = 0; j < 4; j++)
             buffer[(i * 4) + j] = ((u8*)&x)[j];
     }
@@ -83,19 +96,19 @@ block_read(u8 *buffer, u32 block)
 }
 
 static bool
-block_write(u8 *buffer, u32 block)
+block_write(void *ctx, u8 *buffer, u32 block)
 {
-    (void)buffer, (void)block;
+    (void)(ctx), (void)(buffer), (void)(block);
     return false;
 }
 
 static const struct driver sunxi_mmc =
 {
     .name = "sunxi-mmc",
-    .init = init, .clean = NULL,
+    .init = init, .clean = clean,
     .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_STORAGE,
-    .interface.block.read =  block_read,
+    .interface.block.read  = block_read,
     .interface.block.write = block_write
 };
 driver_register(sunxi_mmc);

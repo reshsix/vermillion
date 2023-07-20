@@ -16,211 +16,125 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <_types.h>
 #include <_utils.h>
+#include <string.h>
 #include <vermillion/drivers.h>
 #include <vermillion/interrupts.h>
 
-#define TIMERS 0x01C20C00
-#define TMR_IRQ_EN  *(volatile u32*)(TIMERS + 0x0)
-#define TMR_IRQ_STA *(volatile u32*)(TIMERS + 0x4)
-#define TMR_CTRL(n) *(volatile u32*)(TIMERS + ((n + 1) * 0x10))
-#define TMR_INTV(n) *(volatile u32*)(TIMERS + ((n + 1) * 0x10) + 0x4)
-#define TMR_CUR(n)  *(volatile u32*)(TIMERS + ((n + 1) * 0x10) + 0x8)
+#define TMR_IRQ_EN(x)  *(volatile u32*)(x + 0x0)
+#define TMR_IRQ_STA(x) *(volatile u32*)(x + 0x4)
+#define TMR_CTRL(x, n) *(volatile u32*)(x + ((n + 1) * 0x10))
+#define TMR_INTV(x, n) *(volatile u32*)(x + ((n + 1) * 0x10) + 0x4)
+#define TMR_CUR(x, n)  *(volatile u32*)(x + ((n + 1) * 0x10) + 0x8)
 
-enum timer
+struct timer
 {
-    TIMER0 = 0,
-    TIMER1
+    u32 base;
+    u8 id;
+    u16 irq;
+
+    union config config;
 };
 
-static inline void
-timer_disable(enum timer n)
+static struct timer timers[8] = {0};
+static void ack(u32 base, u8 id){ TMR_IRQ_STA(base) |= 1 << id; }
+static void ack0(void){ ack(timers[0].base, timers[0].id); }
+static void ack1(void){ ack(timers[1].base, timers[1].id); }
+static void ack2(void){ ack(timers[2].base, timers[2].id); }
+static void ack3(void){ ack(timers[3].base, timers[3].id); }
+static void ack4(void){ ack(timers[4].base, timers[4].id); }
+static void ack5(void){ ack(timers[5].base, timers[5].id); }
+static void ack6(void){ ack(timers[6].base, timers[6].id); }
+static void ack7(void){ ack(timers[7].base, timers[7].id); }
+static void (*acks[8]) = {ack0, ack1, ack2, ack3, ack4, ack5, ack6, ack7};
+
+static void
+init(void **ctx, u32 base, u8 id, u16 irq)
 {
-    TMR_IRQ_EN &= ~(1 << n);
+    struct timer *ret = NULL;
+
+    int found = -1;
+    for (u8 i = 0; i < sizeof(timers) / sizeof(struct timer); i++)
+    {
+        if (timers[i].base == 0)
+            found = i;
+    }
+
+    if (found >= 0)
+    {
+        ret = &(timers[found]);
+
+        ret->base = base;
+        ret->id = id;
+        ret->irq = irq;
+
+        ret->config.timer.clock = 24000000;
+
+        intr_config(ret->irq, acks[found], true, 0);
+
+        *ctx = ret;
+    }
 }
 
-static inline void
-timer_enable(enum timer n)
+static void
+clean(void *ctx)
 {
-    TMR_IRQ_EN |= 1 << n;
+    struct timer *tmr = ctx;
+    intr_config(tmr->irq, NULL, false, 0);
+    tmr->base = 0;
 }
-
-static inline void
-timer_ack(enum timer n)
-{
-    TMR_IRQ_STA |= 1 << n;
-}
-
-enum timerclk
-{
-    TIMER_CLK_32KHZ = 0,
-    TIMER_CLK_16KHZ,
-    TIMER_CLK_8KHZ,
-    TIMER_CLK_4KHZ,
-    TIMER_CLK_2KHZ,
-    TIMER_CLK_1KHZ,
-    TIMER_CLK_500HZ,
-    TIMER_CLK_250HZ,
-    TIMER_CLK_24MHZ
-};
-
-static inline void
-timer_config(enum timer n, bool single, enum timerclk clock)
-{
-    bool t24 = clock >= TIMER_CLK_24MHZ;
-    u8 divider = clock & ~TIMER_CLK_24MHZ;
-    TMR_CTRL(n) &= ~0xFFFFFFFC;
-    TMR_CTRL(n) |= (single << 7) | (divider << 4) | (t24 << 2);
-}
-
-static inline u32
-timer_interval_get(enum timer n)
-{
-    return TMR_INTV(n);
-}
-
-static inline void
-timer_interval_set(enum timer n, u32 data)
-{
-    TMR_INTV(n) = data;
-}
-
-static inline u32
-timer_current_get(enum timer n)
-{
-    return TMR_CUR(n);
-}
-
-static inline void
-timer_current_set(enum timer n, u32 data)
-{
-    TMR_CUR(n) = data;
-}
-
-static inline void
-timer_reload(enum timer n)
-{
-    TMR_CTRL(n) |= 0x2;
-    while (TMR_CTRL(n) & 0x2);
-}
-
-static inline void
-timer_start(enum timer n)
-{
-    TMR_CTRL(n) |= 0x1;
-}
-
-static inline void
-timer_stop(enum timer n)
-{
-    TMR_CTRL(n) &= ~0x1;
-}
-
-/* Exported functions */
 
 static bool
-timer_init(u16 irq, void (*f)(void))
+config_get(void *ctx, union config *cfg)
 {
-    intr_config(irq, f, true, 0);
+    struct timer *t = ctx;
+    memcpy(cfg, &(t->config), sizeof(union config));
     return true;
 }
 
-static void
-timer_clean(u16 irq)
+static bool
+block_write(void *ctx, u8 *buffer, u32 block)
 {
-    intr_config(irq, NULL, false, 0);
-}
+    bool ret = (block == 0);
 
-static u32
-timer_clock(void)
-{
-    return 24000000;
-}
-
-static void
-timer_csleep(enum timer t, const u32 n)
-{
-    timer_enable(t);
-    timer_stop(t);
-
-    timer_interval_set(t, n);
-    timer_config(t, true, TIMER_CLK_24MHZ);
-    timer_reload(t);
-
-    timer_start(t);
-    while (1)
+    if (ret)
     {
-        intr_wait();
-        u32 x = timer_current_get(t);
-        if (x == 0 || x > n)
-            break;
+        struct timer *tmr = ctx;
+        u32 data = 0;
+
+        memcpy(&data, buffer, sizeof(u32));
+
+        TMR_IRQ_EN(tmr->base) |= 1 << tmr->id;
+        TMR_CTRL(tmr->base, tmr->id) &= ~0x1;
+
+        TMR_INTV(tmr->base, tmr->id) = data;
+        TMR_CTRL(tmr->base, tmr->id) = (1 << 7) | (1 << 2);
+
+        TMR_CTRL(tmr->base, tmr->id) |= 0x2;
+        while (TMR_CTRL(tmr->base, tmr->id) & 0x2);
+
+        TMR_CTRL(tmr->base, tmr->id) |= 0x1;
+        while (1)
+        {
+            intr_wait();
+            u32 x = TMR_CUR(tmr->base, tmr->id);
+            if (x == 0 || x > data)
+                break;
+        }
+
+        TMR_CTRL(tmr->base, tmr->id) &= ~0x1;
+        TMR_IRQ_EN(tmr->base) &= ~(1 << tmr->id);
     }
 
-    timer_stop(t);
-    timer_disable(t);
+    return ret;
 }
 
-static void
-timer_usleep(enum timer t, const u32 n)
+static const struct driver sunxi_timer =
 {
-    for (s64 a = n * 24; a > 0; a -= UINT32_MAX)
-        timer_csleep(t, (a < UINT32_MAX) ? a : UINT32_MAX);
-}
-
-static void
-timer_msleep(enum timer t, const u32 n)
-{
-    for (s64 a = n * 1000; a > 0; a -= UINT32_MAX)
-        timer_usleep(t, (a < UINT32_MAX) ? a : UINT32_MAX);
-}
-
-static void
-timer_sleep(enum timer t, const u32 n)
-{
-    for (s64 a = n * 1000; a > 0; a -= UINT32_MAX)
-        timer_msleep(t, (a < UINT32_MAX) ? a : UINT32_MAX);
-}
-
-static void timer0_ack(void){ timer_ack(TIMER0); }
-static void timer1_ack(void){ timer_ack(TIMER1); }
-static bool timer0_init(void){ return timer_init(CONFIG_SUNXI_TIMER0_IRQ,
-                                                 timer0_ack); }
-static bool timer1_init(void){ return timer_init(CONFIG_SUNXI_TIMER1_IRQ,
-                                                 timer1_ack); }
-static void timer0_clean(void) { timer_clean(CONFIG_SUNXI_TIMER0_IRQ); }
-static void timer1_clean(void) { timer_clean(CONFIG_SUNXI_TIMER1_IRQ); }
-static void timer0_csleep(const u32 n) { timer_csleep(TIMER0, n); }
-static void timer1_csleep(const u32 n) { timer_csleep(TIMER1, n); }
-static void timer0_usleep(const u32 n) { timer_usleep(TIMER0, n); }
-static void timer1_usleep(const u32 n) { timer_usleep(TIMER1, n); }
-static void timer0_msleep(const u32 n) { timer_msleep(TIMER0, n); }
-static void timer1_msleep(const u32 n) { timer_msleep(TIMER1, n); }
-static void timer0_sleep(const u32 n)  { timer_sleep(TIMER0, n); }
-static void timer1_sleep(const u32 n)  { timer_sleep(TIMER1, n); }
-
-static const struct driver sunxi_timer0 =
-{
-    .name = "sunxi-timer0",
-    .init = timer0_init, .clean = timer0_clean,
-    .api = DRIVER_API_GENERIC,
+    .name = "sunxi-timer",
+    .init = init, .clean = clean,
+    .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_TIMER,
-    .routines.timer.clock  = timer_clock,
-    .routines.timer.csleep = timer0_csleep,
-    .routines.timer.usleep = timer0_usleep,
-    .routines.timer.msleep = timer0_msleep,
-    .routines.timer.sleep =  timer0_sleep
+    .config.get = config_get,
+    .interface.block.write = block_write
 };
-driver_register(sunxi_timer0);
-
-static const struct driver sunxi_timer1 =
-{
-    .name = "sunxi-timer1",
-    .init = timer1_init, .clean = timer1_clean,
-    .api = DRIVER_API_GENERIC,
-    .type = DRIVER_TYPE_TIMER,
-    .routines.timer.clock  = timer_clock,
-    .routines.timer.csleep = timer1_csleep,
-    .routines.timer.usleep = timer1_usleep,
-    .routines.timer.msleep = timer1_msleep,
-    .routines.timer.sleep =  timer1_sleep
-};
-driver_register(sunxi_timer1);
+driver_register(sunxi_timer);

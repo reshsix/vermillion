@@ -25,30 +25,19 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 /* Initialization */
 
-#define R_PRCM 0x01F01400
-#define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)
 extern void exit(int);
 extern int kernel_main(void);
 static void init_malloc(void);
 extern void
 __init(void)
 {
-    int ret = 0;
-
     init_malloc();
 
     _interrupts_init();
-    _drivers_init();
-    _stdio_init();
+    _devices_init();
 
     print("Executing kernel_main\r\n");
-    ret = kernel_main();
-
-    _stdio_clean();
-    _drivers_clean();
-    _interrupts_clean();
-
-    exit(ret);
+    exit(kernel_main());
 }
 
 /* Process control */
@@ -83,20 +72,8 @@ exit(int code)
     print("\r\nExited with code: ");
     print_hex(code);
 
-    const struct driver *gpio = driver_find(DRIVER_TYPE_GPIO, 0);
-    (void)gpio;
-
-    #ifdef CONFIG_LED_FAILURE
-    gpio->routines.gpio.cfgpin(CONFIG_LED_FAILURE_PIN,
-                               DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
-    gpio->routines.gpio.set(CONFIG_LED_FAILURE_PIN, true);
-    #endif
-
-    #ifdef CONFIG_LED_SUCCESS
-    gpio->routines.gpio.cfgpin(CONFIG_LED_SUCCESS_PIN,
-                               DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
-    gpio->routines.gpio.set(CONFIG_LED_SUCCESS_PIN, false);
-    #endif
+    _devices_clean();
+    _interrupts_clean();
 
     for (;;)
         intr_wait();

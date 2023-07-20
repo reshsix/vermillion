@@ -24,7 +24,7 @@ TARGET = $(shell echo $(CONFIG_TARGET))
 CC = $(TARGET)-gcc
 LD = $(TARGET)-ld
 CFLAGS += -O2 -ggdb3
-CFLAGS += -Iinclude -Iarch/$(ARCH)/include
+CFLAGS += -I. -Iinclude -Iarch/$(ARCH)/include
 CFLAGS += -std=gnu99 -nostdlib -ffreestanding
 CFLAGS += -Wall -Wextra -Wno-attributes
 CFLAGS += $(shell echo $(CONFIG_CFLAGS_ARCH))
@@ -77,7 +77,8 @@ xconfig:
 
 # Folder creation
 FOLDERS = deps deps/tools build build/libc build/arch build/mount
-FOLDERS += build/drivers build/drivers/arm build/drivers/i686
+FOLDERS += build/drivers build/drivers/base
+FOLDERS += build/drivers/arm build/drivers/i686
 FOLDERS += build/drivers/arm/sunxi
 $(FOLDERS):
 	@mkdir -p $@
@@ -101,13 +102,16 @@ build/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 
 # Objects definitions
 CORE = build/loader.o build/interrupts.o build/drivers.o \
-       build/boot.o build/main.o
+       build/devtree.o build/boot.o build/main.o
 include src/libc/make.list
 LIBC := $(addprefix build/libc/, $(LIBC))
 include src/drivers/make.list
 DRIVERS := $(addprefix build/drivers/, $(DRIVERS))
 
 # Specific recipes
+build/devtree.o: $(shell echo $(CONFIG_DEVICE_TREE))
+	@printf '%s\n' "  CC      $@"; true
+	@$(CC) $(CFLAGS) -c $< -o $@
 ifdef CONFIG_LOADER_EMBED
 build/init.o: $(shell echo $(CONFIG_LOADER_FILE))
 	@printf "  LD      $@\n"
@@ -116,7 +120,7 @@ CORE += build/init.o
 endif
 build/kernel.elf: build/arch/linker.ld $(LIBC) $(DRIVERS) $(CORE)
 	@printf "  LD      $@\n"
-	@$(CC) $(CFLAGS) -T $< $(LIBC) $(DRIVERS) $(CORE) -o $@ -lgcc
+	@$(CC) $(CFLAGS) -T $^ -o $@ -lgcc
 build/kernel.bin: build/kernel.elf | build
 	@printf "  OBJCOPY $@\n"
 	@$(TARGET)-objcopy $< -O binary $@

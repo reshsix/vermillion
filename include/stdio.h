@@ -19,8 +19,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <_types.h>
 #include <stddef.h>
+#include <vermillion/drivers.h>
 
-void _stdio_init(void);
+void _stdio_init(struct device *rootfs, char *fd0, char *fd1, char *fd2);
 void _stdio_clean(void);
 
 typedef struct _FILE FILE;
