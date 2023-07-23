@@ -16,6 +16,7 @@ LIBC += _utils.o
 LIBC += assert.o
 LIBC += ctype.o
 LIBC += errno.o
+LIBC += locale.o
 LIBC += signal.o
 LIBC += stdio.o
 LIBC += stdlib.o
