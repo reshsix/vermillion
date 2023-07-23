@@ -26,34 +26,34 @@ UBOOT = v2020.04
 # --------------------------------- Recipes  --------------------------------- #
 
 # Helper recipes
-.PHONY: $(.PHONY) image debug
-image: build/os.img
-debug: build/os.img scripts/debug.gdb
-	@printf "  QEMU    $<\n"
+image: $(BUILD)/vermillion.img
+debug: $(BUILD)/vermillion.img scripts/debug.gdb
+	@printf '%s\n' "  QEMU    $(<:$(BUILD)/%=%)"
 	@qemu-system-arm -s -S -M $(QEMU_MACHINE) -drive file=$<,format=raw &
 	@gdb-multiarch --command=scripts/debug.gdb
+tools: deps/.$(TARGET)-gcc deps/u-boot.bin
 
 # Specific recipes
-build/boot.o: arch/$(ARCH)/boot.S deps/.$(TARGET)-gcc | build
-	@printf "  AS      $@\n"
+$(BUILD)/boot.o: arch/$(ARCH)/boot.S deps/.$(TARGET)-gcc | $(BUILD)
+	@printf '%s\n' "  AS      core/$(@:$(BUILD)/%=%)"
 	@$(CC) $(CFLAGS) -c $< -o $@
-build/boot.scr: build/arch/u-boot.cmd | build
-	@printf "  MKIMAGE $@\n"
+$(BUILD)/boot.scr: $(BUILD)/arch/u-boot.cmd | $(BUILD)
+	@printf '%s\n' "  MKIMAGE core/$(@:$(BUILD)/%=%)"
 	@chronic mkimage -C none -A $(ARCH) -T script -d $< $@
-build/os.img: deps/u-boot.bin build/kernel.bin \
-              build/boot.scr | build/mount
-	@printf "  BUILD   $@\n"
+$(BUILD)/vermillion.img: deps/u-boot.bin $(BUILD)/kernel.bin \
+                      $(BUILD)/boot.scr | $(BUILD)/mount
+	@printf '%s\n' "  BUILD   $(@:$(BUILD)/%=%)"
 	@dd if=/dev/zero of=$@ bs=1M count=$(CONFIG_DISK_SIZE) status=none
 	@sudo losetup /dev/loop0 $@
 	@printf 'start=2048, type=83, bootable\n' \
      | sudo chronic sfdisk -q /dev/loop0
 	@sudo partx -a /dev/loop0
 	@sudo chronic mkfs.fat -F32 "/dev/loop0p1"
-	@sudo mount /dev/loop0p1 build/mount
-	@sudo mkdir -p build/mount/boot/
-	@sudo cp build/boot.scr build/mount/
-	@sudo cp build/kernel.bin build/mount/boot/
-	@sudo umount build/mount
+	@sudo mount /dev/loop0p1 $(BUILD)/mount
+	@sudo mkdir -p $(BUILD)/mount/boot/
+	@sudo cp $(BUILD)/boot.scr $(BUILD)/mount/
+	@sudo cp $(BUILD)/kernel.bin $(BUILD)/mount/boot/
+	@sudo umount $(BUILD)/mount
 	@sudo dd if=deps/u-boot.bin of=/dev/loop0 bs=1024 seek=8 status=none
 	@sleep 1
 	@sudo partx -d /dev/loop0

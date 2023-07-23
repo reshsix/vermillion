@@ -12,7 +12,10 @@
 # You should have received a copy of the GNU General Public License
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
--include .config
+BUILD ?= build
+CONFIG ?= .config
+
+-include $(CONFIG)
 export PATH += :$(shell pwd)/deps/tools/bin
 
 # -------------------------------- Parameters -------------------------------- #
@@ -21,9 +24,13 @@ ARCH = $(shell echo $(CONFIG_ARCH))
 TARGET = $(shell echo $(CONFIG_TARGET))
 
 # Compilation parameters
+ifeq ($(NDEBUG), 1)
+    CFLAGS = -O2 -DNDEBUG=1
+else
+    CFLAGS = -O0 -ggdb3
+endif
 CC = $(TARGET)-gcc
 LD = $(TARGET)-ld
-CFLAGS += -O2 -ggdb3
 CFLAGS += -I. -Iinclude -Iarch/$(ARCH)/include
 CFLAGS += -std=gnu99 -nostdlib -ffreestanding
 CFLAGS += -Wall -Wextra -Wno-attributes
@@ -33,7 +40,7 @@ CFLAGS += $(shell echo $(CONFIG_CFLAGS_BOARD))
 # Extra variables
 VERSION = 0.0a $$(git rev-parse --short HEAD)
 COMPILATION = $$(LC_ALL=C date "+%b %d %Y - %H:%M:%S %z")
-KCONFIG_FLAGS = $(shell [ -f .config ] && cat .config \
+KCONFIG_FLAGS = $(shell [ -f $(CONFIG) ] && cat $(CONFIG) \
                   | sed '/^$$/d; /^#/d; s/^/ -D/' | tr '\n' ' ')
 CFLAGS += -D__VERMILLION__="\"$(VERSION)\""
 CFLAGS += -D__COMPILATION__="\"$(COMPILATION)\""
@@ -52,77 +59,76 @@ HOST = $(shell printf '%s\n' "$$MACHTYPE" | sed 's/-[^-]*/-cross/')
 # --------------------------------- Recipes  --------------------------------- #
 
 # Helper recipes
-.PHONY: all image clean depclean test debug ktest kdebug uart \
+.PHONY: all image clean tools depclean debug uart \
         config menuconfig xconfig
 all: image
 clean:
-	@printf "  RM      build\n"
-	@rm -rf build
+	@printf '%s\n' "  RM      $(shell basename $(BUILD))"
+	@rm -rf $(BUILD)
 depclean:
-	@printf "  RM      deps\n"
+	@printf '%s\n' "  RM      deps"
 	@rm -rf deps
 uart: $(UART_DEVICE)
-	@printf "  SCREEN  $<\n"
+	@printf '%s\n' "  SCREEN  $<"
 	@sudo stty -F $< 115200 cs8 -parenb -cstopb -crtscts
 	@sudo screen $< 115200
 config:
-	@kconfig-conf Kconfig
-	@rm -rf build
+	@KCONFIG_CONFIG="$(CONFIG)" kconfig-conf Kconfig
+	@rm -rf $(BUILD) .config.old
 menuconfig:
-	@kconfig-mconf Kconfig
-	@rm -rf build
+	@KCONFIG_CONFIG="$(CONFIG)" kconfig-mconf Kconfig
+	@rm -rf $(BUILD) .config.old
 xconfig:
-	@kconfig-qconf Kconfig
-	@rm -rf build
+	@KCONFIG_CONFIG="$(CONFIG)" kconfig-qconf Kconfig
+	@rm -rf $(BUILD) .config.old
+defconfig: config/$(BOARD)_defconfig
+	@cp $< $(CONFIG)
+	@KCONFIG_CONFIG="$(CONFIG)" kconfig-conf --olddefconfig Kconfig
+	@rm -rf $(BUILD) .config.old
 
 # Folder creation
-FOLDERS = deps deps/tools build build/libc build/arch build/mount
-FOLDERS += build/drivers build/drivers/base
-FOLDERS += build/drivers/arm build/drivers/i686
-FOLDERS += build/drivers/arm/sunxi
+FOLDERS = deps deps/tools $(BUILD) $(BUILD)/libc $(BUILD)/arch $(BUILD)/mount
+FOLDERS += $(BUILD)/drivers $(BUILD)/drivers/base
+FOLDERS += $(BUILD)/drivers/arm $(BUILD)/drivers/i686
+FOLDERS += $(BUILD)/drivers/arm/sunxi
 $(FOLDERS):
 	@mkdir -p $@
 
 # Generic recipes
-build/%.o: src/%.c deps/.$(TARGET)-gcc | $(FOLDERS)
-	@printf '%s\n' "  CC      $@"; true
+$(BUILD)/%.o: src/%.c deps/.$(TARGET)-gcc | $(FOLDERS)
+	@printf '%s\n' "  CC      core/$(@:$(BUILD)/%=%)"
 	@$(CC) $(CFLAGS) -c $< -o $@
-build/%.a: deps/.$(TARGET)-binutils
-	@printf "  AR      $@\n"
+$(BUILD)/%.a: deps/.$(TARGET)-binutils
+	@printf '%s\n' "  AR      core/$(@:$(BUILD)/%=%)"
 	@chronic $(TARGET)-ar ruv $@ $^
-	@printf "  RANLIB  $@\n"
+	@printf '%s\n' "  RANLIB  core/$(@:$(BUILD)/%=%)"
 	@$(TARGET)-ranlib $@
-build/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
-	@printf "  CC      $@\n"
+$(BUILD)/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
+	@printf '%s\n' "  CC      core/$(@:$(BUILD)/%=%)"
 	@$(CC) $(CFLAGS) -xc $< -E -P | grep -v '^#' > $@
 %_defconfig: config/%_defconfig
-	@rm -rf build
-	@cp $< .config
-	@kconfig-conf --olddefconfig Kconfig
+	@cp $< $(CONFIG)
+	@KCONFIG_CONFIG="$(CONFIG)" kconfig-conf --olddefconfig Kconfig
+	@rm -rf $(BUILD) .config.old
 
 # Objects definitions
-CORE = build/loader.o build/interrupts.o build/drivers.o \
-       build/devtree.o build/boot.o build/main.o
+CORE = $(BUILD)/interrupts.o $(BUILD)/drivers.o \
+       $(BUILD)/devtree.o $(BUILD)/boot.o
 include src/libc/make.list
-LIBC := $(addprefix build/libc/, $(LIBC))
+LIBC := $(addprefix $(BUILD)/libc/, $(LIBC))
 include src/drivers/make.list
-DRIVERS := $(addprefix build/drivers/, $(DRIVERS))
+DRIVERS := $(addprefix $(BUILD)/drivers/, $(DRIVERS))
 
 # Specific recipes
-build/devtree.o: $(shell echo $(CONFIG_DEVICE_TREE))
-	@printf '%s\n' "  CC      $@"; true
+$(BUILD)/devtree.o: $(shell echo $(CONFIG_DEVICE_TREE))
+	@printf '%s\n' "  CC      core/$(@:$(BUILD)/%=%)"
 	@$(CC) $(CFLAGS) -c $< -o $@
-ifdef CONFIG_LOADER_EMBED
-build/init.o: $(shell echo $(CONFIG_LOADER_FILE))
-	@printf "  LD      $@\n"
-	@$(LD) -r -b binary -o $@ $<
-CORE += build/init.o
-endif
-build/kernel.elf: build/arch/linker.ld $(LIBC) $(DRIVERS) $(CORE)
-	@printf "  LD      $@\n"
+$(BUILD)/kernel.elf: $(BUILD)/arch/linker.ld $(EXTERN) \
+                     $(LIBC) $(DRIVERS) $(CORE)
+	@printf '%s\n' "  LD      core/$(@:$(BUILD)/%=%)"
 	@$(CC) $(CFLAGS) -T $^ -o $@ -lgcc
-build/kernel.bin: build/kernel.elf | build
-	@printf "  OBJCOPY $@\n"
+$(BUILD)/kernel.bin: $(BUILD)/kernel.elf | $(BUILD)
+	@printf '%s\n' "  OBJCOPY core/$(@:$(BUILD)/%=%)"
 	@$(TARGET)-objcopy $< -O binary $@
 
 # ------------------------------- Dependencies ------------------------------- #

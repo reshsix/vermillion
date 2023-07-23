@@ -51,15 +51,6 @@ config DEVICE_TREE
     string "Board device tree"
 endmenu
 
-menu "FDPIC Loader"
-config LOADER_FILE
-    string "Init file path"
-    default "init.bin"
-config LOADER_EMBED
-    bool "Embed init into kernel"
-    default n
-endmenu
-
 menu "General purpose RAM"
 config RAM_ADDRESS
     hex "Mapped address"

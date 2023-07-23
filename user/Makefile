@@ -12,8 +12,18 @@
 # You should have received a copy of the GNU General Public License
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
-shell sleep 3
-target remote localhost:1234
-symbol-file build/kernel.elf
-break _start
-continue
+.PHONY: all image clean tools depclean debug uart \
+        config menuconfig xconfig defconfig
+
+BUILD := $(BUILD)/user
+OBJS := $(addprefix $(BUILD)/,$(OBJS))
+
+all image: $(OBJS)
+clean:
+	@printf '%s\n' "  RM      build/user"
+	@rm -rf $(BUILD)
+
+$(BUILD)/%.o: $(ORG)/%.c
+	@mkdir -p $(dir $@)
+	@printf '%s\n' "  CC      user/$(@:$(BUILD)/%=%)"
+	@$(CC) $(CFLAGS) $< -o $@

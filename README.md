@@ -1,7 +1,5 @@
 # Vermillion
-An embedded operating system for ARM Cortex-A and x86-32 boards
-
-It intends to be used as a loader and HAL for embedded applications
+A framework to develop embedded applications
 
 ## Development
 The project is in alpha stage, lacking some libc functions and drivers
@@ -18,20 +16,40 @@ The project is in alpha stage, lacking some libc functions and drivers
 | Orange Pi One | orangepi\_one\_defconfig |
 | x86 generic | i686\_defconfig |
 
-## Build
+## Dependencies
 You may need the following packages, which are necessary to build the
 cross-compiler, install the bootloader, go through the compilation
 process and debug the resulting image
 ```sh
 gcc make git rsync g++ bison flex texinfo libncurses-dev
 kconfig-frontends moreutils swig python3-dev bc
-u-boot-tools grub2-common xorriso
+u-boot-tools grub2-common xorriso dialog
 qemu-system-arm qemu-system-i386 gdb-multiarch
+```
+
+## Example
+~/my\_project/main.c:
+```c
+#include <easy/io.h>
+
+extern int
+main(void)
+{
+    io_chip("gpio0");
+    io_config(10, OUTPUT);
+    io_write(10, HIGH);
+
+    return 0x0;
+}
 ```
 
 The image will be created in build/
 ```sh
-make ${BOARD}_defconfig
-make
-make debug
+. export.sh
+vmake tools
+
+cd ~/my_project
+vmake defconfig
+OBJS='main.o' LIBS='easy' vmake all
+vmake debug
 ```

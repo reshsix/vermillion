@@ -20,24 +20,21 @@ TARGET = $(shell echo $(CONFIG_TARGET))
 # --------------------------------- Recipes  --------------------------------- #
 
 # Helper recipes
-.PHONY: $(.PHONY) image debug
-image: build/os.img
-kdebug: build/kernel.elf scripts/debug.gdb
-	@printf "  QEMU    $<\n"
-	@qemu-system-i386 -s -S -kernel $< &
-	@gdb-multiarch --command=scripts/debug.gdb
-debug: build/os.img scripts/debug.gdb
-	@printf "  QEMU    $<\n"
+image: $(BUILD)/vermillion.img
+debug: $(BUILD)/vermillion.img scripts/debug.gdb
+	@printf '%s\n' "  QEMU    $(<:$(BUILD)/%=%)"
 	@qemu-system-i386 -s -S -cdrom $< &
 	@gdb-multiarch --command=scripts/debug.gdb
+tools: deps/.$(TARGET)-gcc
 
 # Specific recipes
-build/boot.o: arch/$(ARCH)/boot.S deps/.$(TARGET)-gcc | build
-	@printf "  AS      $@\n"
+$(BUILD)/boot.o: arch/$(ARCH)/boot.S deps/.$(TARGET)-gcc | $(BUILD)
+	@printf '%s\n' "  AS      core/$(@:$(BUILD)/%=%)"
 	@$(CC) $(CFLAGS) -c $< -o $@
-build/os.img: build/kernel.elf arch/$(ARCH)/grub.cfg | build/mount
-	@printf "  BUILD   $@\n"
-	@mkdir -p build/mount/boot/grub
-	@cp $< build/mount/boot/
-	@cp arch/$(ARCH)/grub.cfg build/mount/boot/grub/
-	@chronic grub-mkrescue -o $@ build/mount
+$(BUILD)/vermillion.img: $(BUILD)/kernel.elf \
+                         arch/$(ARCH)/grub.cfg | $(BUILD)/mount
+	@printf '%s\n' "  BUILD   $(@:$(BUILD)/%=%)"
+	@mkdir -p $(BUILD)/mount/boot/grub
+	@cp $< $(BUILD)/mount/boot/
+	@cp arch/$(ARCH)/grub.cfg $(BUILD)/mount/boot/grub/
+	@chronic grub-mkrescue -o $@ $(BUILD)/mount

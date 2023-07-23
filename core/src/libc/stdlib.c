@@ -26,7 +26,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 /* Initialization */
 
 extern void exit(int);
-extern int kernel_main(void);
+extern int main(void);
 static void init_malloc(void);
 extern void
 __init(void)
@@ -36,8 +36,8 @@ __init(void)
     _interrupts_init();
     _devices_init();
 
-    print("Executing kernel_main\r\n");
-    exit(kernel_main());
+    print("Calling main\r\n\r\n");
+    exit(main());
 }
 
 /* Process control */
