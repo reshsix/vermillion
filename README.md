@@ -11,10 +11,10 @@ The project is in alpha stage, lacking some libc functions and drivers
 - fenv.h, inttypes.h, complex.h, tgmath.h (C99)
 
 ### Supported boards
-| Name | Configuration |
-| ---- | ------------- |
-| Orange Pi One | orangepi\_one\_defconfig |
-| x86 generic | i686\_defconfig |
+| Name |
+| ---- |
+| Orange Pi One |
+| i686 generic |
 
 ## Dependencies
 You may need the following packages, which are necessary to build the

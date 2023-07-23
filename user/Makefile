@@ -26,4 +26,4 @@ clean:
 $(BUILD)/%.o: $(ORG)/%.c
 	@mkdir -p $(dir $@)
 	@printf '%s\n' "  CC      user/$(@:$(BUILD)/%=%)"
-	@$(CC) $(CFLAGS) $< -o $@
+	@$(CC) $(CFLAGS) -I"$(ORG)" $< -o $@

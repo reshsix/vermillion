@@ -12,12 +12,16 @@
 # You should have received a copy of the GNU General Public License
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
-case "$(pwd)" in
-    *\ *)
-        echo "Headers don't work properly in directories with spaces"
-        exit 1
-    ;;
-esac
+_check_pwd()
+{
+    case "$(pwd)" in
+        *\ *)
+            echo "Compilation doesn't work properly in directories with spaces"
+            exit 1
+        ;;
+    esac
+}
+_check_pwd
 
 BOARD="$(dialog --stdout --menu 'Choose the target board' 0 0 0 \
          orangepi_one '' \
@@ -32,6 +36,7 @@ export VERMILLION
 
 vmake()
 (
+    _check_pwd
     set -e
 
     ORG="$(pwd)"
