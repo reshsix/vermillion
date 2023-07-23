@@ -17,6 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <errno.h>
 #include <stdio.h>
 #include <_types.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -28,6 +29,8 @@ typedef struct _FILE
     size_t position;
     int error;
     bool eof;
+
+    int unget;
 
     struct device *io;
 
@@ -188,6 +191,8 @@ fopen(const char *path, const char *mode)
             ret = fopen_io(&(path[1]), mode);
         else
             ret = fopen_fs(path, mode);
+
+        ret->unget = EOF;
     }
 
     return ret;
@@ -196,11 +201,11 @@ fopen(const char *path, const char *mode)
 /* Direct input/output */
 
 static size_t
-fread_io(void *buffer, size_t size, size_t count, FILE *f)
+fread_io(void *buffer, size_t length, FILE *f)
 {
     size_t ret = 0;
 
-    size_t bytes = size * count;
+    size_t bytes = length;
     if (f->io->driver->api == DRIVER_API_BLOCK)
     {
         while (bytes != 0)
@@ -304,9 +309,9 @@ fwrite_io(const void *buffer, size_t size, size_t count, FILE *f)
 }
 
 static size_t
-fread_fs(void *buffer, size_t size, size_t count, FILE *f)
+fread_fs(void *buffer, size_t length, FILE *f)
 {
-    size_t bytes = size * count;
+    size_t bytes = length;
 
     size_t fsize = 0;
     f->fs->driver->interface.fs.info(f->file, &fsize, NULL);
@@ -344,7 +349,7 @@ fread_fs(void *buffer, size_t size, size_t count, FILE *f)
         bytes -= partial;
     }
 
-    return (size * count) - bytes;
+    return length - bytes;
 }
 
 static size_t
@@ -360,12 +365,26 @@ fread(void *buffer, size_t size, size_t count, FILE *f)
 {
     size_t ret = 0;
 
-    if (f && f->io)
-        ret = fread_io(buffer, size, count, f);
-    else if (f && f->fs && f->file)
-        ret = fread_fs(buffer, size, count, f);
-    else
-        errno = EBADF;
+    size_t length = size * count;
+    if (length != 0)
+    {
+        if (f && f->unget != EOF)
+        {
+            ((u8*)buffer)[0] = f->unget;
+            f->unget = EOF;
+            length--;
+        }
+    }
+
+    if (length != 0)
+    {
+        if (f && f->io)
+            ret = fread_io(buffer, length, f);
+        else if (f && f->fs && f->file)
+            ret = fread_fs(buffer, length, f);
+        else
+            errno = EBADF;
+    }
 
     return ret;
 }
@@ -419,6 +438,39 @@ getchar(void)
     return getc(stdin);
 }
 
+extern char *
+fgets(char *s, int n, FILE *f)
+{
+    char *ret = NULL;
+
+    if (n > 0 && f && (f->eof))
+    {
+        int i = 0;
+        for (; i < n - 1; i++)
+        {
+            int c = fgetc(f);
+            if (c == EOF || c == '\n')
+                break;
+
+            s[i] = c;
+        }
+
+        if (i != 0)
+        {
+            s[i] = '\0';
+            ret = s;
+        }
+    }
+
+    return ret;
+}
+
+extern char *
+gets(char *s)
+{
+    return fgets(s, INT_MAX, stdin);
+}
+
 extern int
 fputc(int c, FILE *f)
 {
@@ -444,6 +496,40 @@ extern int
 putchar(int c)
 {
     return putc(c, stdout);
+}
+
+extern int
+fputs(const char *s, FILE *f)
+{
+    int ret = 0;
+
+    for (size_t i = 0; ret >= 0 && s[i] != '\0'; i++)
+        ret = fputc(s[i], f);
+
+    return ret;
+}
+
+extern int
+puts(const char *s)
+{
+    return fputs(s, stdout);
+}
+
+extern int
+ungetc(int c, FILE *f)
+{
+    int ret = EOF;
+
+    if (c >= 0 && f && f->unget == EOF && f->position != 0)
+    {
+        f->unget = c;
+        f->eof = false;
+        f->position--;
+
+        ret = c;
+    }
+
+    return ret;
 }
 
 /* File positioning */
@@ -563,6 +649,9 @@ fseek(FILE *f, long offset, int origin)
         ret = fseek_fs(f, offset, origin);
     else
         errno = EBADF;
+
+    if (f)
+        f->unget = EOF;
 
     return ret;
 }

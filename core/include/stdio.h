@@ -46,9 +46,14 @@ size_t fwrite(const void *buffer, size_t size, size_t count, FILE *f);
 int fgetc(FILE *f);
 int getc(FILE *f);
 int getchar(void);
+char *fgets(char *s, int n, FILE *f);
+char *gets(char *s);
 int fputc(int c, FILE *f);
 int putc(int c, FILE *f);
 int putchar(int c);
+int fputs(const char *s, FILE *f);
+int puts(const char *s);
+int ungetc(int c, FILE *f);
 
 long ftell(FILE *f);
 int fgetpos(FILE *f, fpos_t *pos);
