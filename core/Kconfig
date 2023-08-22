@@ -16,10 +16,6 @@
 
 menu "General setup"
 
-config STACK_SIZE
-    hex "Kernel stack size"
-    default 0x8000
-
 choice ARCH
     prompt "Architecture"
 config ARCH_ARM
@@ -30,13 +26,12 @@ endchoice
 
 menu "Architecture options"
 source arch/arm/Kconfig
-source arch/i686/Kconfig
 endmenu
 
 menu "Compilation"
 config ARCH
     string "Arch name"
-    default arm if ARCH_ARM
+    default arm  if ARCH_ARM
     default i686 if ARCH_I686
 config TARGET
     string "Target triple"
@@ -57,6 +52,9 @@ config RAM_ADDRESS
     default 0x100000   if ARCH_I686
 config RAM_SIZE
     hex "Full length"
+config STACK_SIZE
+    hex "Kernel stack size"
+    default 0x8000
 endmenu
 
 endmenu

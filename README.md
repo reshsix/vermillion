@@ -52,7 +52,6 @@ main(void)
 The image will be created in build/
 ```sh
 . export.sh
-vmake tools
 
 cd ~/my_project
 vmake defconfig

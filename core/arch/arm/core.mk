@@ -14,14 +14,7 @@
 
 # -------------------------------- Parameters -------------------------------- #
 
-ARCH = $(shell echo $(CONFIG_ARCH))
-TARGET = $(shell echo $(CONFIG_TARGET))
-UBOOT_IMAGE = $(shell echo $(CONFIG_UBOOT_IMAGE))
-UBOOT_CONFIG = $(shell echo $(CONFIG_UBOOT_CONFIG))
 QEMU_MACHINE = $(shell echo $(CONFIG_QEMU_MACHINE))
-
-# Dependency versions
-UBOOT = v2020.04
 
 # --------------------------------- Recipes  --------------------------------- #
 
@@ -31,7 +24,6 @@ debug: $(BUILD)/vermillion.img scripts/debug.gdb
 	@printf '%s\n' "  QEMU    $(<:$(BUILD)/%=%)"
 	@qemu-system-arm -s -S -M $(QEMU_MACHINE) -drive file=$<,format=raw &
 	@gdb-multiarch --command=scripts/debug.gdb
-tools: deps/.$(TARGET)-gcc deps/u-boot.bin
 
 # Specific recipes
 $(BUILD)/boot.o: arch/$(ARCH)/boot.S deps/.$(TARGET)-gcc | $(BUILD)
@@ -59,23 +51,6 @@ $(BUILD)/vermillion.img: deps/u-boot.bin $(BUILD)/kernel.bin \
 	@sudo partx -d /dev/loop0
 	@sudo losetup -d /dev/loop0
 
-# ------------------------------- Dependencies ------------------------------- #
+# --------------------------------- Objects  ---------------------------------
 
-# U-boot compilation
-deps/u-boot.bin: deps/.$(TARGET)-gcc deps/.u-boot-step4
-deps/u-boot: | deps
-	cd $| && git clone https://gitlab.denx.de/u-boot/u-boot.git
-deps/.u-boot-step1: | deps/u-boot
-	cd $| && git checkout tags/$(UBOOT)
-	touch $@
-deps/.u-boot-step2: deps/.u-boot-step1 | deps/u-boot
-	cd $| && make ARCH=$(ARCH) CROSS_COMPILE=$(TARGET)- $(UBOOT_CONFIG)
-	[ -f arch/$(ARCH)/u-boot.patch ] && patch deps/u-boot/.config < \
-                                              arch/$(ARCH)/u-boot.patch
-	touch $@
-deps/.u-boot-step3: deps/.u-boot-step2 | deps/u-boot
-	cd $| && make ARCH=$(ARCH) CROSS_COMPILE=$(TARGET)-
-	touch $@
-deps/.u-boot-step4: deps/.u-boot-step3 | deps/u-boot
-	cp $|/$(UBOOT_IMAGE) deps/u-boot.bin
-	touch $@
+OBJS += boot.o

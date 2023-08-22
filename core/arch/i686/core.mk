@@ -12,11 +12,6 @@
 # You should have received a copy of the GNU General Public License
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
-# -------------------------------- Parameters -------------------------------- #
-
-ARCH = $(shell echo $(CONFIG_ARCH))
-TARGET = $(shell echo $(CONFIG_TARGET))
-
 # --------------------------------- Recipes  --------------------------------- #
 
 # Helper recipes
@@ -25,7 +20,6 @@ debug: $(BUILD)/vermillion.img scripts/debug.gdb
 	@printf '%s\n' "  QEMU    $(<:$(BUILD)/%=%)"
 	@qemu-system-i386 -s -S -cdrom $< &
 	@gdb-multiarch --command=scripts/debug.gdb
-tools: deps/.$(TARGET)-gcc
 
 # Specific recipes
 $(BUILD)/boot.o: arch/$(ARCH)/boot.S deps/.$(TARGET)-gcc | $(BUILD)
@@ -38,3 +32,7 @@ $(BUILD)/vermillion.img: $(BUILD)/kernel.elf \
 	@cp $< $(BUILD)/mount/boot/
 	@cp arch/$(ARCH)/grub.cfg $(BUILD)/mount/boot/grub/
 	@chronic grub-mkrescue -o $@ $(BUILD)/mount
+
+# --------------------------------- Objects  ---------------------------------
+
+OBJS += boot.o

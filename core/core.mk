@@ -59,15 +59,12 @@ HOST = $(shell printf '%s\n' "$$MACHTYPE" | sed 's/-[^-]*/-cross/')
 # --------------------------------- Recipes  --------------------------------- #
 
 # Helper recipes
-.PHONY: all image clean tools depclean debug uart \
+.PHONY: all objs image clean debug uart \
         config menuconfig xconfig
 all: image
 clean:
 	@printf '%s\n' "  RM      $(shell basename $(BUILD))"
 	@rm -rf $(BUILD)
-depclean:
-	@printf '%s\n' "  RM      deps"
-	@rm -rf deps
 uart: $(UART_DEVICE)
 	@printf '%s\n' "  SCREEN  $<"
 	@sudo stty -F $< 115200 cs8 -parenb -cstopb -crtscts
@@ -87,7 +84,7 @@ defconfig: config/$(BOARD)_defconfig
 	@rm -rf $(BUILD) .config.old
 
 # Folder creation
-FOLDERS = deps deps/tools $(BUILD) $(BUILD)/libc $(BUILD)/arch $(BUILD)/mount
+FOLDERS := $(BUILD) $(BUILD)/libc $(BUILD)/arch $(BUILD)/mount
 FOLDERS += $(BUILD)/drivers $(BUILD)/drivers/base
 FOLDERS += $(BUILD)/drivers/arm $(BUILD)/drivers/i686
 FOLDERS += $(BUILD)/drivers/arm/sunxi
@@ -111,94 +108,95 @@ $(BUILD)/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 	@KCONFIG_CONFIG="$(CONFIG)" kconfig-conf --olddefconfig Kconfig
 	@rm -rf $(BUILD) .config.old
 
-# Objects definitions
-CORE = $(BUILD)/interrupts.o $(BUILD)/drivers.o \
-       $(BUILD)/devtree.o $(BUILD)/boot.o
-include src/libc/make.list
-LIBC := $(addprefix $(BUILD)/libc/, $(LIBC))
-include src/drivers/make.list
-DRIVERS := $(addprefix $(BUILD)/drivers/, $(DRIVERS))
+# --------------------------------- Objects  --------------------------------- #
+
+OBJS :=
+
+OBJS += interrupts.o
+OBJS += drivers.o
+OBJS += devtree.o
+
+PREFIX = libc
+
+OBJS += $(PREFIX)/_utils.o
+OBJS += $(PREFIX)/assert.o
+OBJS += $(PREFIX)/ctype.o
+OBJS += $(PREFIX)/errno.o
+OBJS += $(PREFIX)/locale.o
+OBJS += $(PREFIX)/signal.o
+OBJS += $(PREFIX)/stdio.o
+OBJS += $(PREFIX)/stdlib.o
+OBJS += $(PREFIX)/string.o
+
+PREFIX = drivers
+
+ifdef CONFIG_SPI_BITBANG
+OBJS += $(PREFIX)/bitbang.o
+endif
+
+ifdef CONFIG_AUDIO_BUZZER
+OBJS += $(PREFIX)/buzzer.o
+endif
+
+ifdef CONFIG_FS_FAT32_MBR
+OBJS += $(PREFIX)/fat32.o
+endif
+
+ifdef CONFIG_VIDEO_ILI9488
+OBJS += $(PREFIX)/ili9488.o
+endif
+
+PREFIX = drivers/base
+
+OBJS += $(PREFIX)/mbr.o
+OBJS += $(PREFIX)/memory.o
+OBJS += $(PREFIX)/null.o
+OBJS += $(PREFIX)/zero.o
+
+PREFIX = drivers/arm/sunxi
+
+ifdef CONFIG_GPIO_SUNXI_GPIO
+OBJS += $(PREFIX)/gpio.o
+endif
+
+ifdef CONFIG_STORAGE_SUNXI_MMC
+OBJS += $(PREFIX)/mmc.o
+endif
+
+ifdef CONFIG_TIMER_SUNXI_TIMER
+OBJS += $(PREFIX)/timer.o
+endif
+
+ifdef CONFIG_SERIAL_SUNXI_UART
+OBJS += $(PREFIX)/uart.o
+endif
+
+PREFIX = drivers/i686
+
+ifdef CONFIG_SERIAL_I686
+OBJS += $(PREFIX)/serial.o
+endif
+
+-include arch/$(ARCH)/core.mk
+OBJS := $(addprefix $(BUILD)/, $(OBJS))
+
+# --------------------------------- Recipes  --------------------------------- #
+
+objs: $(OBJS)
 
 # Specific recipes
 $(BUILD)/devtree.o: $(shell echo $(CONFIG_DEVICE_TREE))
 	@printf '%s\n' "  CC      core/$(@:$(BUILD)/%=%)"
 	@$(CC) $(CFLAGS) -c $< -o $@
-$(BUILD)/kernel.elf: $(BUILD)/arch/linker.ld $(EXTERN) \
-                     $(LIBC) $(DRIVERS) $(CORE)
+ifneq ($(wildcard arch/$(ARCH)/linker.ld),)
+$(BUILD)/kernel.elf: $(BUILD)/arch/linker.ld $(EXTERN) $(OBJS)
 	@printf '%s\n' "  LD      core/$(@:$(BUILD)/%=%)"
 	@$(CC) $(CFLAGS) -T $^ -o $@ -lgcc
+else
+$(BUILD)/kernel.elf: $(EXTERN) $(OBJS)
+	@printf '%s\n' "  LD      core/$(@:$(BUILD)/%=%)"
+	@$(CC) $(CFLAGS) $^ -o $@ -lgcc
+endif
 $(BUILD)/kernel.bin: $(BUILD)/kernel.elf | $(BUILD)
 	@printf '%s\n' "  OBJCOPY core/$(@:$(BUILD)/%=%)"
 	@$(TARGET)-objcopy $< -O binary $@
-
-# ------------------------------- Dependencies ------------------------------- #
-
-# Binutils compilation
-deps/.$(TARGET)-binutils: deps/.$(TARGET)-binutils-step4
-	touch $@
-deps/binutils.tar.xz: | deps
-	cd $| && wget https://ftp.gnu.org/gnu/binutils/$(BINUTILS).tar.xz
-	mv $|/$(BINUTILS).tar.xz $@
-deps/binutils: deps/binutils.tar.xz | deps
-	cd $| && tar -xf binutils.tar.xz
-	mv $|/$(BINUTILS) $@
-deps/$(TARGET)-binutils: | deps/tools deps/binutils
-	mkdir -p $@
-deps/.$(TARGET)-binutils-step1: | deps/$(TARGET)-binutils
-	cd $| && ../binutils/configure \
-                 --prefix="$(abspath deps/tools)" \
-                 --target="$(TARGET)" \
-                 --with-sysroot="$(abspath deps/tools/$(TARGET))" \
-                 --disable-nls --disable-multilib
-	touch $@
-deps/.$(TARGET)-binutils-step2: deps/.$(TARGET)-binutils-step1 | \
-                                deps/$(TARGET)-binutils
-	cd $| && make -j "$$(nproc)" configure-host
-	touch $@
-deps/.$(TARGET)-binutils-step3: deps/.$(TARGET)-binutils-step2 | \
-                                deps/$(TARGET)-binutils
-	cd $| && make -j "$$(nproc)"
-	touch $@
-deps/.$(TARGET)-binutils-step4: deps/.$(TARGET)-binutils-step3 | \
-                                deps/$(TARGET)-binutils
-	cd $| && make -j "$$(nproc)" install
-	touch $@
-
-# Gcc compilation
-deps/.$(TARGET)-gcc: deps/.$(TARGET)-binutils deps/.$(TARGET)-gcc-step4
-	touch $@
-deps/gcc.tar.xz: | deps
-	cd $| && wget https://ftp.gnu.org/gnu/gcc/$(GCC)/$(GCC).tar.xz
-	mv $|/$(GCC).tar.xz $@
-deps/gcc: deps/gcc.tar.xz | deps
-	cd $| && tar -xf gcc.tar.xz
-	mv $|/$(GCC) $@
-deps/$(TARGET)-gcc: | deps/tools deps/gcc
-	mkdir -p $@
-deps/.$(TARGET)-gcc-step1: | deps/gcc
-	cd $| && ./contrib/download_prerequisites
-	touch $@
-deps/.$(TARGET)-gcc-step2: deps/.$(TARGET)-gcc-step1 | deps/$(TARGET)-gcc
-	cd $| && ../gcc/configure --prefix="$(abspath deps/tools)" \
-                 --build="$(HOST)" --host="$(HOST)" --target="$(TARGET)" \
-                 --with-sysroot="$(abspath deps/tools/$(TARGET))" \
-                 --disable-nls --disable-shared \
-                 --without-headers --with-newlib --disable-decimal-float \
-                 --disable-libgomp --disable-libmudflap \
-                 --disable-libssp --disable-libatomic \
-                 --disable-libquadmath --disable-threads \
-                 --enable-languages=c --disable-multilib
-	touch $@
-deps/.$(TARGET)-gcc-step3: deps/.$(TARGET)-gcc-step2 | deps/$(TARGET)-gcc
-	cd $| && make -j "$$(nproc)" all-gcc all-target-libgcc
-	touch $@
-deps/.$(TARGET)-gcc-step4: deps/.$(TARGET)-gcc-step3 | deps/$(TARGET)-gcc
-	cd $| && make -j "$$(nproc)" install-gcc install-target-libgcc
-	touch $@
-
-ifdef CONFIG_ARCH_ARM
-include arch/arm/Makefile
-endif
-ifdef CONFIG_ARCH_I686
-include arch/i686/Makefile
-endif

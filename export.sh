@@ -17,16 +17,16 @@ _check_pwd()
     case "$(pwd)" in
         *\ *)
             echo "Compilation doesn't work properly in directories with spaces"
-            exit 1
+            return 1
         ;;
     esac
 }
-_check_pwd
+_check_pwd || return 1
 
 BOARD="$(dialog --stdout --menu 'Choose the target board' 0 0 0 \
          orangepi_one '' \
          i686         '' )"
-[ -z "$BOARD" ] && exit 1
+[ -z "$BOARD" ] && return 1
 export BOARD
 clear
 
@@ -74,27 +74,32 @@ vmake()
 
     cd "$VERMILLION/core"
     echo "[core]"
-    make $@
+    make -f core.mk $@
 )
 
+unset CC CFLAGS
 cd core
+
 cp "config/${BOARD}_defconfig" .config
 kconfig-conf --olddefconfig Kconfig > /dev/null
+make -f deps.mk || return 1
 
 CC="$( (cat .config; echo 'echo $CONFIG_TARGET') | sh)-gcc"
 export CC
 
-rm -f .config
-cd ..
-
 CFLAGS="-Wall -Wextra -Wno-attributes"
 CFLAGS="$CFLAGS -c -std=gnu99 -nostdlib -ffreestanding"
 CFLAGS="$CFLAGS -I$VERMILLION/core/include"
+CFLAGS="$CFLAGS $( (cat .config; echo 'echo $CONFIG_CFLAGS_ARCH')  | sh)"
+CFLAGS="$CFLAGS $( (cat .config; echo 'echo $CONFIG_CFLAGS_BOARD') | sh)"
 
 for x in $(find "$VERMILLION/libs"/*/* -prune -type d -iname 'include'); do
     CFLAGS="$CFLAGS -I$x"
 done
 export CFLAGS
+
+rm -f .config
+cd ..
 
 if [ "$PATH_EXPORT" = 1 ]; then
     PATH="$PATH:$VERMILLION:$VERMILLION/core/deps/tools/bin"
