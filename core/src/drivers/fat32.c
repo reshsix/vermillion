@@ -551,9 +551,8 @@ fs_read(struct file *f, u32 sector, u8 *buffer)
     return ret;
 }
 
-static const struct driver fat32 =
+DECLARE_DRIVER(fat32)
 {
-    .name = "fat32",
     .init = init, .clean = clean,
     .api = DRIVER_API_FS,
     .type = DRIVER_TYPE_FS,
@@ -563,4 +562,3 @@ static const struct driver fat32 =
     .interface.fs.index = fs_index,
     .interface.fs.read  = fs_read
 };
-driver_register(fat32);

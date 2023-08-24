@@ -128,13 +128,11 @@ block_write(void *ctx, u8 *buffer, u32 block)
     return ret;
 }
 
-static const struct driver sunxi_timer =
+DECLARE_DRIVER(sunxi_timer)
 {
-    .name = "sunxi-timer",
     .init = init, .clean = clean,
     .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_TIMER,
     .config.get = config_get,
     .interface.block.write = block_write
 };
-driver_register(sunxi_timer);

@@ -33,12 +33,10 @@ stream_write(void *ctx, u8 buffer)
     return false;
 }
 
-static const struct driver zero =
+DECLARE_DRIVER(zero)
 {
-    .name = "zero",
     .api = DRIVER_API_STREAM,
     .type = DRIVER_TYPE_GENERIC,
     .interface.stream.read  = stream_read,
     .interface.stream.write = stream_write
 };
-driver_register(zero);

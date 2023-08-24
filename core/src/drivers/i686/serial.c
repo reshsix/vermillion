@@ -200,9 +200,8 @@ stream_write(void *ctx, u8 data)
     return true;
 }
 
-static const struct driver i686_com =
+DECLARE_DRIVER(i686_com)
 {
-    .name = "i686-com",
     .init = init, .clean = clean,
     .api = DRIVER_API_STREAM,
     .type = DRIVER_TYPE_SERIAL,
@@ -211,4 +210,3 @@ static const struct driver i686_com =
     .interface.stream.read  = stream_read,
     .interface.stream.write = stream_write
 };
-driver_register(i686_com);

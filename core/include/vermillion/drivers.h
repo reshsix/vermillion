@@ -19,14 +19,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <_types.h>
 
-extern void *__drivers;
-extern void *__drivers_c;
-
-static __attribute__((used)) struct driver **_drivers =
-    (struct driver **)&__drivers;
-static __attribute__((used)) u32 _drivers_c =
-    (u32)&__drivers_c;
-
 /* Definitions for specific driver types */
 
 union __attribute__((packed)) config
@@ -123,13 +115,10 @@ enum
 
 #define DRIVER_SPI_MAX 0
 
-/* Driver structure */
+/* Driver and device structures */
 
 struct __attribute__((packed)) driver
 {
-    char *name;
-    bool status;
-
     void *init, (*clean)(void *);
     enum
     {
@@ -175,129 +164,38 @@ struct __attribute__((packed)) driver
 
 struct device
 {
-    char *name;
     struct driver *driver;
     void *context;
 };
 
-struct devnode
-{
-    struct device cur;
-    struct devnode *prev;
-    struct devnode *next;
-};
-
-/* Driver interface */
-
-#define driver_register(x) \
-_Pragma("GCC push_options"); \
-_Pragma("GCC optimize \"-fno-toplevel-reorder\""); \
-static const volatile struct driver *_driver_##x \
-__attribute__((used, section(".data.drivers"))) = &(x); \
-_Pragma("GCC pop_options");
-
 /* Devtree interface */
 
-#include <stdlib.h>
-#include <string.h>
+void _devtree_init(void);
+void _devtree_clean(void);
 
-void _devices_init(void);
-void _devices_clean(void);
+#define DRIVER(x) _driver_##x
+#define DECLARE_DRIVER(x) const struct driver DRIVER(x) =
+#define INCLUDE_DRIVER(x) extern const struct driver DRIVER(x);
 
-struct driver *driver_find(const char *name);
-struct device *device_find(const char *name);
-
-extern struct devnode _devtree_head;
-extern struct devnode *_devtree_tail;
-
-extern struct device *_devtree_logger;
-void _devtree_log(const char *s);
-
-#define DRIVER(x) driver_find(x)
-#define DEVICE(x) device_find(x)
-
-#define DEVICE_NEW(_name, _driver, ...) \
+#define DEVICE(x) _device_##x
+#define DECLARE_DEVICE(x) struct device DEVICE(x) = {0};
+#define INCLUDE_DEVICE(x) extern struct device DEVICE(x);
+#define INIT_DEVICE(x, drv, ...) \
 { \
-    _devtree_log("Creating device: "); \
-    _devtree_log(_name); \
-    _devtree_log(": "); \
-    _devtree_log(_driver); \
-    _devtree_log("("); \
-    _devtree_log(#__VA_ARGS__); \
-    _devtree_log("): "); \
-\
-    _devtree_tail->cur.driver = DRIVER(_driver); \
-    if (_devtree_tail->cur.driver) \
-    { \
-        _devtree_tail->cur.name = _name; \
-        if (_devtree_tail->cur.driver->init) \
-        { \
-            ((void (*)(void **, ...))_devtree_tail->cur.driver->init)( \
-                &(_devtree_tail->cur.context),##__VA_ARGS__); \
-            if (!(_devtree_tail->cur.context)) \
-                _devtree_log("Failure"); \
-        } \
-\
-        if (!(_devtree_tail->cur.driver->init) || _devtree_tail->cur.context) \
-        { \
-            _devtree_tail->next = calloc(1, sizeof(struct devnode)); \
-            if (_devtree_tail->next) \
-            { \
-                _devtree_tail->next->prev = _devtree_tail; \
-                _devtree_tail = _devtree_tail->next; \
-                _devtree_log("Success"); \
-            } \
-            else \
-                _devtree_log("Out of memory"); \
-        } \
-    } \
-    else \
-        _devtree_log("Driver not found"); \
-\
-    _devtree_log("\r\n"); \
+    DEVICE(x).driver = (struct driver *)&DRIVER(drv); \
+    if (DEVICE(x).driver->init) \
+        ((void (*)(void **, ...))DEVICE(x).driver->init)( \
+                                     &(DEVICE(x).context),##__VA_ARGS__); \
 }
-
-#define DEVICE_CONFIG(name, ...) \
+#define CONFIG_DEVICE(x, ...) \
 { \
-    union config _cfg = { __VA_ARGS__ }; \
-    struct device *_dev = DEVICE(name); \
-    if (_dev && _dev->driver && _dev->driver->config.set) \
-        _dev->driver->config.set(_dev->context, &_cfg); \
+    union config _cfg = {__VA_ARGS__}; \
+    DEVICE(x).driver->config.set(DEVICE(x).context, &_cfg); \
 }
-
-#define DEVICE_LOGGER(name) \
+#define CLEAN_DEVICE(x) \
 { \
-    struct device *_dev = DEVICE(name); \
-    if (_dev && _dev->driver && \
-        _dev->driver->api == DRIVER_API_STREAM && \
-        _dev->driver->interface.stream.write) \
-    { \
-        _devtree_logger = _dev; \
-\
-        _devtree_log("\r\nVermillion "); \
-        _devtree_log(__VERMILLION__); \
-        _devtree_log(" ("); \
-        _devtree_log(__COMPILATION__); \
-        _devtree_log(") on " name "\r\n\r\n"); \
-    } \
-}
-
-#define DEVTREE_CLEANUP() \
-{ \
-    struct devnode *_cur = _devtree_tail; \
-    while (_cur != NULL) \
-    { \
-        if (_cur->cur.driver->clean && _cur->cur.context) \
-            _cur->cur.driver->clean(_cur->cur.context); \
-\
-        struct devnode *_prev = _cur->prev; \
-        if (_prev) \
-            free(_cur); \
-        else \
-            memset(_cur, 0, sizeof(struct devnode)); \
-        _cur = _prev; \
-    } \
-    _devtree_tail = &_devtree_head; \
+    if (DEVICE(x).driver->clean) \
+        DEVICE(x).driver->clean(DEVICE(x).context); \
 }
 
 #endif

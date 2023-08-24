@@ -91,13 +91,11 @@ stream_write(void *ctx, u8 data)
     return ret;
 }
 
-static const struct driver buzzer =
+DECLARE_DRIVER(buzzer)
 {
-    .name = "buzzer",
     .init = init, .clean = clean,
     .api = DRIVER_API_STREAM,
     .type = DRIVER_TYPE_AUDIO,
     .config.get = config_get,
     .interface.stream.write = stream_write
 };
-driver_register(buzzer);

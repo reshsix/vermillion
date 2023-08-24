@@ -34,12 +34,10 @@ block_write(void *ctx, u8 *buffer, u32 block)
     return true;
 }
 
-static const struct driver memory =
+DECLARE_DRIVER(memory)
 {
-    .name = "memory",
     .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_STORAGE,
     .interface.block.read  = block_read,
     .interface.block.write = block_write
 };
-driver_register(memory);

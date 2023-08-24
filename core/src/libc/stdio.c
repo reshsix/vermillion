@@ -51,9 +51,9 @@ FILE *stdin;
 FILE *stdout;
 FILE *stderr;
 
-static FILE *fopen_io(const char *path, const char *mode);
 extern void
-_stdio_init(struct device *rootfs, char *fd0, char *fd1, char *fd2)
+_stdio_init(struct device *rootfs, struct device *fd0,
+            struct device *fd1, struct device *fd2)
 {
     root = rootfs;
 
@@ -89,8 +89,8 @@ fclose_io(FILE *f)
     return ret;
 }
 
-static FILE *
-fopen_io(const char *path, const char *mode)
+extern FILE *
+fopen_io(struct device *io, const char *mode)
 {
     FILE *ret = NULL;
 
@@ -100,7 +100,7 @@ fopen_io(const char *path, const char *mode)
         if (!(strcmp(mode, "r")) || !(strcmp(mode, "rb")))
             ret->readonly = true;
 
-        ret->io = device_find(path);
+        ret->io = io;
         if (!(ret->io) ||
             !(ret->io->driver->api == DRIVER_API_BLOCK ||
               ret->io->driver->api == DRIVER_API_STREAM))
@@ -132,8 +132,8 @@ fclose_fs(FILE *f)
     return ret;
 }
 
-static FILE *
-fopen_fs(const char *path, const char *mode)
+extern FILE *
+fopen(const char *path, const char *mode)
 {
     FILE *ret = NULL;
 
@@ -162,6 +162,8 @@ fopen_fs(const char *path, const char *mode)
     else
         errno = ENOMEM;
 
+    ret->unget = EOF;
+
     return ret;
 }
 
@@ -176,24 +178,6 @@ fclose(FILE *f)
         ret = fclose_fs(f);
     else
         errno = EBADF;
-
-    return ret;
-}
-
-extern FILE *
-fopen(const char *path, const char *mode)
-{
-    FILE *ret = NULL;
-
-    if (path)
-    {
-        if (path[0] == ':' && path[1] != '\0')
-            ret = fopen_io(&(path[1]), mode);
-        else
-            ret = fopen_fs(path, mode);
-
-        ret->unget = EOF;
-    }
 
     return ret;
 }

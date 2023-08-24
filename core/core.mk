@@ -113,7 +113,6 @@ $(BUILD)/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 OBJS :=
 
 OBJS += interrupts.o
-OBJS += drivers.o
 OBJS += devtree.o
 
 PREFIX = libc

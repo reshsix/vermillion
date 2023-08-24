@@ -34,9 +34,8 @@ __init(void)
     init_malloc();
 
     _interrupts_init();
-    _devices_init();
+    _devtree_init();
 
-    print("Calling main\r\n\r\n");
     exit(main());
 }
 
@@ -66,13 +65,12 @@ atexit(void (*f)(void))
 extern void __attribute__((noreturn))
 exit(int code)
 {
+    (void)code;
+
     while (__atexit_c)
         __atexit[--__atexit_c]();
 
-    print("\r\nExited with code: ");
-    print_hex(code);
-
-    _devices_clean();
+    _devtree_clean();
     _interrupts_clean();
 
     for (;;)

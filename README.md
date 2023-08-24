@@ -26,7 +26,7 @@ process and debug the resulting image
 ```sh
 gcc make git rsync g++ bison flex texinfo libncurses-dev
 kconfig-frontends moreutils swig python3-dev bc
-u-boot-tools grub2-common xorriso dialog
+u-boot-tools grub2-common xorriso dialog mtools
 qemu-system-arm qemu-system-i386 gdb-multiarch
 ```
 
@@ -36,12 +36,15 @@ qemu-system-arm qemu-system-i386 gdb-multiarch
 #include <stdio.h>
 #include <easy/io.h>
 
+#include <vermillion/drivers.h>
+INCLUDE_DEVICE(gpio0)
+
 extern int
 main(void)
 {
     puts("Hello World!\r\n");
 
-    io_chip("gpio0");
+    io_chip(&DEVICE(gpio0));
     io_config(13, OUTPUT);
     io_write(13, HIGH);
 

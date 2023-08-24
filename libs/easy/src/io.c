@@ -22,9 +22,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 static struct device *gpio = NULL;
 
 extern void
-io_chip(const char *name)
+io_chip(struct device *chip)
 {
-    gpio = DEVICE(name);
+    gpio = chip;
 }
 
 extern void

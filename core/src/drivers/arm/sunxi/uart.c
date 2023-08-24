@@ -262,9 +262,8 @@ stream_write(void *ctx, u8 data)
     return true;
 }
 
-static const struct driver sunxi_uart =
+DECLARE_DRIVER(sunxi_uart)
 {
-    .name = "sunxi-uart",
     .init = init, .clean = clean,
     .api = DRIVER_API_STREAM,
     .type = DRIVER_TYPE_SERIAL,
@@ -273,4 +272,3 @@ static const struct driver sunxi_uart =
     .interface.stream.read  = stream_read,
     .interface.stream.write = stream_write
 };
-driver_register(sunxi_uart);

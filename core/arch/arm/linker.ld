@@ -26,13 +26,6 @@ SECTIONS
     .rodata : { *(.rodata) }
     . = ALIGN(0x1000);
 
-    .data.drivers :
-    {
-        __drivers = .;
-        KEEP(*(.data.drivers))
-    }
-    __drivers_c = SIZEOF(.data.drivers) / __SIZEOF_POINTER__ ;
-
     .data   : { *(.data) *(.data.*) }
     . = ALIGN(0x1000);
 

@@ -135,6 +135,8 @@ clean(void *ctx)
                     DRIVER_GPIO_PULLOFF);
     config.gpio.pin(spi->gpio->context, spi->miso, DRIVER_GPIO_OFF,
                     DRIVER_GPIO_PULLOFF);
+
+    free(ctx);
 }
 
 static bool
@@ -200,9 +202,8 @@ stream_write(void *ctx, u8 data)
     return true;
 }
 
-static const struct driver bitbang_spi =
+DECLARE_DRIVER(bitbang_spi)
 {
-    .name = "bitbang-spi",
     .init = init, .clean = clean,
     .api = DRIVER_API_STREAM,
     .type = DRIVER_TYPE_SPI,
@@ -211,4 +212,3 @@ static const struct driver bitbang_spi =
     .interface.stream.read = stream_read,
     .interface.stream.write = stream_write
 };
-driver_register(bitbang_spi);

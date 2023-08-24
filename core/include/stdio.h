@@ -21,7 +21,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <stddef.h>
 #include <vermillion/drivers.h>
 
-void _stdio_init(struct device *rootfs, char *fd0, char *fd1, char *fd2);
+void _stdio_init(struct device *rootfs, struct device *fd0,
+                 struct device *fd1, struct device *fd2);
 void _stdio_clean(void);
 
 typedef struct _FILE FILE;
@@ -38,6 +39,7 @@ typedef u32 fpos_t;
 #define SEEK_END 2
 
 FILE *fopen(const char *path, const char *mode);
+FILE *fopen_io(struct device *io, const char *mode);
 int fclose(FILE *f);
 
 size_t fread(void *buffer, size_t size, size_t count, FILE *f);

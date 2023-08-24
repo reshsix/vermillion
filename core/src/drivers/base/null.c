@@ -18,10 +18,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <string.h>
 #include <vermillion/drivers.h>
 
-static const struct driver null =
+DECLARE_DRIVER(null)
 {
-    .name = "null",
     .api = DRIVER_API_STREAM,
     .type = DRIVER_TYPE_GENERIC,
 };
-driver_register(null);

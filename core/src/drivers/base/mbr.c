@@ -76,13 +76,11 @@ block_write(void *ctx, u8 *buffer, u32 block)
     return ret;
 }
 
-static const struct driver mbr =
+DECLARE_DRIVER(mbr)
 {
-    .name = "mbr",
     .init = init, .clean = clean,
     .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_STORAGE,
     .interface.block.read  = block_read,
     .interface.block.write = block_write
 };
-driver_register(mbr);

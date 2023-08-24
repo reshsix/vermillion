@@ -256,9 +256,8 @@ block_write(void *ctx, u8 *buffer, u32 block)
     return ret;
 }
 
-static const struct driver ili9488_spi =
+DECLARE_DRIVER(ili9488)
 {
-    .name = "ili9488",
     .init = init, .clean = clean,
     .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_VIDEO,
@@ -266,4 +265,3 @@ static const struct driver ili9488_spi =
     .interface.block.read = block_read,
     .interface.block.write = block_write
 };
-driver_register(ili9488_spi);

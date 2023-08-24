@@ -279,9 +279,8 @@ gpio_ack(void *ctx, u16 intr)
     return ret;
 }
 
-static const struct driver sunxi_gpio =
+DECLARE_DRIVER(sunxi_gpio)
 {
-    .name = "sunxi-gpio",
     .init = init, .clean = clean,
     .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_GPIO,
@@ -289,4 +288,3 @@ static const struct driver sunxi_gpio =
     .interface.block.read = block_read,
     .interface.block.write = block_write
 };
-driver_register(sunxi_gpio);

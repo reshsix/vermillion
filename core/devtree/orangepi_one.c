@@ -21,56 +21,106 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define R_PRCM 0x01F01400
 #define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)
 
+INCLUDE_DRIVER(sunxi_uart)
+INCLUDE_DRIVER(sunxi_gpio)
+INCLUDE_DRIVER(sunxi_timer)
+INCLUDE_DRIVER(sunxi_mmc)
+
+INCLUDE_DRIVER(mbr)
+INCLUDE_DRIVER(null)
+INCLUDE_DRIVER(zero)
+INCLUDE_DRIVER(memory)
+
+INCLUDE_DRIVER(fat32)
+
+DECLARE_DEVICE(tty0)
+DECLARE_DEVICE(tty1)
+DECLARE_DEVICE(tty2)
+DECLARE_DEVICE(tty3)
+DECLARE_DEVICE(tty4)
+
+DECLARE_DEVICE(gpio0)
+DECLARE_DEVICE(gpio1)
+
+DECLARE_DEVICE(timer0)
+DECLARE_DEVICE(timer1)
+
+DECLARE_DEVICE(mmcblk0)
+DECLARE_DEVICE(mmcblk0p1)
+
+DECLARE_DEVICE(null)
+DECLARE_DEVICE(zero)
+DECLARE_DEVICE(mem)
+
+DECLARE_DEVICE(root)
+
 extern void
-_devices_init(void)
+_devtree_init(void)
 {
     APB0_GATE = 1;
 
-    DEVICE_NEW("tty0", "sunxi-uart", 0x01c28000);
-    DEVICE_CONFIG("tty0", .serial.baud =   115200,
-                          .serial.bits =   DRIVER_SERIAL_CHAR_8B,
-                          .serial.parity = DRIVER_SERIAL_PARITY_NONE,
-                          .serial.stop   = DRIVER_SERIAL_STOP_1B);
-    DEVICE_LOGGER("tty0");
+    INIT_DEVICE(tty0, sunxi_uart, 0x01c28000);
+    INIT_DEVICE(tty1, sunxi_uart, 0x01c28400);
+    INIT_DEVICE(tty2, sunxi_uart, 0x01c28800);
+    INIT_DEVICE(tty3, sunxi_uart, 0x01c28c00);
+    INIT_DEVICE(tty4, sunxi_uart, 0x01f02800);
+    CONFIG_DEVICE(tty0, .serial.baud   = 115200,
+                        .serial.bits   = DRIVER_SERIAL_CHAR_8B,
+                        .serial.parity = DRIVER_SERIAL_PARITY_NONE,
+                        .serial.stop   = DRIVER_SERIAL_STOP_1B);
 
-    DEVICE_NEW("tty1", "sunxi-uart", 0x01c28400);
-    DEVICE_NEW("tty2", "sunxi-uart", 0x01c28800);
-    DEVICE_NEW("tty3", "sunxi-uart", 0x01c28c00);
-    DEVICE_NEW("tty4", "sunxi-uart", 0x01f02800);
+    INIT_DEVICE(gpio0, sunxi_gpio, 0x01c20800, 6, 2);
+    INIT_DEVICE(gpio1, sunxi_gpio, 0x01f02c00, 1, 0);
 
-    DEVICE_NEW("gpio0", "sunxi-gpio", 0x01c20800, 6, 2);
-    DEVICE_NEW("gpio1", "sunxi-gpio", 0x01f02c00, 1, 0);
+    INIT_DEVICE(timer0, sunxi_timer, 0x01c20c00, 0, 50);
+    INIT_DEVICE(timer1, sunxi_timer, 0x01c20c00, 1, 51);
 
-    DEVICE_NEW("timer0", "sunxi-timer", 0x01c20c00, 0, 50);
-    DEVICE_NEW("timer1", "sunxi-timer", 0x01c20c00, 1, 51);
+    INIT_DEVICE(mmcblk0,   sunxi_mmc, 0x01c0f000);
+    INIT_DEVICE(mmcblk0p1, mbr,       &DEVICE(mmcblk0), 1);
 
-    DEVICE_NEW("mmcblk0",   "sunxi-mmc", 0x01c0f000);
-    DEVICE_NEW("mmcblk0p1", "mbr",       DEVICE("mmcblk0"), 1);
+    INIT_DEVICE(null, null);
+    INIT_DEVICE(zero, zero);
+    INIT_DEVICE(mem,  memory);
 
-    DEVICE_NEW("null", "null");
-    DEVICE_NEW("zero", "zero");
-    DEVICE_NEW("mem",  "memory");
+    INIT_DEVICE(root, fat32, &DEVICE(mmcblk0p1));
 
-    DEVICE_NEW("root", "fat32", DEVICE("mmcblk0p1"));
+    pin_cfg(&DEVICE(gpio1), 10, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
+    pin_set(&DEVICE(gpio1), 10, true);
 
-    _stdio_init(DEVICE("root"), "tty0", "tty0", "tty0");
-
-    pin_cfg(DEVICE("gpio1"), 10, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
-    pin_set(DEVICE("gpio1"), 10, true);
+    _stdio_init(&DEVICE(root), &DEVICE(tty0), &DEVICE(tty0), &DEVICE(tty0));
 }
 
 extern void
-_devices_clean(void)
+_devtree_clean(void)
 {
     _stdio_clean();
 
-    pin_set(DEVICE("gpio1"), 10, false);
-    pin_cfg(DEVICE("gpio1"), 10, DRIVER_GPIO_OFF, DRIVER_GPIO_PULLOFF);
+    CLEAN_DEVICE(tty0)
+    CLEAN_DEVICE(tty1)
+    CLEAN_DEVICE(tty2)
+    CLEAN_DEVICE(tty3)
+    CLEAN_DEVICE(tty4)
 
-    pin_cfg(DEVICE("gpio0"), 15, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
-    pin_set(DEVICE("gpio0"), 15, true);
+    pin_set(&DEVICE(gpio1), 10, false);
+    pin_cfg(&DEVICE(gpio1), 10, DRIVER_GPIO_OFF, DRIVER_GPIO_PULLOFF);
 
-    DEVTREE_CLEANUP();
+    pin_cfg(&DEVICE(gpio0), 15, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
+    pin_set(&DEVICE(gpio0), 15, true);
+
+    CLEAN_DEVICE(gpio0)
+    CLEAN_DEVICE(gpio1)
+
+    CLEAN_DEVICE(timer0)
+    CLEAN_DEVICE(timer1)
+
+    CLEAN_DEVICE(mmcblk0)
+    CLEAN_DEVICE(mmcblk0p1)
+
+    CLEAN_DEVICE(null)
+    CLEAN_DEVICE(zero)
+    CLEAN_DEVICE(mem)
+
+    CLEAN_DEVICE(root)
 
     APB0_GATE = 0;
 }

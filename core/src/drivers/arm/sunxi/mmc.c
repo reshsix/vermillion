@@ -102,13 +102,11 @@ block_write(void *ctx, u8 *buffer, u32 block)
     return false;
 }
 
-static const struct driver sunxi_mmc =
+DECLARE_DRIVER(sunxi_mmc)
 {
-    .name = "sunxi-mmc",
     .init = init, .clean = clean,
     .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_STORAGE,
     .interface.block.read  = block_read,
     .interface.block.write = block_write
 };
-driver_register(sunxi_mmc);

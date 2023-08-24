@@ -17,26 +17,36 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <vermillion/drivers.h>
 
+INCLUDE_DRIVER(i686_com)
+
+DECLARE_DEVICE(tty0)
+DECLARE_DEVICE(tty1)
+DECLARE_DEVICE(tty2)
+DECLARE_DEVICE(tty3)
+
 extern void
-_devices_init(void)
+_devtree_init(void)
 {
-    DEVICE_NEW("tty0", "i686-com", 0x3F8);
-    DEVICE_CONFIG("tty0", .serial.baud   = 115200,
-                          .serial.bits   = DRIVER_SERIAL_CHAR_8B,
-                          .serial.parity = DRIVER_SERIAL_PARITY_NONE,
-                          .serial.stop   = DRIVER_SERIAL_STOP_1B);
-    DEVICE_LOGGER("tty0");
+    INIT_DEVICE(tty0, i686_com, 0x3F8)
+    INIT_DEVICE(tty1, i686_com, 0x2F8)
+    INIT_DEVICE(tty2, i686_com, 0x3E8)
+    INIT_DEVICE(tty3, i686_com, 0x2E8)
 
-    DEVICE_NEW("tty1", "i686-com", 0x2F8);
-    DEVICE_NEW("tty2", "i686-com", 0x3E8);
-    DEVICE_NEW("tty3", "i686-com", 0x2E8);
+    CONFIG_DEVICE(tty0, .serial.baud =   115200,
+                        .serial.bits =   DRIVER_SERIAL_CHAR_8B,
+                        .serial.parity = DRIVER_SERIAL_PARITY_NONE,
+                        .serial.stop   = DRIVER_SERIAL_STOP_1B);
 
-    _stdio_init(NULL, "tty0", "tty0", "tty0");
+    _stdio_init(NULL, &DEVICE(tty0), &DEVICE(tty0), &DEVICE(tty0));
 }
 
 extern void
-_devices_clean(void)
+_devtree_clean(void)
 {
     _stdio_clean();
-    DEVTREE_CLEANUP();
+
+    CLEAN_DEVICE(tty0)
+    CLEAN_DEVICE(tty1)
+    CLEAN_DEVICE(tty2)
+    CLEAN_DEVICE(tty3)
 }
