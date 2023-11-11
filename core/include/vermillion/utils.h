@@ -20,6 +20,13 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <vermillion/types.h>
 #include <vermillion/drivers.h>
 
+void logger(struct device *log);
+void log_c(const char c);
+void log_s(const char *s);
+void log_h(const u32 n);
+void log_u(const u32 n);
+void panic(const char *s);
+
 u32 clock(struct device *tmr);
 void csleep(struct device *tmr, const u32 n);
 void usleep(struct device *tmr, const u32 n);

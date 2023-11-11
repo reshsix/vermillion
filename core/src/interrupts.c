@@ -238,25 +238,26 @@ static void (*irqs[256])(void) = {NULL};
 static interrupt(undef)
 handler_undef(void)
 {
-    // TODO panic
+    panic("Undefined Instruction")
 }
 
 static interrupt(swi)
 handler_swi(void)
 {
-    // TODO sigint
+    // TODO add a handler for software interrupts
+    panic("Unhandled Supervisor Call")
 }
 
 static interrupt(abort)
 handler_prefetch(void)
 {
-    // TODO panic
+    panic("Prefetch Abort")
 }
 
 static interrupt(abort)
 handler_data(void)
 {
-    // TODO panic
+    panic("Data Abort")
 }
 
 static interrupt(irq)

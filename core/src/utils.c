@@ -17,6 +17,94 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <vermillion/types.h>
 #include <vermillion/utils.h>
 #include <vermillion/drivers.h>
+#include <vermillion/interrupts.h>
+
+/* Logging helpers */
+
+static struct device *logdev = NULL;
+
+extern void
+logger(struct device *log)
+{
+    logdev = log;
+}
+
+extern void
+log_c(const char c)
+{
+    if (logdev != NULL)
+        logdev->io->driver->interface.stream.write(logdev->io->context, c);
+}
+
+extern void
+log_s(const char *s)
+{
+    for (; s[0] != '\0'; s = &(s[1]))
+    {
+        if (s[0] != '\0')
+            log_c(s[0]);
+    }
+}
+
+static void
+log_h8(const u8 n)
+{
+    for (u8 i = 1; i <= 1; i--)
+    {
+        u8 x = (n >> (i * 4)) & 0xF;
+        if (x < 10)
+            log_c(x + '0');
+        else
+            log_c(x - 10 + 'A');
+    }
+}
+
+extern void
+log_h(const u32 n)
+{
+    print("0x");
+    if (n >= (1 << 24))
+        print_h8(n >> 24);
+    if (n >= (1 << 16))
+        print_h8(n >> 16);
+    if (n >= (1 << 8))
+        print_h8(n >> 8);
+    print_h8(n);
+}
+
+extern void
+log_u(const u32 n)
+{
+    bool start = false;
+
+    u32 a = n;
+    for (int i = 1000000000;; i /= 10)
+    {
+        u8 d = a / i;
+        if (d != 0)
+            start = true;
+
+        if (start)
+        {
+            log_c(d + '0');
+            a -= i * d;
+        }
+
+        if (i == 1)
+            break;
+    }
+
+    if (!start)
+        log_c('0');
+}
+
+extern void
+panic(const char *s)
+{
+    log_s(s);
+    for (;;)
+        intr_wait();
+}
 
 /* Timing helpers */
 

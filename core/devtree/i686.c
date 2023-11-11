@@ -29,21 +29,24 @@ extern void
 _devtree_init(void)
 {
     INIT_DEVICE(tty0, i686_com, 0x3F8)
-    INIT_DEVICE(tty1, i686_com, 0x2F8)
-    INIT_DEVICE(tty2, i686_com, 0x3E8)
-    INIT_DEVICE(tty3, i686_com, 0x2E8)
-
     CONFIG_DEVICE(tty0, .serial.baud =   115200,
                         .serial.bits =   DRIVER_SERIAL_CHAR_8B,
                         .serial.parity = DRIVER_SERIAL_PARITY_NONE,
                         .serial.stop   = DRIVER_SERIAL_STOP_1B);
+    logger(&tty0);
+
+    INIT_DEVICE(tty1, i686_com, 0x2F8)
+    INIT_DEVICE(tty2, i686_com, 0x3E8)
+    INIT_DEVICE(tty3, i686_com, 0x2E8)
 }
 
 extern void
 _devtree_clean(void)
 {
-    CLEAN_DEVICE(tty0)
     CLEAN_DEVICE(tty1)
-    CLEAN_DEVICE(tty2)
     CLEAN_DEVICE(tty3)
+    CLEAN_DEVICE(tty2)
+
+    CLEAN_DEVICE(tty0)
+    logger(NULL);
 }

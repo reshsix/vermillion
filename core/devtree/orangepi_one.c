@@ -56,14 +56,16 @@ _devtree_init(void)
     APB0_GATE = 1;
 
     INIT_DEVICE(tty0, sunxi_uart, 0x01c28000);
-    INIT_DEVICE(tty1, sunxi_uart, 0x01c28400);
-    INIT_DEVICE(tty2, sunxi_uart, 0x01c28800);
-    INIT_DEVICE(tty3, sunxi_uart, 0x01c28c00);
-    INIT_DEVICE(tty4, sunxi_uart, 0x01f02800);
     CONFIG_DEVICE(tty0, .serial.baud   = 115200,
                         .serial.bits   = DRIVER_SERIAL_CHAR_8B,
                         .serial.parity = DRIVER_SERIAL_PARITY_NONE,
                         .serial.stop   = DRIVER_SERIAL_STOP_1B);
+    logger(&tty0);
+
+    INIT_DEVICE(tty1, sunxi_uart, 0x01c28400);
+    INIT_DEVICE(tty2, sunxi_uart, 0x01c28800);
+    INIT_DEVICE(tty3, sunxi_uart, 0x01c28c00);
+    INIT_DEVICE(tty4, sunxi_uart, 0x01f02800);
 
     INIT_DEVICE(gpio0, sunxi_gpio, 0x01c20800, 6, 2);
     INIT_DEVICE(gpio1, sunxi_gpio, 0x01f02c00, 1, 0);
@@ -85,7 +87,6 @@ _devtree_init(void)
 extern void
 _devtree_clean(void)
 {
-    CLEAN_DEVICE(tty0)
     CLEAN_DEVICE(tty1)
     CLEAN_DEVICE(tty2)
     CLEAN_DEVICE(tty3)
@@ -109,6 +110,9 @@ _devtree_clean(void)
     CLEAN_DEVICE(mem)
 
     CLEAN_DEVICE(root)
+
+    CLEAN_DEVICE(tty0)
+    logger(NULL);
 
     APB0_GATE = 0;
 }
