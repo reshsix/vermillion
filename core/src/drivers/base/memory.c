@@ -14,15 +14,15 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <_types.h>
-#include <string.h>
+#include <vermillion/types.h>
+#include <vermillion/utils.h>
 #include <vermillion/drivers.h>
 
 static bool
 block_read(void *ctx, u8 *buffer, u32 block)
 {
     (void)(ctx);
-    memcpy(buffer, (void*)(block * 0x200), 0x200);
+    mem_copy(buffer, (void*)(block * 0x200), 0x200);
     return true;
 }
 
@@ -30,7 +30,7 @@ static bool
 block_write(void *ctx, u8 *buffer, u32 block)
 {
     (void)(ctx);
-    memcpy((void*)(block * 0x200), buffer, 0x200);
+    mem_copy((void*)(block * 0x200), buffer, 0x200);
     return true;
 }
 

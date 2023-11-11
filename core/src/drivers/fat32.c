@@ -14,9 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <_types.h>
-#include <string.h>
-#include <stdlib.h>
+#include <vermillion/types.h>
+#include <vermillion/utils.h>
 #include <vermillion/drivers.h>
 
 struct fat32br
@@ -163,21 +162,21 @@ id83_to_string(u8 *code, char* buf)
     char name8[9] = {0};
     char ext3[4] = {0};
 
-    memcpy(name8, code, 8);
+    mem_copy(name8, code, 8);
     for (int k = 7; k >= 0 && name8[k] == ' '; k--)
         name8[k] = '\0';
 
-    memcpy(ext3, &(code[8]), 3);
+    mem_copy(ext3, &(code[8]), 3);
     for (int k = 2; k >= 0 && ext3[k] == ' '; k--)
         ext3[k] = '\0';
 
-    strcpy(id83, name8);
+    str_copy(id83, name8, 0);
     if (ext3[0] != '\0')
-        strcat(id83, ".");
-    strcat(id83, ext3);
+        str_concat(id83, ".", 0);
+    str_concat(id83, ext3, 0);
 
-    ret = strlen(id83) + 1;
-    memcpy(buf, id83, ret);
+    ret = str_length(id83) + 1;
+    mem_copy(buf, id83, ret);
 
     return ret;
 }
@@ -192,8 +191,8 @@ fat32e_clean(struct fat32e *fe)
         for (size_t i = 0; i < fe->files.count; i++)
             fat32e_clean(&(fe->files.data[i]));
 
-        free(fe->name);
-        free(fe->files.data);
+        mem_del(fe->name);
+        mem_del(fe->files.data);
     }
 
     return false;
@@ -204,37 +203,37 @@ fat32e_init(struct fat32e *fe, char *name, u8 *entry)
 {
     bool ret = true;
 
-    fe->name = calloc(1, strlen(name) + 1);
+    fe->name = mem_new(str_length(name) + 1);
     if (!(fe->name))
         ret = fat32e_clean(fe);
 
     if (ret)
     {
-        strcpy(fe->name, name);
+        str_copy(fe->name, name, 0);
 
         fe->attributes = entry[11];
 
         u16 time, date;
-        memcpy(&time, &(entry[14]), 2);
-        memcpy(&date, &(entry[16]), 2);
+        mem_copy(&time, &(entry[14]), 2);
+        mem_copy(&date, &(entry[16]), 2);
         fe->created = fat32t_to_unix(time, date);
-        memcpy(&date, &(entry[18]), 2);
+        mem_copy(&date, &(entry[18]), 2);
         fe->accessed = fat32t_to_unix(0, date);
-        memcpy(&time, &(entry[22]), 2);
-        memcpy(&date, &(entry[24]), 2);
+        mem_copy(&time, &(entry[22]), 2);
+        mem_copy(&date, &(entry[24]), 2);
         fe->modified = fat32t_to_unix(time, date);
 
-        memcpy(&(fe->size), &(entry[28]), 4);
+        mem_copy(&(fe->size), &(entry[28]), 4);
 
         u16 cluster_l, cluster_h;
-        memcpy(&cluster_l, &(entry[26]), 2);
-        memcpy(&cluster_h, &(entry[20]), 2);
+        mem_copy(&cluster_l, &(entry[26]), 2);
+        mem_copy(&cluster_h, &(entry[20]), 2);
         fe->cluster = cluster_l | (cluster_h << 16);
 
         if (fe->attributes & 0x10)
         {
             fe->files.length = 16;
-            fe->files.data = calloc(fe->files.length, sizeof(struct fat32e));
+            fe->files.data = mem_new(fe->files.length * sizeof(struct fat32e));
             if (!(fe->files.data))
                 ret = fat32e_clean(fe);
         }
@@ -252,7 +251,7 @@ fat32_next(struct fat32 *f, u32 cluster)
 
     u32 length = (f->br.sectsvolume) ? f->br.sectsvolume : f->br.sectsvolume32;
     if (cluster < length)
-        memcpy(&ret, &(f->table[cluster]), 4);
+        mem_copy(&ret, &(f->table[cluster]), 4);
 
     return ret;
 }
@@ -293,11 +292,11 @@ fat32_directory(struct fat32 *f, u32 cluster, struct fat32e *out)
 
         if (f->buffer[i + 11] == 0xF)
         {
-            memcpy(lfn_p, &(f->buffer[i + 1]), 10);
+            mem_copy(lfn_p, &(f->buffer[i + 1]), 10);
             lfn_p = &(lfn_p[5]);
-            memcpy(lfn_p, &(f->buffer[i + 14]), 12);
+            mem_copy(lfn_p, &(f->buffer[i + 14]), 12);
             lfn_p = &(lfn_p[6]);
-            memcpy(lfn_p, &(f->buffer[i + 28]), 4);
+            mem_copy(lfn_p, &(f->buffer[i + 28]), 4);
             lfn_p = &(lfn_p[2]);
             continue;
         }
@@ -313,14 +312,14 @@ fat32_directory(struct fat32 *f, u32 cluster, struct fat32e *out)
         lfn_p = lfn;
 
         j += id83_to_string(&(f->buffer[i]), &(name[j]));
-        if (strcmp(name, ".") != 0 && strcmp(name, "..") != 0)
+        if (str_comp(name, ".", 0) != 0 && str_comp(name, "..", 0) != 0)
         {
             if (out->files.count >= out->files.length)
             {
-                out->files.data = realloc(out->files.data,
-                                          out->files.length * 2);
-                memset(&(out->files.data[out->files.length]), 0,
-                       out->files.length);
+                out->files.data = mem_renew(out->files.data,
+                                            out->files.length * 2);
+                mem_init(&(out->files.data[out->files.length]), 0,
+                         out->files.length);
                 out->files.length *= 2;
             }
             struct fat32e *fe = &(out->files.data[out->files.count++]);
@@ -363,8 +362,8 @@ fat32_del(struct fat32 *f)
 {
     if (f)
     {
-        free(f->buffer);
-        free(f);
+        mem_del(f->buffer);
+        mem_del(f);
     }
 
     return NULL;
@@ -373,7 +372,7 @@ fat32_del(struct fat32 *f)
 static struct fat32 *
 fat32_new(struct device *storage)
 {
-    struct fat32 *ret = calloc(1, sizeof(struct fat32));
+    struct fat32 *ret = mem_new(sizeof(struct fat32));
 
     if (ret)
     {
@@ -386,10 +385,10 @@ fat32_new(struct device *storage)
 
     if (ret)
     {
-        memcpy(&(ret->br), fat32_buf, sizeof(struct fat32br));
+        mem_copy(&(ret->br), fat32_buf, sizeof(struct fat32br));
 
-        ret->buffer = malloc(0x200 * ret->br.sectspercluster);
-        ret->table = malloc(0x200 * ret->br.sectspertable);
+        ret->buffer = mem_new(0x200 * ret->br.sectspercluster);
+        ret->table = mem_new(0x200 * ret->br.sectspertable);
         if (!(ret->buffer && ret->table))
             ret = fat32_del(ret);
     }
@@ -410,8 +409,8 @@ fat32_new(struct device *storage)
     if (ret)
     {
         ret->root.files.length = 16;
-        ret->root.files.data = calloc(ret->root.files.length,
-                                      sizeof(struct fat32e));
+        ret->root.files.data = mem_new(ret->root.files.length *
+                                       sizeof(struct fat32e));
         if (!(ret->root.files.data))
             ret = fat32_del(ret);
     }
@@ -429,13 +428,15 @@ static struct fat32e *
 fat32_find(struct fat32 *f, char *path)
 {
     bool found = true;
+    char *state = NULL;
     struct fat32e *cur = &(f->root);
-    for (char *token = strtok(path, "/"); token; token = strtok(NULL, "/"))
+    for (char *token = str_token(path, "/", &state); token;
+               token = str_token(NULL, "/", &state))
     {
         found = false;
         for (size_t i = 0; i < cur->files.count; i++)
         {
-            if (strcmp(cur->files.data[i].name, token) == 0)
+            if (str_comp(cur->files.data[i].name, token, 0) == 0)
             {
                 found = true;
                 cur = &(cur->files.data[i]);
@@ -493,14 +494,13 @@ clean(void *ctx)
 static struct file *
 fs_close(struct file *f)
 {
-    free(f);
-    return NULL;
+    return mem_del(f);
 }
 
 static struct file *
 fs_open(void *ctx, char *path)
 {
-    struct file *ret = malloc(sizeof(struct file));
+    struct file *ret = mem_new(sizeof(struct file));
 
     if (ret)
     {
@@ -529,7 +529,7 @@ fs_index(struct file *f, u32 index)
     struct file *ret = NULL;
 
     if (f && f->fat32e->files.count > index)
-        ret = malloc(sizeof(struct file));
+        ret = mem_new(sizeof(struct file));
 
     if (ret)
     {

@@ -14,9 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <_types.h>
-#include <_utils.h>
-#include <string.h>
+#include <vermillion/types.h>
+#include <vermillion/utils.h>
 #include <vermillion/drivers.h>
 #include <vermillion/interrupts.h>
 
@@ -87,7 +86,7 @@ static bool
 config_get(void *ctx, union config *cfg)
 {
     struct timer *t = ctx;
-    memcpy(cfg, &(t->config), sizeof(union config));
+    mem_copy(cfg, &(t->config), sizeof(union config));
     return true;
 }
 
@@ -101,7 +100,7 @@ block_write(void *ctx, u8 *buffer, u32 block)
         struct timer *tmr = ctx;
         u32 data = 0;
 
-        memcpy(&data, buffer, sizeof(u32));
+        mem_copy(&data, buffer, sizeof(u32));
 
         TMR_IRQ_EN(tmr->base) |= 1 << tmr->id;
         TMR_CTRL(tmr->base, tmr->id) &= ~0x1;

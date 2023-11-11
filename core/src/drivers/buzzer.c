@@ -14,10 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <_types.h>
-#include <_utils.h>
-#include <stdlib.h>
-#include <string.h>
+#include <vermillion/types.h>
+#include <vermillion/utils.h>
 #include <vermillion/drivers.h>
 
 struct buzzer

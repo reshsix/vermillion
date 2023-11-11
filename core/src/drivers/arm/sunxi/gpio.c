@@ -14,9 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <stdlib.h>
-#include <string.h>
-#include <_types.h>
+#include <vermillion/types.h>
+#include <vermillion/utils.h>
 #include <vermillion/drivers.h>
 
 #define PN_CFG(c, n, i) *(volatile u32*)(c + (n * 0x24) + (0x4 * i))
@@ -70,7 +69,7 @@ static bool gpio_ack(void *ctx, u16 intr);
 static void
 init(void **ctx, u32 base, u8 io_ports, u8 int_ports)
 {
-    struct gpio *ret = calloc(1, sizeof(struct gpio));
+    struct gpio *ret = mem_new(sizeof(struct gpio));
 
     if (ret)
     {
@@ -89,14 +88,14 @@ init(void **ctx, u32 base, u8 io_ports, u8 int_ports)
 static void
 clean(void *ctx)
 {
-    free(ctx);
+    mem_del(ctx);
 }
 
 static bool
 config_get(void *ctx, union config *cfg)
 {
     struct gpio *gpio = ctx;
-    memcpy(cfg, &(gpio->config), sizeof(union config));
+    mem_copy(cfg, &(gpio->config), sizeof(union config));
     return true;
 }
 
@@ -109,7 +108,7 @@ block_read(void *ctx, u8 *buffer, u32 block)
     if (block < gpio->io_ports)
     {
         u32 data = PN_DAT(gpio->base, block);
-        memcpy(buffer, &data, sizeof(u32));
+        mem_copy(buffer, &data, sizeof(u32));
     }
     else
         ret = false;
@@ -126,7 +125,7 @@ block_write(void *ctx, u8 *buffer, u32 block)
     if (block < gpio->io_ports)
     {
         u32 data = 0;
-        memcpy(&data, buffer, sizeof(u32));
+        mem_copy(&data, buffer, sizeof(u32));
         PN_DAT(gpio->base, block) = data;
     }
     else

@@ -16,8 +16,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 /* Considers card to have already been initialized by u-boot */
 
-#include <_types.h>
-#include <stdlib.h>
+#include <vermillion/types.h>
+#include <vermillion/utils.h>
 #include <vermillion/drivers.h>
 
 #define SD_CFG(x)   *(volatile u32*)(x + 0x00)
@@ -42,7 +42,7 @@ struct card
 static void
 init(void **ctx, u32 base)
 {
-    struct card *ret = calloc(1, sizeof(struct card));
+    struct card *ret = mem_new(sizeof(struct card));
 
     if (ret)
     {
@@ -60,7 +60,7 @@ init(void **ctx, u32 base)
 static void
 clean(void *ctx)
 {
-    free(ctx);
+    mem_del(ctx);
 }
 
 static bool

@@ -14,11 +14,9 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <_types.h>
-#include <stdlib.h>
-#include <string.h>
-#include <_i686-env.h>
+#include <vermillion/utils.h>
 #include <vermillion/drivers.h>
+#include <vermillion/i686/env.h>
 
 #define IO_DAT(x)  (x + 0)
 #define IO_IER(x)  (x + 1)
@@ -37,7 +35,7 @@ struct serial
 static void
 init(void **ctx, u16 port)
 {
-    struct serial *ret = calloc(1, sizeof(struct serial));
+    struct serial *ret = mem_new(sizeof(struct serial));
 
     if (ret)
     {
@@ -50,7 +48,7 @@ init(void **ctx, u16 port)
         if (in8(IO_DAT(port)) == 0x66)
             *ctx = ret;
         else
-            free(ret);
+            mem_del(ret);
 
         out8(IO_MCR(port), 0xF);
     }
@@ -65,14 +63,14 @@ clean(void *ctx)
         out8(IO_IER(com->port), 0x0);
         out8(IO_MCR(com->port), 0x0);
     }
-    free(ctx);
+    mem_del(ctx);
 }
 
 static bool
 config_get(void *ctx, union config *cfg)
 {
     struct serial *com = ctx;
-    memcpy(cfg, &(com->config), sizeof(union config));
+    mem_copy(cfg, &(com->config), sizeof(union config));
     return true;
 }
 
@@ -165,7 +163,7 @@ config_set(void *ctx, union config *cfg)
     if (ret)
     {
         struct serial *com = ctx;
-        memcpy(&(com->config), cfg, sizeof(union config));
+        mem_copy(&(com->config), cfg, sizeof(union config));
 
         u16 divisor = 115200 / cfg->serial.baud;
         u8 LCR = in8(IO_LCR(com->port));

@@ -14,19 +14,21 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <_utils.h>
+#ifndef VERMILLION_TYPES_H
+#define VERMILLION_TYPES_H
 
-extern int
-__assert(const char *f, int l, const char *fn, const char *e)
-{
-    print(f);
-    print(":");
-    print_uint(l);
-    print(": ");
-    print(fn);
-    print(": Assertion '");
-    print(e);
-    print("' failed\r\n");
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
 
-    return 0;
-}
+typedef int8_t  s8;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef int64_t s64;
+typedef uint8_t  u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+
+#endif

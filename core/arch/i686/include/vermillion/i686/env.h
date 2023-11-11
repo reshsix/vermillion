@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef _I686_ENV_H
 #define _I686_ENV_H
 
-#include <_types.h>
+#include <vermillion/types.h>
 
 static inline u8
 in8(u16 port)

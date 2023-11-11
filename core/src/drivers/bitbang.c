@@ -14,8 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <_utils.h>
-#include <stdlib.h>
+#include <vermillion/types.h>
+#include <vermillion/utils.h>
 #include <vermillion/drivers.h>
 
 struct spi
@@ -90,7 +90,7 @@ init(void **ctx, struct device *gpio, u16 ss, u16 sck, u16 mosi, u16 miso,
     struct spi *ret = NULL;
 
     if (gpio && timer)
-        ret = calloc(1, sizeof(struct spi));
+        ret = mem_new(sizeof(struct spi));
 
     if (ret)
     {
@@ -136,7 +136,7 @@ clean(void *ctx)
     config.gpio.pin(spi->gpio->context, spi->miso, DRIVER_GPIO_OFF,
                     DRIVER_GPIO_PULLOFF);
 
-    free(ctx);
+    mem_del(ctx);
 }
 
 static bool

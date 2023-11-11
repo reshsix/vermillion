@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef EASY_IO_H
 #define EASY_IO_H
 
-#include <_types.h>
+#include <vermillion/types.h>
 #include <vermillion/drivers.h>
 
 #define LOW  false

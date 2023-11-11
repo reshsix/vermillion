@@ -14,9 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <_types.h>
-#include <stdlib.h>
-#include <string.h>
+#include <vermillion/types.h>
+#include <vermillion/utils.h>
 #include <vermillion/drivers.h>
 
 static u8 mbr_buf[0x200] __attribute__((aligned(32)));
@@ -33,7 +32,7 @@ init(void **ctx, struct device *storage, u8 partition)
     struct mbr *ret = NULL;
 
     if (storage && partition > 0 && partition < 5)
-        ret = calloc(1, sizeof(struct mbr));
+        ret = mem_new(sizeof(struct mbr));
 
     if (ret && storage->driver->interface.block.read(storage->context,
                                                      mbr_buf, 0))
@@ -47,7 +46,7 @@ init(void **ctx, struct device *storage, u8 partition)
 static void
 clean(void *ctx)
 {
-    free(ctx);
+    mem_del(ctx);
 }
 
 static bool

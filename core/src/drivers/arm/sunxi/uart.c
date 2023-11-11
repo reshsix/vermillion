@@ -14,9 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <_types.h>
-#include <stdlib.h>
-#include <string.h>
+#include <vermillion/types.h>
+#include <vermillion/utils.h>
 #include <vermillion/drivers.h>
 
 #define UART_BUF(p) *(volatile u32*)(p + 0x00)
@@ -138,7 +137,7 @@ struct uart
 static void
 init(void **ctx, u32 port)
 {
-    struct uart *ret = calloc(1, sizeof(struct uart));
+    struct uart *ret = mem_new(sizeof(struct uart));
 
     if (ret)
     {
@@ -150,14 +149,14 @@ init(void **ctx, u32 port)
 static void
 clean(void *ctx)
 {
-    free(ctx);
+    mem_del(ctx);
 }
 
 static bool
 config_get(void *ctx, union config *cfg)
 {
     struct uart *u = ctx;
-    memcpy(cfg, &(u->config), sizeof(union config));
+    mem_copy(cfg, &(u->config), sizeof(union config));
     return true;
 }
 
@@ -239,7 +238,7 @@ config_set(void *ctx, union config *cfg)
     if (ret)
     {
         struct uart *u = ctx;
-        memcpy(&(u->config), cfg, sizeof(union config));
+        mem_copy(&(u->config), cfg, sizeof(union config));
         uart_config(u->port, divider, uc, up, us, UART_FLAG_NONE);
     }
 

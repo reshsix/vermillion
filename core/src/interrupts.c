@@ -14,8 +14,7 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <_types.h>
-#include <signal.h>
+#include <vermillion/types.h>
 #include <vermillion/interrupts.h>
 
 #if defined(CONFIG_ARCH_ARM)
@@ -239,25 +238,25 @@ static void (*irqs[256])(void) = {NULL};
 static interrupt(undef)
 handler_undef(void)
 {
-    raise(SIGILL);
+    // TODO panic
 }
 
 static interrupt(swi)
 handler_swi(void)
 {
-    raise(SIGINT);
+    // TODO sigint
 }
 
 static interrupt(abort)
 handler_prefetch(void)
 {
-    raise(SIGSEGV);
+    // TODO panic
 }
 
 static interrupt(abort)
 handler_data(void)
 {
-    raise(SIGSEGV);
+    // TODO panic
 }
 
 static interrupt(irq)

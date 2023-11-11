@@ -14,8 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
-#include <_utils.h>
+#include <vermillion/types.h>
+#include <vermillion/utils.h>
 #include <vermillion/drivers.h>
 
 #define R_PRCM 0x01F01400
@@ -86,15 +86,11 @@ _devtree_init(void)
 
     pin_cfg(&DEVICE(gpio1), 10, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
     pin_set(&DEVICE(gpio1), 10, true);
-
-    _stdio_init(&DEVICE(root), &DEVICE(tty0), &DEVICE(tty0), &DEVICE(tty0));
 }
 
 extern void
 _devtree_clean(void)
 {
-    _stdio_clean();
-
     CLEAN_DEVICE(tty0)
     CLEAN_DEVICE(tty1)
     CLEAN_DEVICE(tty2)

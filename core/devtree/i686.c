@@ -14,7 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
+#include <vermillion/types.h>
+#include <vermillion/utils.h>
 #include <vermillion/drivers.h>
 
 INCLUDE_DRIVER(i686_com)
@@ -36,15 +37,11 @@ _devtree_init(void)
                         .serial.bits =   DRIVER_SERIAL_CHAR_8B,
                         .serial.parity = DRIVER_SERIAL_PARITY_NONE,
                         .serial.stop   = DRIVER_SERIAL_STOP_1B);
-
-    _stdio_init(NULL, &DEVICE(tty0), &DEVICE(tty0), &DEVICE(tty0));
 }
 
 extern void
 _devtree_clean(void)
 {
-    _stdio_clean();
-
     CLEAN_DEVICE(tty0)
     CLEAN_DEVICE(tty1)
     CLEAN_DEVICE(tty2)

@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef VERMILLION_INTERRUPTS_H
 #define VERMILLION_INTERRUPTS_H
 
-#include <_types.h>
+#include <vermillion/types.h>
 
 bool _interrupts_init(void);
 void _interrupts_clean(void);

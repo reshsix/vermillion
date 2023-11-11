@@ -2,16 +2,7 @@
 A framework to develop embedded applications
 
 ## Development
-The project is in alpha stage, lacking some libc functions and drivers
-
-### Libc missing features
-- stdlib.h's atoX strtoX qsort bsearch mbX wcX
-- stdio.h's buffering (fflush, setbuf/setvbuf)
-- stdio.h's scanf/printf family
-- stdio.h's freopen, fwrite\_fs, remove, rename, tmpfile, tmpnam
-- setjmp.h, time.h, inttypes.h
-- Wide character extensions: wchar.h, wctype.h  (NA1)
-- Mathematical functions: math.h (C89), fenv.h, complex.h, tgmath.h (C99)
+The project is in alpha stage
 
 ### Supported boards
 | Name |
@@ -33,7 +24,6 @@ qemu-system-arm qemu-system-i386 gdb-multiarch
 ## Example
 ~/my\_project/main.c:
 ```c
-#include <stdio.h>
 #include <easy/io.h>
 
 #include <vermillion/drivers.h>
@@ -42,8 +32,6 @@ INCLUDE_DEVICE(gpio0)
 extern int
 main(void)
 {
-    puts("Hello World!\r\n");
-
     io_chip(&DEVICE(gpio0));
     io_config(13, OUTPUT);
     io_write(13, HIGH);

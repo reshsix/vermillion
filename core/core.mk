@@ -114,18 +114,8 @@ OBJS :=
 
 OBJS += interrupts.o
 OBJS += devtree.o
-
-PREFIX = libc
-
-OBJS += $(PREFIX)/_utils.o
-OBJS += $(PREFIX)/assert.o
-OBJS += $(PREFIX)/ctype.o
-OBJS += $(PREFIX)/errno.o
-OBJS += $(PREFIX)/locale.o
-OBJS += $(PREFIX)/signal.o
-OBJS += $(PREFIX)/stdio.o
-OBJS += $(PREFIX)/stdlib.o
-OBJS += $(PREFIX)/string.o
+OBJS += utils.o
+OBJS += init.o
 
 PREFIX = drivers
 

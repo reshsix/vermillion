@@ -14,24 +14,25 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef _SIGNAL_H
-#define _SIGNAL_H
+#include <vermillion/types.h>
+#include <vermillion/utils.h>
+#include <vermillion/drivers.h>
+#include <vermillion/interrupts.h>
 
-#define SIGABRT 0
-#define SIGFPE  1
-#define SIGILL  2
-#define SIGINT  3
-#define SIGSEGV 4
-#define SIGTERM 5
-#define SIGTRAP 6
-#define SIGLAST SIGTRAP
+extern int main(void);
+extern void
+__init(void)
+{
+    init_utils();
 
-#define SIG_DFL NULL
-#define SIG_IGN ((void*)1)
+    _interrupts_init();
+    _devtree_init();
 
-#define SIG_ERR -1
+    main();
 
-void *signal(int n, void (*f)(int));
-int raise(int n);
+    _devtree_clean();
+    _interrupts_clean();
 
-#endif
+    for (;;)
+        intr_wait();
+}

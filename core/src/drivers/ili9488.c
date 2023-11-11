@@ -14,11 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <_types.h>
-#include <_utils.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <string.h>
+#include <vermillion/types.h>
+#include <vermillion/utils.h>
 #include <vermillion/drivers.h>
 
 struct ili9488
@@ -150,7 +147,7 @@ init(void **ctx, struct device *gpio, u16 dcrs, u16 leds,
     struct ili9488 *ret = NULL;
 
     if (gpio && stream)
-        ret = calloc(1, sizeof(struct ili9488));
+        ret = mem_new(sizeof(struct ili9488));
 
     if (ret)
     {
@@ -187,7 +184,7 @@ clean(void *ctx)
     config.gpio.pin(ili->gpio->context, ili->leds, DRIVER_GPIO_OFF,
                     DRIVER_GPIO_PULLOFF);
 
-    free(ili);
+    mem_del(ili);
 }
 
 static bool
@@ -210,7 +207,7 @@ block_read(void *ctx, u8 *buffer, u32 block)
     if (block < (480 * 320 * 4) / 0x200)
     {
         struct ili9488 *ili = ctx;
-        memcpy(buffer, &(ili->buffer32[block * 0x200]), 0x200);
+        mem_copy(buffer, &(ili->buffer32[block * 0x200]), 0x200);
         ret = true;
     }
 
@@ -229,15 +226,15 @@ block_write(void *ctx, u8 *buffer, u32 block)
 
         bool diff = false;
         for (u8 i = 0; !diff && i < size; i++)
-            diff = memcmp(&(ili->buffer32[i * 4]), &(buffer[i * 4]), 3);
+            diff = mem_comp(&(ili->buffer32[i * 4]), &(buffer[i * 4]), 3);
 
         if (diff)
         {
-            memcpy(&(ili->buffer32[block * 0x200]), buffer, 0x200);
+            mem_copy(&(ili->buffer32[block * 0x200]), buffer, 0x200);
 
             u32 index = block * size;
             for (u8 i = 0; i < size; i++)
-                memcpy(&(ili->buffer24[i * 3]), &(buffer[i * 4]), 3);
+                mem_copy(&(ili->buffer24[i * 3]), &(buffer[i * 4]), 3);
 
             u32 x = index % 480;
             u32 y = index / 480;
