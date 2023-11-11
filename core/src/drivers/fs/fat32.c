@@ -316,11 +316,17 @@ fat32_directory(struct fat32 *f, u32 cluster, struct fat32e *out)
         {
             if (out->files.count >= out->files.length)
             {
-                out->files.data = mem_renew(out->files.data,
-                                            out->files.length * 2);
-                mem_init(&(out->files.data[out->files.length]), 0,
-                         out->files.length);
-                out->files.length *= 2;
+                void *new = mem_renew(out->files.data,
+                                      out->files.length * 2);
+                if (new != NULL)
+                {
+                    out->files.data = new;
+                    mem_init(&(out->files.data[out->files.length]), 0,
+                             out->files.length);
+                    out->files.length *= 2;
+                }
+                else
+                    ret = false;
             }
             struct fat32e *fe = &(out->files.data[out->files.count++]);
             fat32e_init(fe, name, &(f->buffer[i]));
