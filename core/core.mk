@@ -85,7 +85,9 @@ defconfig: config/$(BOARD)_defconfig
 
 # Folder creation
 FOLDERS := $(BUILD) $(BUILD)/libc $(BUILD)/arch $(BUILD)/mount
-FOLDERS += $(BUILD)/drivers $(BUILD)/drivers/base
+FOLDERS += $(BUILD)/drivers $(BUILD)/drivers/audio
+FOLDERS += $(BUILD)/drivers/display $(BUILD)/drivers/fs
+FOLDERS += $(BUILD)/drivers/generic $(BUILD)/drivers/protocols
 FOLDERS += $(BUILD)/drivers/arm $(BUILD)/drivers/i686
 FOLDERS += $(BUILD)/drivers/arm/sunxi
 $(FOLDERS):
@@ -117,30 +119,33 @@ OBJS += devtree.o
 OBJS += utils.o
 OBJS += init.o
 
-PREFIX = drivers
-
-ifdef CONFIG_SPI_BITBANG
-OBJS += $(PREFIX)/bitbang.o
-endif
+PREFIX = drivers/audio
 
 ifdef CONFIG_AUDIO_BUZZER
 OBJS += $(PREFIX)/buzzer.o
 endif
 
-ifdef CONFIG_FS_FAT32_MBR
-OBJS += $(PREFIX)/fat32.o
-endif
+PREFIX = drivers/video
 
 ifdef CONFIG_VIDEO_ILI9488
 OBJS += $(PREFIX)/ili9488.o
 endif
 
-PREFIX = drivers/base
+PREFIX = drivers/fs
 
+ifdef CONFIG_FS_FAT32_MBR
 OBJS += $(PREFIX)/mbr.o
+OBJS += $(PREFIX)/fat32.o
+endif
+
+PREFIX = drivers/protocol
+
+ifdef CONFIG_PROTOCOL_SPI_SOFT
+OBJS += $(PREFIX)/spi_soft.o
+endif
+
+PREFIX = drivers/generic
 OBJS += $(PREFIX)/memory.o
-OBJS += $(PREFIX)/null.o
-OBJS += $(PREFIX)/zero.o
 
 PREFIX = drivers/arm/sunxi
 

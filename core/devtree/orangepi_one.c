@@ -27,8 +27,6 @@ INCLUDE_DRIVER(sunxi_timer)
 INCLUDE_DRIVER(sunxi_mmc)
 
 INCLUDE_DRIVER(mbr)
-INCLUDE_DRIVER(null)
-INCLUDE_DRIVER(zero)
 INCLUDE_DRIVER(memory)
 
 INCLUDE_DRIVER(fat32)
@@ -48,8 +46,6 @@ DECLARE_DEVICE(timer1)
 DECLARE_DEVICE(mmcblk0)
 DECLARE_DEVICE(mmcblk0p1)
 
-DECLARE_DEVICE(null)
-DECLARE_DEVICE(zero)
 DECLARE_DEVICE(mem)
 
 DECLARE_DEVICE(root)
@@ -78,8 +74,6 @@ _devtree_init(void)
     INIT_DEVICE(mmcblk0,   sunxi_mmc, 0x01c0f000);
     INIT_DEVICE(mmcblk0p1, mbr,       &DEVICE(mmcblk0), 1);
 
-    INIT_DEVICE(null, null);
-    INIT_DEVICE(zero, zero);
     INIT_DEVICE(mem,  memory);
 
     INIT_DEVICE(root, fat32, &DEVICE(mmcblk0p1));
@@ -112,8 +106,6 @@ _devtree_clean(void)
     CLEAN_DEVICE(mmcblk0)
     CLEAN_DEVICE(mmcblk0p1)
 
-    CLEAN_DEVICE(null)
-    CLEAN_DEVICE(zero)
     CLEAN_DEVICE(mem)
 
     CLEAN_DEVICE(root)

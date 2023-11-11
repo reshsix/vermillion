@@ -202,7 +202,7 @@ stream_write(void *ctx, u8 data)
     return true;
 }
 
-DECLARE_DRIVER(bitbang_spi)
+DECLARE_DRIVER(spi_soft)
 {
     .init = init, .clean = clean,
     .api = DRIVER_API_STREAM,

@@ -120,8 +120,8 @@ endmenu
 # SPI configuration
 
 menu "SPI"
-config SPI_BITBANG
-    bool "Bitbang"
+config PROTOCOL_SPI_SOFT
+    bool "Software SPI"
 endmenu
 
 # GPIO configuration
