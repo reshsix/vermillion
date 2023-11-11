@@ -86,7 +86,7 @@ defconfig: config/$(BOARD)_defconfig
 # Folder creation
 FOLDERS := $(BUILD) $(BUILD)/libc $(BUILD)/arch $(BUILD)/mount
 FOLDERS += $(BUILD)/drivers $(BUILD)/drivers/audio
-FOLDERS += $(BUILD)/drivers/display $(BUILD)/drivers/fs
+FOLDERS += $(BUILD)/drivers/video $(BUILD)/drivers/fs
 FOLDERS += $(BUILD)/drivers/generic $(BUILD)/drivers/protocols
 FOLDERS += $(BUILD)/drivers/arm $(BUILD)/drivers/i686
 FOLDERS += $(BUILD)/drivers/arm/sunxi
