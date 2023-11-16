@@ -647,7 +647,13 @@ str_concat(char *dest, char *src, size_t length)
 /* Initialization helpers */
 
 extern void
-init_utils(void)
+_utils_init(void)
 {
     init_mem_new();
+}
+
+extern void
+_utils_clean(void)
+{
+    return;
 }

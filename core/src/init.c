@@ -23,8 +23,7 @@ extern int main(void);
 extern void
 __init(void)
 {
-    init_utils();
-
+    _utils_init();
     _interrupts_init();
     _devtree_init();
 
@@ -32,6 +31,7 @@ __init(void)
 
     _devtree_clean();
     _interrupts_clean();
+    _utils_clean();
 
     for (;;)
         intr_wait();

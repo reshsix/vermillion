@@ -57,6 +57,7 @@ char *str_token(char *str, const char *chars, char **saveptr);
 void str_copy(char *dest, char *src, size_t length);
 void str_concat(char *dest, char *src, size_t length);
 
-void init_utils(void);
+void _utils_init(void);
+void _utils_clean(void);
 
 #endif
