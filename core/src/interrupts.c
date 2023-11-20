@@ -15,6 +15,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <vermillion/types.h>
+#include <vermillion/utils.h>
 #include <vermillion/interrupts.h>
 
 #if defined(CONFIG_ARCH_ARM)
@@ -238,26 +239,26 @@ static void (*irqs[256])(void) = {NULL};
 static interrupt(undef)
 handler_undef(void)
 {
-    panic("Undefined Instruction")
+    panic("Undefined Instruction");
 }
 
 static interrupt(swi)
 handler_swi(void)
 {
     // TODO add a handler for software interrupts
-    panic("Unhandled Supervisor Call")
+    panic("Unhandled Supervisor Call");
 }
 
 static interrupt(abort)
 handler_prefetch(void)
 {
-    panic("Prefetch Abort")
+    panic("Prefetch Abort");
 }
 
 static interrupt(abort)
 handler_data(void)
 {
-    panic("Data Abort")
+    panic("Data Abort");
 }
 
 static interrupt(irq)

@@ -33,7 +33,7 @@ extern void
 log_c(const char c)
 {
     if (logdev != NULL)
-        logdev->io->driver->interface.stream.write(logdev->io->context, c);
+        logdev->driver->interface.stream.write(logdev->context, c);
 }
 
 extern void
@@ -62,14 +62,14 @@ log_h8(const u8 n)
 extern void
 log_h(const u32 n)
 {
-    print("0x");
+    log_s("0x");
     if (n >= (1 << 24))
-        print_h8(n >> 24);
+        log_h8(n >> 24);
     if (n >= (1 << 16))
-        print_h8(n >> 16);
+        log_h8(n >> 16);
     if (n >= (1 << 8))
-        print_h8(n >> 8);
-    print_h8(n);
+        log_h8(n >> 8);
+    log_h8(n);
 }
 
 extern void
@@ -618,30 +618,35 @@ str_copy(char *dest, char *src, size_t length)
 {
     size_t l = str_length(src);
 
-    length = (length != 0) ? length : SIZE_MAX;
     if (length > l)
     {
         mem_copy(dest, src, l);
         mem_init(&(dest[l]), '\0', length - l);
     }
-    else
+    else if (length != 0)
         mem_copy(dest, src, length);
+    else
+        mem_copy(dest, src, l + 1);
 }
 
 extern void
 str_concat(char *dest, char *src, size_t length)
 {
     size_t l = str_length(dest);
-    size_t l2 = str_length(src);
 
-    length = (length != 0) ? length : SIZE_MAX;
-    if (length <= l)
+    if (length != 0)
     {
-        mem_copy(&(dest[l]), src, length);
-        dest[l + length] = '\0';
+        size_t l2 = str_length(src);
+        if (length <= l)
+        {
+            mem_copy(&(dest[l]), src, length);
+            dest[l + length] = '\0';
+        }
+        else
+            mem_copy(&(dest[l]), src, l2);
     }
     else
-        mem_copy(&(dest[l]), src, l2);
+        str_copy(&(dest[l]), src, 0);
 }
 
 /* Initialization helpers */

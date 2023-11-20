@@ -60,7 +60,7 @@ _devtree_init(void)
                         .serial.bits   = DRIVER_SERIAL_CHAR_8B,
                         .serial.parity = DRIVER_SERIAL_PARITY_NONE,
                         .serial.stop   = DRIVER_SERIAL_STOP_1B);
-    logger(&tty0);
+    logger(&DEVICE(tty0));
 
     INIT_DEVICE(tty1, sunxi_uart, 0x01c28400);
     INIT_DEVICE(tty2, sunxi_uart, 0x01c28800);
