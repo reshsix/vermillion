@@ -23,10 +23,13 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 static struct device *logdev = NULL;
 
-extern void
+extern struct device *
 logger(struct device *log)
 {
-    logdev = log;
+    if (log != NULL)
+        logdev = log;
+
+    return logdev;
 }
 
 extern void
@@ -195,7 +198,10 @@ pin_get(struct device *gpio, u16 pin, bool *data)
 
     u32 reg = 0;
     if (gpio->driver->interface.block.read(gpio->context, (u8*)&reg, block))
+    {
         *data = reg & (1 << bit);
+        ret = true;
+    }
 
     return ret;
 }
@@ -420,7 +426,7 @@ mem_comp(const void *mem, const void *mem2, size_t length)
 }
 
 extern void *
-mem_find(const void *mem, int c, size_t length)
+mem_find(const void *mem, u8 c, size_t length)
 {
     void *ret = NULL;
 
@@ -438,29 +444,25 @@ mem_find(const void *mem, int c, size_t length)
 }
 
 extern void
-mem_init(void *mem, int c, size_t length)
+mem_init(void *mem, u8 c, size_t length)
 {
     for (size_t i = 0; i < length; i++)
         ((u8*)mem)[i] = c;
 }
 
 extern void
-mem_copy(void *dest, void *src, size_t length)
-{
-    for (size_t i = 0; i < length; i++)
-        ((u8*)dest)[i] = ((u8*)src)[i];
-}
-
-extern void
-mem_move(void *dest, void *src, size_t length)
+mem_copy(void *dest, const void *src, size_t length)
 {
     if (((u32)src + length) > (u32)dest)
     {
         for (size_t i = length; i > 0; i--)
             ((u8*)dest)[i-1] = ((u8*)src)[i-1];
     }
-    else
-        mem_copy(dest, src, length);
+    else if (dest != src)
+    {
+        for (size_t i = 0; i < length; i++)
+            ((u8*)dest)[i] = ((u8*)src)[i];
+    }
 }
 
 /* String helpers */
@@ -479,43 +481,6 @@ str_comp(const char *str, const char *str2, size_t length)
     size_t l2 = str_length(str2);
     size_t ln = ((l < l2) ? l : l2) + 1;
     return mem_comp(str, str2, (ln < length) ? ln : length);
-}
-
-extern char *
-str_find_l(const char *str, int c)
-{
-    char *ret = NULL;
-
-    size_t l = str_length(str);
-    if (c != '\0')
-        ret = mem_find(str, c, l);
-    else
-        ret = (char*)&(str[l]);
-
-    return ret;
-}
-
-extern char *
-str_find_r(const char *str, int c)
-{
-    char *ret = NULL;
-
-    size_t l = str_length(str);
-    if (c != '\0')
-    {
-        for (size_t i = l; i > 0; i--)
-        {
-            if (str[i-1] == c)
-            {
-                ret = (char*)&(str[i-1]);
-                break;
-            }
-        }
-    }
-    else
-        ret = (char*)&(str[l]);
-
-    return ret;
 }
 
 extern size_t
@@ -548,6 +513,43 @@ str_span(const char *str, const char *chars, bool complement)
             break;
         }
     }
+
+    return ret;
+}
+
+extern char *
+str_find_l(const char *str, char c)
+{
+    char *ret = NULL;
+
+    size_t l = str_length(str);
+    if (c != '\0')
+        ret = mem_find(str, c, l);
+    else
+        ret = (char*)&(str[l]);
+
+    return ret;
+}
+
+extern char *
+str_find_r(const char *str, char c)
+{
+    char *ret = NULL;
+
+    size_t l = str_length(str);
+    if (c != '\0')
+    {
+        for (size_t i = l; i > 0; i--)
+        {
+            if (str[i-1] == c)
+            {
+                ret = (char*)&(str[i-1]);
+                break;
+            }
+        }
+    }
+    else
+        ret = (char*)&(str[l]);
 
     return ret;
 }
@@ -637,16 +639,58 @@ str_concat(char *dest, char *src, size_t length)
     if (length != 0)
     {
         size_t l2 = str_length(src);
-        if (length <= l)
+        if (length < l2)
         {
             mem_copy(&(dest[l]), src, length);
             dest[l + length] = '\0';
         }
         else
-            mem_copy(&(dest[l]), src, l2);
+            mem_copy(&(dest[l]), src, l2 + 1);
     }
     else
         str_copy(&(dest[l]), src, 0);
+}
+
+extern char *
+str_dupl(char *str, size_t length)
+{
+    char *ret = NULL;
+
+    length = (length == 0) ? str_length(str) : length;
+
+    if ((ret = mem_new(length + 1)))
+    {
+        mem_copy(ret, str, length + 1);
+        ret[length] = '\0';
+    }
+
+    return ret;
+}
+
+/* For GCC optimizations */
+
+extern void
+memcpy(void * restrict dest, const void * restrict src, size_t length)
+{
+    mem_copy(dest, src, length);
+}
+
+extern void
+memmove(void *dest, const void *src, size_t length)
+{
+    mem_copy(dest, src, length);
+}
+
+extern void
+memset(void *mem, int c, size_t length)
+{
+    mem_init(mem, c, length);
+}
+
+extern int
+memcmp(const void *mem, const void *mem2, size_t length)
+{
+    return mem_comp(mem, mem2, length);
 }
 
 /* Initialization helpers */
