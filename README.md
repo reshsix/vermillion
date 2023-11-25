@@ -48,6 +48,16 @@ OBJS='main.o' LIBS='easy' vmake all
 vmake debug
 ```
 
+For testing
+```sh
+. export.sh
+
+cd test
+vmake defconfig
+OBJS='utils.o' vmake all
+vmake debug
+```
+
 ## Missing features before first release
 - core/interrupts.o
     - Software interrupt handling
