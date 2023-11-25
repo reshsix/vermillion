@@ -17,20 +17,17 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <vermillion/types.h>
 #include <vermillion/utils.h>
 #include <vermillion/drivers.h>
-#include <vermillion/interrupts.h>
 
 extern int main(void);
 extern void
 __init(void)
 {
     _utils_init();
-    _interrupts_init();
     _devtree_init();
 
     main();
 
     _devtree_clean();
-    _interrupts_clean();
     _utils_clean();
 
     for (;;)

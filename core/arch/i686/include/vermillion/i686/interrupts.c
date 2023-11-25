@@ -14,15 +14,30 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef VERMILLION_INTERRUPTS_H
-#define VERMILLION_INTERRUPTS_H
-
 #include <vermillion/types.h>
+#include <vermillion/utils.h>
 
-bool _interrupts_init(void);
-void _interrupts_clean(void);
+static void
+init_intr(void)
+{
+    return;
+}
 
-bool intr_config(u16 n, void (*f)(void), bool enable, u8 priority);
-void intr_wait(void);
+static void
+clean_intr(void)
+{
+    return;
+}
 
-#endif
+extern bool
+intr_config(u16 n, void (*f)(void), bool enable, u8 priority)
+{
+    (void)n, (void)f, (void)enable, (void)priority;
+    return false;
+}
+
+extern void
+intr_wait(void)
+{
+    asm volatile ("hlt");
+}

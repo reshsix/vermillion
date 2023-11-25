@@ -59,7 +59,7 @@ vmake debug
 ```
 
 ## Missing features before first release
-- core/interrupts.o
+- core/utils.o
     - Software interrupt handling
 - libs (Generic device libraries)
     - Framebuffer (video drivers)
@@ -77,7 +77,6 @@ sequenceDiagram
     participant core/arch
     participant core/init.o
     participant core/utils.o
-    participant core/interrupts.o
     participant core/devtree
     participant core/drivers
     participant libs
@@ -86,7 +85,6 @@ sequenceDiagram
     core/arch->>core/init.o: Call __init()
     activate core/init.o
     core/init.o->>core/utils.o: Call _utils_init()
-    core/init.o->>core/interrupts.o: Call _interrupts_init()
     core/init.o->>core/devtree: Call _devtree_init()
     core/devtree->>core/drivers: Initialize devices
     core/init.o->>user: Call main()
@@ -95,7 +93,6 @@ sequenceDiagram
     user-->>user: Call own functions
     user-->>core/drivers: Initialize extra devices
     user-->>core/devtree: Interact with devices
-    user-->>core/interrupts.o: Control interrupts
     user-->>core/utils.o: Call arch-independent functions
     user-->>core/arch: Call arch-dependent functions
     user-->>libs: Call generic device libraries
@@ -105,7 +102,6 @@ sequenceDiagram
     deactivate user
     activate core/init.o
     core/init.o->>core/utils.o: Call _utils_clean()
-    core/init.o->>core/interrupts.o: Call _interrupts_clean()
     core/init.o->>core/devtree: Call _devtree_clean()
     core/devtree->>core/drivers: Clean devices
     core/init.o->>core/init.o: Halts forever

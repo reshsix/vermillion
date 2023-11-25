@@ -17,7 +17,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <vermillion/types.h>
 #include <vermillion/utils.h>
 #include <vermillion/drivers.h>
-#include <vermillion/interrupts.h>
 
 /* Logging helpers */
 
@@ -226,12 +225,18 @@ struct memblk
 static struct memblk *head = NULL;
 extern struct memblk __free;
 static void
-init_mem_new(void)
+init_mem(void)
 {
     head = &__free;
     head->size = CONFIG_RAM_ADDRESS + CONFIG_RAM_SIZE + CONFIG_STACK_SIZE;
     head->size -= (u32)MEMBODY(head, 0);
     head->next = NULL;
+}
+
+static void
+clean_mem(void)
+{
+    return;
 }
 
 extern void *
@@ -667,6 +672,16 @@ str_dupl(char *str, size_t length)
     return ret;
 }
 
+/* Interrupt helpers */
+
+/* static init_intr, static clean_intr,
+   extern init_config, extern intr_wait */
+#if defined(CONFIG_ARCH_ARM)
+#include <vermillion/arm/interrupts.c>
+#elif defined(CONFIG_ARCH_I686)
+#include <vermillion/i686/interrupts.c>
+#endif
+
 /* For GCC optimizations */
 
 extern void
@@ -698,11 +713,13 @@ memcmp(const void *mem, const void *mem2, size_t length)
 extern void
 _utils_init(void)
 {
-    init_mem_new();
+    init_mem();
+    init_intr();
 }
 
 extern void
 _utils_clean(void)
 {
-    return;
+    clean_mem();
+    clean_intr();
 }

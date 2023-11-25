@@ -16,9 +16,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <vermillion/types.h>
 #include <vermillion/utils.h>
-#include <vermillion/interrupts.h>
-
-#if defined(CONFIG_ARCH_ARM)
 
 enum
 {
@@ -281,8 +278,8 @@ handler_fiq(void)
     intr_fiq_ack(c, n);
 }
 
-extern bool
-_interrupts_init(void)
+static void
+init_intr(void)
 {
     __ivt[IVT_UNDEF]    = handler_undef;
     __ivt[IVT_SWI]      = handler_swi;
@@ -290,12 +287,10 @@ _interrupts_init(void)
     __ivt[IVT_DATA]     = handler_data;
     __ivt[IVT_IRQ]      = handler_irq;
     __ivt[IVT_FIQ]      = handler_fiq;
-
-    return true;
 }
 
-extern void
-_interrupts_clean(void)
+static void
+clean_intr(void)
 {
     arm_disable_irq();
     gic_disable_dist();
@@ -344,60 +339,3 @@ intr_wait(void)
 {
     arm_wait_interrupts();
 }
-
-#elif defined(CONFIG_ARCH_I686)
-
-extern bool
-_interrupts_init(void)
-{
-    return true;
-}
-
-extern void
-_interrupts_clean(void)
-{
-    return;
-}
-
-extern bool
-intr_config(u16 n, void (*f)(void), bool enable, u8 priority)
-{
-    (void)n, (void)f, (void)enable, (void)priority;
-    return false;
-}
-
-extern void
-intr_wait(void)
-{
-    asm volatile ("hlt");
-}
-
-#else
-
-extern bool
-_interrupts_init(void)
-{
-    return true;
-}
-
-extern void
-_interrupts_clean(void)
-{
-    return;
-}
-
-extern bool
-intr_config(u16 n, void (*f)(void), bool enable, u8 priority)
-{
-    (void)n, (void)f, (void)enable, (void)priority;
-    return false;
-}
-
-extern void
-intr_wait(void)
-{
-    static volatile u8 a = 0;
-    while (a == 0);
-}
-
-#endif

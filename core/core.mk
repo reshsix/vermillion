@@ -114,7 +114,6 @@ $(BUILD)/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 
 OBJS :=
 
-OBJS += interrupts.o
 OBJS += devtree.o
 OBJS += utils.o
 OBJS += init.o

@@ -58,6 +58,9 @@ void str_copy(char *dest, char *src, size_t length);
 void str_concat(char *dest, char *src, size_t length);
 char *str_dupl(char *str, size_t length);
 
+bool intr_config(u16 n, void (*f)(void), bool enable, u8 priority);
+void intr_wait(void);
+
 void memcpy(void *dest, const void *src, size_t length);
 void memmove(void *dest, const void *src, size_t length);
 void memset(void *mem, int c, size_t length);
