@@ -710,16 +710,34 @@ memcmp(const void *mem, const void *mem2, size_t length)
 
 /* Initialization helpers */
 
-extern void
-_utils_init(void)
+static void
+init_utils(void)
 {
     init_mem();
     init_intr();
 }
 
-extern void
-_utils_clean(void)
+static void
+clean_utils(void)
 {
     clean_mem();
     clean_intr();
+}
+
+/* Initialization function */
+
+extern int main(void);
+extern void
+__init(void)
+{
+    init_utils();
+    _devtree_init();
+
+    main();
+
+    _devtree_clean();
+    clean_utils();
+
+    for (;;)
+        intr_wait();
 }

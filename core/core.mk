@@ -115,8 +115,7 @@ $(BUILD)/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 OBJS :=
 
 OBJS += devtree.o
-OBJS += utils.o
-OBJS += init.o
+OBJS += libk.o
 
 PREFIX = drivers/audio
 

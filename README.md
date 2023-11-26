@@ -54,12 +54,12 @@ For testing
 
 cd test
 vmake defconfig
-OBJS='utils.o' vmake all
+OBJS='libk.o' vmake all
 vmake debug
 ```
 
 ## Missing features before first release
-- core/utils.o
+- core/libk.o
     - Software interrupt handling
 - libs (Generic device libraries)
     - Framebuffer (video drivers)
@@ -75,35 +75,32 @@ vmake debug
 sequenceDiagram
     participant Hardware
     participant core/arch
-    participant core/init.o
-    participant core/utils.o
+    participant core/libk.o
     participant core/devtree
     participant core/drivers
     participant libs
     participant user
     Hardware->>core/arch: Boot up
-    core/arch->>core/init.o: Call __init()
-    activate core/init.o
-    core/init.o->>core/utils.o: Call _utils_init()
-    core/init.o->>core/devtree: Call _devtree_init()
+    core/arch->>core/libk.o: Call __init()
+    activate core/libk.o
+    core/libk.o->>core/devtree: Call _devtree_init()
     core/devtree->>core/drivers: Initialize devices
-    core/init.o->>user: Call main()
-    deactivate core/init.o
+    core/libk.o->>user: Call main()
+    deactivate core/libk.o
     activate user
     user-->>user: Call own functions
     user-->>core/drivers: Initialize extra devices
     user-->>core/devtree: Interact with devices
-    user-->>core/utils.o: Call arch-independent functions
+    user-->>core/libk.o: Call arch-independent functions
     user-->>core/arch: Call arch-dependent functions
     user-->>libs: Call generic device libraries
     user-->>libs: Call wrapper libraries
     user-->>libs: Call useful abstractions
-    user->>core/init.o: Return from main()
+    user->>core/libk.o: Return from main()
     deactivate user
-    activate core/init.o
-    core/init.o->>core/utils.o: Call _utils_clean()
-    core/init.o->>core/devtree: Call _devtree_clean()
+    activate core/libk.o
+    core/libk.o->>core/devtree: Call _devtree_clean()
     core/devtree->>core/drivers: Clean devices
-    core/init.o->>core/init.o: Halts forever
-    deactivate core/init.o
+    core/libk.o->>core/libk.o: Halts forever
+    deactivate core/libk.o
 ```
