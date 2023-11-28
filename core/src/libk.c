@@ -100,14 +100,6 @@ log_u(const u32 n)
         log_c('0');
 }
 
-extern void
-panic(const char *s)
-{
-    log_s(s);
-    for (;;)
-        intr_wait();
-}
-
 /* Timing helpers */
 
 extern u32
@@ -672,16 +664,6 @@ str_dupl(char *str, size_t length)
     return ret;
 }
 
-/* Interrupt helpers */
-
-/* static init_intr, static clean_intr,
-   extern init_config, extern intr_wait */
-#if defined(CONFIG_ARCH_ARM)
-#include <vermillion/arm/interrupts.c>
-#elif defined(CONFIG_ARCH_I686)
-#include <vermillion/i686/interrupts.c>
-#endif
-
 /* For GCC optimizations */
 
 extern void
@@ -714,14 +696,12 @@ static void
 init_utils(void)
 {
     init_mem();
-    init_intr();
 }
 
 static void
 clean_utils(void)
 {
     clean_mem();
-    clean_intr();
 }
 
 /* Initialization function */
@@ -738,6 +718,5 @@ __init(void)
     _devtree_clean();
     clean_utils();
 
-    for (;;)
-        intr_wait();
+    while (true);
 }

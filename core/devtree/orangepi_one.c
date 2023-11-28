@@ -26,6 +26,8 @@ INCLUDE_DRIVER(sunxi_gpio)
 INCLUDE_DRIVER(sunxi_timer)
 INCLUDE_DRIVER(sunxi_mmc)
 
+INCLUDE_DRIVER(arm_gic)
+
 INCLUDE_DRIVER(mbr)
 INCLUDE_DRIVER(memory)
 
@@ -40,6 +42,7 @@ DECLARE_DEVICE(tty4)
 DECLARE_DEVICE(gpio0)
 DECLARE_DEVICE(gpio1)
 
+DECLARE_DEVICE(pic)
 DECLARE_DEVICE(timer0)
 DECLARE_DEVICE(timer1)
 
@@ -70,8 +73,9 @@ _devtree_init(void)
     INIT_DEVICE(gpio0, sunxi_gpio, 0x01c20800, 6, 2);
     INIT_DEVICE(gpio1, sunxi_gpio, 0x01f02c00, 1, 0);
 
-    INIT_DEVICE(timer0, sunxi_timer, 0x01c20c00, 0, 50);
-    INIT_DEVICE(timer1, sunxi_timer, 0x01c20c00, 1, 51);
+    INIT_DEVICE(pic, arm_gic, 0x01c82000, 0x01c81000);
+    INIT_DEVICE(timer0, sunxi_timer, 0x01c20c00, 0, &DEVICE(pic), 50);
+    INIT_DEVICE(timer1, sunxi_timer, 0x01c20c00, 1, &DEVICE(pic), 51);
 
     INIT_DEVICE(mmcblk0,   sunxi_mmc, 0x01c0f000);
     INIT_DEVICE(mmcblk0p1, mbr,       &DEVICE(mmcblk0), 1);

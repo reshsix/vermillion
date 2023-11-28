@@ -93,6 +93,14 @@ union __attribute__((packed)) config
         bool (*intr) (void *ctx, u16 intr, bool enable, u8 level);
         bool (*ack)  (void *ctx, u16 intr);
     } gpio;
+
+    struct __attribute__((packed))
+    {
+        bool (*config)(void *ctx, u16 n, void (*f)(void),
+                                  bool enable, u8 priority,
+                                  bool edge, bool high);
+        void (*wait)  (void *ctx);
+    } pic;
 };
 
 struct file;
@@ -132,7 +140,8 @@ struct __attribute__((packed)) driver
         DRIVER_TYPE_VIDEO, DRIVER_TYPE_AUDIO,
         DRIVER_TYPE_STORAGE, DRIVER_TYPE_FS,
         DRIVER_TYPE_TIMER, DRIVER_TYPE_SERIAL,
-        DRIVER_TYPE_SPI, DRIVER_TYPE_GPIO
+        DRIVER_TYPE_SPI, DRIVER_TYPE_GPIO,
+        DRIVER_TYPE_PIC
     } type;
     struct __attribute__((packed))
     {

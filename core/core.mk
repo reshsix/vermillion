@@ -117,6 +117,11 @@ OBJS :=
 OBJS += devtree.o
 OBJS += libk.o
 
+PREFIX = drivers/arm
+ifdef CONFIG_ARM_GIC
+OBJS += $(PREFIX)/gic.o
+endif
+
 PREFIX = drivers/audio
 
 ifdef CONFIG_AUDIO_BUZZER

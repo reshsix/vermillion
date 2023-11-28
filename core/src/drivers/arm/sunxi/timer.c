@@ -28,6 +28,8 @@ struct timer
 {
     u32 base;
     u8 id;
+
+    struct device *pic;
     u16 irq;
 
     union config config;
@@ -46,7 +48,7 @@ static void ack7(void){ ack(timers[7].base, timers[7].id); }
 static void (*acks[8]) = {ack0, ack1, ack2, ack3, ack4, ack5, ack6, ack7};
 
 static void
-init(void **ctx, u32 base, u8 id, u16 irq)
+init(void **ctx, u32 base, u8 id, struct device *pic, u16 irq)
 {
     struct timer *ret = NULL;
 
@@ -63,11 +65,15 @@ init(void **ctx, u32 base, u8 id, u16 irq)
 
         ret->base = base;
         ret->id = id;
+        ret->pic = pic;
         ret->irq = irq;
 
         ret->config.timer.clock = 24000000;
 
-        intr_config(ret->irq, acks[found], true, 0);
+        union config cfg = {0};
+        pic->driver->config.get(pic->context, &cfg);
+        cfg.pic.config(pic->context, ret->irq, acks[found], true, 0,
+                       true, false);
 
         *ctx = ret;
     }
@@ -77,7 +83,11 @@ static void
 clean(void *ctx)
 {
     struct timer *tmr = ctx;
-    intr_config(tmr->irq, NULL, false, 0);
+
+    union config cfg = {0};
+    tmr->pic->driver->config.get(tmr->pic->context, &cfg);
+    cfg.pic.config(tmr->pic->context, tmr->irq, NULL, false, 0, false, false);
+
     tmr->base = 0;
 }
 
@@ -97,8 +107,11 @@ block_write(void *ctx, u8 *buffer, u32 block)
     if (ret)
     {
         struct timer *tmr = ctx;
-        u32 data = 0;
 
+        union config cfg = {0};
+        tmr->pic->driver->config.get(tmr->pic->context, &cfg);
+
+        u32 data = 0;
         mem_copy(&data, buffer, sizeof(u32));
 
         TMR_IRQ_EN(tmr->base) |= 1 << tmr->id;
@@ -113,7 +126,7 @@ block_write(void *ctx, u8 *buffer, u32 block)
         TMR_CTRL(tmr->base, tmr->id) |= 0x1;
         while (1)
         {
-            intr_wait();
+            cfg.pic.wait(tmr->pic->context);
             u32 x = TMR_CUR(tmr->base, tmr->id);
             if (x == 0 || x > data)
                 break;
