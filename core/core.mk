@@ -133,7 +133,10 @@ PREFIX = drivers/video
 ifdef CONFIG_VIDEO_ILI9488
 OBJS += $(PREFIX)/ili9488.o
 endif
+
+ifdef CONFIG_VIDEO_VIRTUAL
 OBJS += $(PREFIX)/virtual.o
+endif
 
 PREFIX = drivers/fs
 

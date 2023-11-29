@@ -68,6 +68,8 @@ menu "Device drivers"
 menu "Video Output"
 config VIDEO_ILI9488
     bool "Ili9488"
+config VIDEO_VIRTUAL
+    bool "Virtual Framebuffer"
 endmenu
 
 # Audio configuration
