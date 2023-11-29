@@ -26,7 +26,7 @@ struct ili9488
 
     struct device *stream;
 
-    u8 buffer24[(0x200 / 4) * 3];
+    u8 buffer24[480 * 3];
     u8 *buffer32[480 * 320 * 4];
 
     struct device *timer;
@@ -204,10 +204,10 @@ block_read(void *ctx, u8 *buffer, u32 block)
 {
     bool ret = false;
 
-    if (block < (480 * 320 * 4) / 0x200)
+    if (block < 320)
     {
         struct ili9488 *ili = ctx;
-        mem_copy(buffer, &(ili->buffer32[block * 0x200]), 0x200);
+        mem_copy(buffer, &(ili->buffer32[block * 480 * 4]), 480 * 4);
         ret = true;
     }
 
@@ -219,32 +219,31 @@ block_write(void *ctx, u8 *buffer, u32 block)
 {
     bool ret = false;
 
-    if (block < (480 * 320 * 4) / 0x200)
+    if (block < 320)
     {
         struct ili9488 *ili = ctx;
-        const u8 size = 0x200 / 4;
 
         bool diff = false;
-        for (u8 i = 0; !diff && i < size; i++)
+        for (u16 i = 0; !diff && i < 480; i++)
             diff = mem_comp(&(ili->buffer32[i * 4]), &(buffer[i * 4]), 3);
 
         if (diff)
         {
-            mem_copy(&(ili->buffer32[block * 0x200]), buffer, 0x200);
+            mem_copy(&(ili->buffer32[block * 480 * 4]), buffer, 480 * 4);
 
-            u32 index = block * size;
-            for (u8 i = 0; i < size; i++)
+            u32 index = block * 480;
+            for (u16 i = 0; i < 480; i++)
                 mem_copy(&(ili->buffer24[i * 3]), &(buffer[i * 4]), 3);
 
             u32 x = index % 480;
             u32 y = index / 480;
-            u32 w = (x + size < 480) ? size : 480 - x;
+            u32 w = (x + 480 < 480) ? 480 : 480 - x;
             u32 h = 1;
 
             ili9488_update(ili, ili->buffer24, x, y, w, h);
-            if (w < size)
+            if (w < 480)
                 ili9488_update(ili, &(ili->buffer24[w * 3]), 0, y + 1,
-                               size - w, h);
+                               480 - w, h);
         }
 
         ret = true;
