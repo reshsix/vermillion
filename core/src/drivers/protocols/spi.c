@@ -202,7 +202,7 @@ stream_write(void *ctx, u8 data)
     return true;
 }
 
-DECLARE_DRIVER(spi_soft)
+DECLARE_DRIVER(spi)
 {
     .init = init, .clean = clean,
     .api = DRIVER_API_STREAM,

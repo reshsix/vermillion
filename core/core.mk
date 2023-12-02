@@ -147,8 +147,12 @@ endif
 
 PREFIX = drivers/protocols
 
-ifdef CONFIG_PROTOCOL_SPI_SOFT
-OBJS += $(PREFIX)/spi_soft.o
+ifdef CONFIG_PROTOCOL_SPI
+OBJS += $(PREFIX)/spi.o
+endif
+
+ifdef CONFIG_PROTOCOL_SIPO
+OBJS += $(PREFIX)/sipo.o
 endif
 
 PREFIX = drivers/generic

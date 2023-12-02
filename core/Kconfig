@@ -119,11 +119,13 @@ config TIMER_SUNXI_TIMER
     depends on ARCH_ARM
 endmenu
 
-# SPI configuration
+# Protocols configuration
 
-menu "SPI"
-config PROTOCOL_SPI_SOFT
+menu "Protocols"
+config PROTOCOL_SPI
     bool "Software SPI"
+config PROTOCOL_SIPO
+    bool "Serial-in Parallel-out"
 endmenu
 
 # GPIO configuration
