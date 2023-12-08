@@ -33,7 +33,7 @@ _devtree_init(void)
                         .serial.bits =   DRIVER_SERIAL_CHAR_8B,
                         .serial.parity = DRIVER_SERIAL_PARITY_NONE,
                         .serial.stop   = DRIVER_SERIAL_STOP_1B);
-    logger(&tty0);
+    logger(&DEVICE(tty0));
 
     INIT_DEVICE(tty1, i686_com, 0x2F8)
     INIT_DEVICE(tty2, i686_com, 0x3E8)
