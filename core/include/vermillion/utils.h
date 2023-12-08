@@ -66,6 +66,12 @@ void memmove(void *dest, const void *src, size_t length);
 void memset(void *mem, int c, size_t length);
 int memcmp(const void *mem, const void *mem2, size_t length);
 
+struct state;
+struct state *state_new(void);
+struct state *state_del(struct state *st);
+void *state_save(struct state *st);
+void state_load(struct state *st, void *ret);
+
 void _utils_init(void);
 void _utils_clean(void);
 

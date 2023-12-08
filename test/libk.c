@@ -476,6 +476,47 @@ test_string(void)
     return ret;
 }
 
+/* Testing state helpers */
+
+static char *test_state_str[] = {"state_new", "state_del",
+                                 "state_save", "state_load"};
+static int
+test_state(void)
+{
+    int ret = 0;
+
+    struct state *st = state_new();
+    struct state *pst = st;
+    if (st == NULL)
+        ret |= 0x1;
+    st = state_del(st);
+    if (st != NULL)
+        ret |= 0x2;
+    st = state_new();
+    if (st == NULL || st != pst)
+        ret |= 0x1;
+
+    volatile void *test = (void*)987654321;
+    register volatile void *test2 = (void*)0xAABBCC;
+    ret |= 0x4 | 0x8;
+
+    void *x = state_save(st);
+    if (x == NULL)
+    {
+        ret &= ~0x4;
+        state_load(st, (void*)123456789);
+    }
+    else if (x == (void*)123456789)
+        ret &= ~0x8;
+    else
+        ret |= 0x4 | 0x8;
+
+    if (test != (void*)987654321 && test2 != (void*)0xAABBCC)
+        ret |= 0x4 | 0x8;
+
+    return ret;
+}
+
 /* Init tests */
 
 extern int
@@ -502,6 +543,7 @@ main(void)
     UNIT_TEST(test_alloc)
     UNIT_TEST(test_memory)
     UNIT_TEST(test_string)
+    UNIT_TEST(test_state)
 
     return 0;
 }
