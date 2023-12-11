@@ -19,5 +19,10 @@ py import os
 py gdb.set_convenience_variable("elf", os.environ["BUILD"] + "/kernel.elf")
 eval "symbol-file %s", $elf
 
+tui new-layout debug {-horizontal src 1 asm 1} 2 status 0 \
+                     {-horizontal cmd 2 regs 1} 1
+tui layout debug
+tui reg all
+
 break _start
 continue
