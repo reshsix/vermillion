@@ -72,6 +72,11 @@ struct state *state_del(struct state *st);
 void *state_save(struct state *st);
 void state_load(struct state *st, void *ret);
 
+struct fork;
+struct fork *fork_new(void (*f)(void *), void *arg);
+struct fork *fork_del(struct fork *fk);
+void fork_run(struct fork *fk);
+
 void _utils_init(void);
 void _utils_clean(void);
 

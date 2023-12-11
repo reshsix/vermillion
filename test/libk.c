@@ -517,6 +517,60 @@ test_state(void)
     return ret;
 }
 
+/* Testing forking helpers */
+
+static void *result = 0;
+
+static void
+test_fork_f2(void *arg)
+{
+    result = arg;
+}
+
+static void
+test_fork_f1(void *arg)
+{
+    struct fork *fk = fork_new(test_fork_f2, arg);
+    if (fk)
+        fork_run(fk);
+    fork_del(fk);
+}
+
+static void
+test_fork_f0(void *arg)
+{
+    struct fork *fk = fork_new(test_fork_f1, arg);
+    if (fk)
+        fork_run(fk);
+    fork_del(fk);
+}
+
+static char *test_fork_str[] = {"fork_new", "fork_del", "fork_run"};
+static int
+test_fork(void)
+{
+    int ret = 0;
+
+    struct fork *fk = fork_new(test_fork_f0, (void*)0x12345);
+    struct fork *pfk = fk;
+    if (fk == NULL)
+        ret |= 0x1;
+    fk = fork_del(fk);
+    if (fk != NULL)
+        ret |= 0x2;
+    fk = fork_new(test_fork_f0, (void*)0x12345);
+    if (fk == NULL || fk != pfk)
+        ret |= 0x1;
+
+    fork_run(fk);
+    if (result != (void*)0x12345)
+        ret |= 0x4;
+    fork_del(fk);
+
+    return ret;
+}
+
+
 /* Init tests */
 
 extern int
@@ -544,6 +598,7 @@ main(void)
     UNIT_TEST(test_memory)
     UNIT_TEST(test_string)
     UNIT_TEST(test_state)
+    UNIT_TEST(test_fork)
 
     return 0;
 }

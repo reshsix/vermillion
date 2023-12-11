@@ -833,6 +833,104 @@ state_load(struct state *st, void *ret)
     while (true);
 }
 
+/* Forking helpers */
+
+struct fork
+{
+    void *stack;
+    void (*f)(void*), *arg;
+
+    #if defined(CONFIG_ARCH_ARM)
+    void *fp, *sp;
+    #elif defined(CONFIG_ARCH_I686)
+    void *ebp, *esp;
+    #endif
+
+    struct fork *previous;
+};
+
+extern struct fork *
+fork_new(void (*f)(void *), void *arg)
+{
+    struct fork *ret = mem_new(sizeof(struct fork));
+
+    if (ret)
+    {
+        ret->f = f;
+        ret->arg = arg;
+
+        ret->stack = mem_new(CONFIG_STACK_SIZE);
+        if (!(ret->stack))
+            ret = mem_del(ret);
+    }
+
+    return ret;
+}
+
+extern struct fork *
+fork_del(struct fork *fk)
+{
+    if (fk)
+        mem_del(fk->stack);
+
+    return mem_del(fk);
+}
+
+extern void
+fork_run(struct fork *fk)
+{
+    /* Saving both current and previous fork as static for recursion */
+    static struct fork *sfk = NULL;
+    fk->previous = sfk;
+    sfk = fk;
+
+    /* Pointer to the end/base of the stack */
+    static void *stack = NULL;
+    stack = (void*)((u32)sfk->stack + CONFIG_STACK_SIZE);
+
+    #if defined(CONFIG_ARCH_ARM)
+
+    /* Saving current stack */
+    asm volatile ("mov %0, fp" : "=r"(sfk->fp));
+    asm volatile ("mov %0, sp" : "=r"(sfk->sp));
+    /* Setting stack to allocated address */
+    asm volatile ("mov fp, %0" :: "r"(stack));
+    asm volatile ("mov sp, fp");
+
+    #elif defined(CONFIG_ARCH_I686)
+
+    /* Saving current stack */
+    asm volatile ("movl %%ebp, %0" : "=r"(sfk->ebp));
+    asm volatile ("movl %%esp, %0" : "=r"(sfk->esp));
+    /* Setting stack to allocated address */
+    asm volatile ("movl %0, %%ebp" :: "r"(stack));
+    asm volatile ("movl %esp, %ebp");
+
+    #endif
+
+    /* Jumping to function */
+    sfk->f(sfk->arg);
+
+    #if defined(CONFIG_ARCH_ARM)
+
+    /* Turning the stack back to normal */
+    asm volatile ("mov fp, %0" :: "r"(sfk->fp));
+    asm volatile ("mov sp, %0" :: "r"(sfk->sp));
+
+    #elif defined(CONFIG_ARCH_I686)
+
+    /* Turning the stack back to normal */
+    asm volatile ("movl %0, %%ebp" :: "r"(sfk->ebp));
+    asm volatile ("movl %0, %%esp" :: "r"(sfk->esp));
+
+    #endif
+
+    /* Loading previous fork for next run */
+    struct fork *prev = sfk->previous;
+    sfk->previous = NULL;
+    sfk = prev;
+}
+
 /* Initialization helpers */
 
 static void
