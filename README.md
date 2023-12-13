@@ -33,7 +33,7 @@ THREAD(main)
     io_config(13, OUTPUT);
     io_write(13, HIGH);
 
-    return 0x0;
+    thread_finish();
 }
 ```
 
