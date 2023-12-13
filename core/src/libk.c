@@ -1027,6 +1027,123 @@ generator_finish(struct generator *g)
     while (true);
 }
 
+/* Thread functions */
+
+struct thread
+{
+    size_t step;
+    bool persistent;
+    struct generator *gen;
+
+    struct thread *prev, *next;
+};
+
+static struct
+{
+    struct thread *head, *cur, *tail;
+} threads = {0};
+
+extern struct thread *
+thread_new(void (*f)(struct generator *), void *arg, bool persistent)
+{
+    struct thread *ret = mem_new(sizeof(struct thread));
+
+    if (ret)
+    {
+        ret->persistent = persistent;
+        ret->gen = generator_new(f, arg);
+        if (!(ret->gen))
+            ret = mem_del(ret);
+    }
+
+    if (ret)
+    {
+        if (threads.tail)
+            threads.tail->next = ret;
+        else
+        {
+            threads.head = ret;
+            threads.cur = ret;
+        }
+
+        ret->prev = threads.tail;
+        threads.tail = ret;
+    }
+
+    if (ret && !persistent)
+        ret = (struct thread *)0x1;
+
+    return ret;
+}
+
+extern struct thread *
+thread_del(struct thread *t)
+{
+    if ((u32)t > 0x1)
+    {
+        if (t->prev)
+            t->prev->next = t->next;
+        if (t->next)
+            t->next->prev = t->prev;
+
+        if (threads.head == t)
+            threads.head = (t->prev) ? t->prev : t->next;
+        if (threads.cur == t)
+            threads.cur = (t->next) ? t->next : threads.head;
+        if (threads.tail == t)
+            threads.tail = (t->next) ? t->next : threads.head;
+
+        mem_del(t);
+    }
+
+    return NULL;
+}
+
+extern void
+thread_sync(struct thread *t, size_t step)
+{
+    if ((u32)t > 0x1 && t->persistent)
+    {
+        while (t->step < step)
+            thread_yield();
+    }
+}
+
+extern void
+thread_wait(struct thread *t)
+{
+    if ((u32)t > 0x1 && t->persistent)
+    {
+        while (!(t->gen->finished))
+            thread_yield();
+    }
+}
+
+extern void
+thread_rewind(struct thread *t)
+{
+    if ((u32)t > 0x1 && t->persistent)
+        generator_rewind(t->gen);
+}
+
+extern void *
+thread_arg(void)
+{
+    return threads.cur->gen->arg;
+}
+
+extern void
+thread_yield(void)
+{
+    generator_yield(threads.cur->gen);
+}
+
+extern noreturn
+thread_finish(void)
+{
+    generator_finish(threads.cur->gen);
+}
+
 /* Initialization helpers */
 
 static void
@@ -1043,14 +1160,30 @@ clean_utils(void)
 
 /* Initialization function */
 
-extern int main(void);
+extern THREAD(main);
 extern void
 __init(void)
 {
     init_utils();
     _devtree_init();
 
-    main();
+    thread_new(main, NULL, false);
+    while (threads.cur)
+    {
+        struct thread *cur = threads.cur;
+        if (generator_next(cur->gen))
+        {
+            threads.cur = (cur->next) ? cur->next : threads.head;
+            cur->step++;
+        }
+        else
+        {
+            if (cur->persistent)
+                threads.cur = (cur->next) ? cur->next : threads.head;
+            else
+                thread_del(cur);
+        }
+    }
 
     _devtree_clean();
     clean_utils();

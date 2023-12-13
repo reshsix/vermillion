@@ -25,8 +25,7 @@ qemu-system-arm qemu-system-i386 gdb-multiarch
 #include <vermillion/drivers.h>
 INCLUDE_DEVICE(gpio0)
 
-extern int
-main(void)
+THREAD(main)
 {
     log_s("Hello World!\r\n");
 
@@ -67,8 +66,6 @@ vmake debug
     - Storage (fs drivers)
 - libs (Wrappers libraries)
     - Libc wrapper
-- libs (Useful abstractions)
-    - Threads or Coroutines
 
 ## Topology
 ```mermaid

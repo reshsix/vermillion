@@ -86,6 +86,19 @@ void *generator_arg(struct generator *g);
 void generator_yield(struct generator *g);
 noreturn generator_finish(struct generator *g);
 
+#define THREAD(id) \
+    noreturn id(__attribute__((unused)) struct generator *___)
+struct thread;
+struct thread *thread_new(void (*f)(struct generator *), void *arg,
+                          bool persistent);
+struct thread *thread_del(struct thread *t);
+void thread_sync(struct thread *t, size_t step);
+void thread_wait(struct thread *t);
+void thread_rewind(struct thread *t);
+void *thread_arg(void);
+void thread_yield(void);
+noreturn thread_finish(void);
+
 void _utils_init(void);
 void _utils_clean(void);
 

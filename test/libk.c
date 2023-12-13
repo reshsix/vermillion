@@ -639,11 +639,79 @@ test_generator(void)
     return ret;
 }
 
+/* Testing thread helpers */
+
+static char *test_thread_str[] = {"thread_new", "thread_del",
+                                  "thread_sync", "thread_wait",
+                                  "thread_rewind", "thread_arg",
+                                  "thread_yield", "thread_finish"};
+
+THREAD(test_thread_t0)
+{
+    char *ret = thread_arg();
+
+    *ret &= ~0x10;
+    thread_yield();
+    *ret &= ~0x12;
+    thread_yield();
+
+    *ret &= ~0x4;
+    *ret &= ~0x14;
+    thread_yield();
+    thread_yield();
+    thread_yield();
+    thread_yield();
+    thread_yield();
+
+    *ret &= ~0x8;
+    *ret &= ~0x18;
+    thread_finish();
+}
+
+static int
+test_thread(void)
+{
+    int ret = 0;
+
+    struct thread *t = thread_new(test_thread_t0, &ret, false);
+    if (t != (struct thread *)0x1)
+        ret |= 0x1;
+    t = thread_del(t);
+    if (t != NULL)
+        ret |= 0x2;
+
+    t = thread_new(test_thread_t0, &ret, true);
+    struct thread *pt = t;
+    t = thread_del(t);
+    t = thread_new(test_thread_t0, &ret, true);
+    if (t == NULL || t == (struct thread *)0x1 || t != pt)
+        ret |= 0x1;
+
+    ret |= 0x4;
+    thread_sync(t, 2);
+
+    ret |= 0x8;
+    thread_wait(t);
+
+    ret |= 0x10;
+    thread_rewind(t);
+    thread_yield();
+
+    ret |= 0x12;
+    thread_yield();
+
+    ret |= 0x14;
+    thread_yield();
+
+    ret |= 0x18;
+    thread_wait(t);
+
+    return ret;
+}
 
 /* Init tests */
 
-extern int
-main(void)
+THREAD(main)
 {
     log_s("\r\n[ Testing utils.o ]\r\n");
     #define UNIT_TEST(x) \
@@ -669,6 +737,7 @@ main(void)
     UNIT_TEST(test_state)
     UNIT_TEST(test_fork)
     UNIT_TEST(test_generator)
+    UNIT_TEST(test_thread)
 
-    return 0;
+    thread_finish();
 }
