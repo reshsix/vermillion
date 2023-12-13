@@ -692,12 +692,12 @@ memcmp(const void *mem, const void *mem2, size_t length)
 
 /* Processor state helpers */
 
-struct state
+struct __attribute__((packed)) state
 {
     #if defined(CONFIG_ARCH_ARM)
-    void *gpr[16];
+    void *gpr[12];
     #elif defined(CONFIG_ARCH_I686)
-    void *retaddr, *gpr[9];
+    void *gpr[6], *retaddr;
     #endif
 };
 
@@ -714,122 +714,121 @@ state_del(struct state *st)
     return mem_del(st);
 }
 
-#if defined(CONFIG_ARCH_I686)
-static void *
-get_eip(struct state *st)
-{
-    st->gpr[8] = __builtin_return_address(0);
-    return 0;
-}
-#endif
-
-extern void *
+extern void * __attribute__((naked))
 state_save(struct state *st)
 {
+    (void)st;
+
     #if defined(CONFIG_ARCH_ARM)
 
-    /* Saving scratch registers */
-    asm volatile ("push {r0-r3}");
-    /* Pushing other registers to st->gpr */
-    static void *sp = NULL;
-    asm volatile ("mov %0, sp" : "=r"(sp));
-    asm volatile ("mov sp, %0" :: "r"(&(st->gpr[13])));
-    asm volatile ("push {r4-r12}");
-    /* Restoring stack */
-    asm volatile ("mov sp, %0" :: "r"(sp));
-    /* Copying sp and lr to st->gpr */
-    asm volatile ("mov %0, sp" : "=r"(st->gpr[13]));
-    asm volatile ("mov %0, lr" : "=r"(st->gpr[14]));
-    /* Copying scratch registers to st->gpr */
-    asm volatile ("pop {r0}");
-    asm volatile ("mov %0, r0" : "=r"(st->gpr[0]));
-    asm volatile ("pop {r0}");
-    asm volatile ("mov %0, r0" : "=r"(st->gpr[1]));
-    asm volatile ("pop {r0}");
-    asm volatile ("mov %0, r0" : "=r"(st->gpr[2]));
-    asm volatile ("pop {r0}");
-    asm volatile ("mov %0, r0" : "=r"(st->gpr[3]));
+    /* Call parameters: st -> r0 */
+
+    /* Saving low callee-saved registers in st->gpr[0 -> 3] */
+    asm volatile ("stmia r0!, {r4-r7}");
+    /* Saving high callee-saved registers in st->gpr[4 -> 10] */
+    asm volatile ("mov r1,  r8\n" "mov r2,  r9\n" "mov r3, r10\n" \
+                  "mov r4, r11\n" "mov r5, r12\n" "mov r6, r13\n" \
+                  "mov r7, r14\n");
+    asm volatile ("stmia r0!, {r1-r7}");
+    /* Restoring low registers */
+    asm volatile ("sub r0, r0, #44");
+    asm volatile ("ldmia r0!, {r4-r7}");
+    /* Setting r1 to st->gpr[11] */
+    asm volatile ("mov r1, r0");
+    asm volatile ("add r1, r1, #28");
     /* Setting r0 to NULL for first return */
     asm volatile ("mov r0, $0");
-    /* Saving pc to st->gpr */
-    asm volatile ("mov %0, pc" : "=r"(st->gpr[15]));
+    /* Saving program counter in st->gpr[11] */
+    asm volatile ("str pc, [r1]");
     /* Return with NULL or the value from state_load */
-    register void *ret asm ("r0");
-    return ret;
+    asm volatile ("bx lr");
+    /* Again if coming from state_load */
+    asm volatile ("bx lr");
 
     #elif defined(CONFIG_ARCH_I686)
 
-    /* Saving all registers */
-    asm volatile ("pushal");
-    /* Copying registers to st->gpr */
-    asm volatile ("pop %eax");
-    asm volatile ("movl %%eax, %0" : "=r"(st->gpr[0]));
-    asm volatile ("pop %eax");
-    asm volatile ("movl %%eax, %0" : "=r"(st->gpr[1]));
-    asm volatile ("pop %eax");
-    asm volatile ("movl %%eax, %0" : "=r"(st->gpr[2]));
-    asm volatile ("pop %eax");
-    asm volatile ("movl %%eax, %0" : "=r"(st->gpr[3]));
-    asm volatile ("pop %eax");
-    asm volatile ("movl %%eax, %0" : "=r"(st->gpr[4]));
-    asm volatile ("pop %eax");
-    asm volatile ("movl %%eax, %0" : "=r"(st->gpr[5]));
-    asm volatile ("pop %eax");
-    asm volatile ("movl %%eax, %0" : "=r"(st->gpr[6]));
-    asm volatile ("pop %eax");
-    asm volatile ("movl %%eax, %0" : "=r"(st->gpr[7]));
+    /* Call parameters st -> [esp + 4] */
+
+    /* Moving st to edx */
+    asm volatile ("movl 4(%esp), %edx");
+    /* Saving all callee-saved registers */
+    asm volatile ("movl %ebx, (%edx)");
+    asm volatile ("movl %esi, 4(%edx)");
+    asm volatile ("movl %edi, 8(%edx)");
+    asm volatile ("movl %ebp, 12(%edx)");
+    asm volatile ("movl %esp, 16(%edx)");
     /* Saving return address */
-    st->retaddr = __builtin_return_address(0);
-    /* Saving eip to st->gpr, also sets eax to NULL for first return */
-    register void *ret asm ("eax");
-    ret = get_eip(st);
+    asm volatile ("movl (%esp), %eax");
+    asm volatile ("movl %eax, 24(%edx)");
+    /* Setting eax to NULL for first return */
+    asm volatile ("xor %eax, %eax");
+    /* Saving program counter */
+    asm volatile ("movl $_ret, %ecx");
+    asm volatile ("movl %ecx, 20(%edx)");
+    asm volatile ("_ret:");
     /* Return with NULL or the value from state_load */
-    return ret;
+    asm volatile ("ret");
 
     #endif
+
+    /* Supressing compiler warning */
+    return NULL;
 }
 
-extern void
+extern void __attribute__((naked, noreturn))
 state_load(struct state *st, void *ret)
 {
-    /* Saving parameters as static vars */
-    static struct state *sst = NULL;
-    static void *sret = 0;
-    sst = st;
-    sret = ret;
+    (void)st, (void)ret;
 
     #if defined(CONFIG_ARCH_ARM)
 
-    /* Putting return value in r0 */
-    sst->gpr[0] = (void*)sret;
-    /* Popping registers from st->gpr */
-    static void *sp = NULL;
-    asm volatile ("mov %0, sp" : "=r"(sp));
-    asm volatile ("mov sp, %0" :: "r"(sst->gpr));
-    asm volatile ("pop {r0-r12}");
-    /* Setting sp and lr registers */
-    asm volatile ("mov sp, %0" :: "r"(sst->gpr[13]));
-    asm volatile ("mov lr, %0" :: "r"(sst->gpr[14]));
+    /* Call parameters: st -> r0, ret -> r1 */
+
+    /* Loading high callee-saved registers */
+    asm volatile ("add r0, r0, #16");
+    asm volatile ("ldmia r0!, {r2-r7}");
+    asm volatile ("mov r8,  r2\n" "mov r9,  r3\n" "mov r10, r4\n" \
+                  "mov r11, r5\n" "mov r12, r6\n" "mov r13, r7\n");
+    asm volatile ("ldr r2, [r0]");
+    asm volatile ("mov r14, r2");
+    /* Loading low callee-saved registers */
+    asm volatile ("sub r0, r0, #40");
+    asm volatile ("ldmia r0!, {r4-r7}");
+    /* Setting r2 to program counter */
+    asm volatile ("add r0, r0, #28");
+    asm volatile ("ldr r2, [r0]");
+    /* Setting r0 to ret */
+    asm volatile ("mov r0, r1");
     /* Jumping to address */
-    asm volatile ("mov pc, %0" :: "r"(sst->gpr[15]));
+    asm volatile ("mov pc, r2");
 
     #elif defined(CONFIG_ARCH_I686)
 
-    /* Popping registers from st->gpr */
-    asm volatile ("movl %0, %%esp" :: "r"(sst->gpr));
-    asm volatile ("movl %esp, %ebp");
-    asm volatile ("popal");
-    asm volatile ("movl %0, %%esp" :: "r"(sst->gpr[3]));
-    asm volatile ("movl %0, %%ebp" :: "r"(sst->gpr[2]));
-    /* Restoring return address */
-    *((volatile void **)(sst->gpr[2] + 4)) = st->retaddr;
-    /* Putting return value and jumping to address */
-    asm volatile ("movl %0, %%edx" :: "r"(sst->gpr[8]));
-    asm volatile ("movl %0, %%eax" :: "r"(sret));
+    /* Call parameters st -> [esp + 4], ret -> [esp + 8] */
+
+    /* Moving st to edx and ret to ecx */
+    asm volatile ("movl 4(%esp), %edx");
+    asm volatile ("movl 8(%esp), %ecx");
+    /* Loading all callee-saved registers */
+    asm volatile ("movl (%edx),   %ebx");
+    asm volatile ("movl 4(%edx),  %esi");
+    asm volatile ("movl 8(%edx),  %edi");
+    asm volatile ("movl 12(%edx), %ebp");
+    asm volatile ("movl 16(%edx), %esp");
+    /* Setting return address */
+    asm volatile ("movl 24(%edx), %eax");
+    asm volatile ("movl %eax, (%esp)");
+    /* Loading address to jump */
+    asm volatile ("movl 20(%edx), %eax");
+    asm volatile ("movl %eax, %edx");
+    /* Setting eax to ret */
+    asm volatile ("movl %ecx, %eax");
+    /* Jumping to address */
     asm volatile ("jmp *%edx");
 
     #endif
 
+    /* Supressing compiler warning */
     while (true);
 }
 
@@ -904,7 +903,7 @@ fork_run(struct fork *fk)
     asm volatile ("movl %%esp, %0" : "=r"(sfk->esp));
     /* Setting stack to allocated address */
     asm volatile ("movl %0, %%ebp" :: "r"(stack));
-    asm volatile ("movl %esp, %ebp");
+    asm volatile ("movl %ebp, %esp");
 
     #endif
 
