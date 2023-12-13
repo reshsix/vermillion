@@ -61,7 +61,6 @@ vmake debug
 - core/libk.o
     - Software interrupt handling
 - libs (Generic device libraries)
-    - Framebuffer (video drivers)
     - Sound (audio drivers)
     - Storage (fs drivers)
 - libs (Wrappers libraries)
