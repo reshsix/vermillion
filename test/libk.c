@@ -570,6 +570,75 @@ test_fork(void)
     return ret;
 }
 
+/* Testing generator helpers */
+
+static char *test_generator_str[] = {"generator_new", "generator_del",
+                                     "generator_next", "generator_rewind",
+                                     "generator_arg", "generator_yield",
+                                     "generator_finish"};
+
+static noreturn
+test_generator_g0(struct generator *g)
+{
+    int *ret = generator_arg(g);
+
+    *ret &= ~0x8;
+    generator_yield(g);
+
+    *ret &= ~0x4;
+    generator_yield(g);
+
+    *ret &= ~0x10;
+    generator_yield(g);
+
+    generator_yield(g);
+    generator_yield(g);
+    generator_yield(g);
+    *ret &= ~0x12;
+
+    generator_finish(g);
+}
+
+static int
+test_generator(void)
+{
+    int ret = 0;
+
+    struct generator *g = generator_new(test_generator_g0, &ret);
+    struct generator *pg = g;
+    if (g == NULL)
+        ret |= 0x1;
+    g = generator_del(g);
+    if (g != NULL)
+        ret |= 0x2;
+    g = generator_new(test_generator_g0, &ret);
+    if (g == NULL || g != pg)
+        ret |= 0x1;
+
+    ret |= 0x4;
+    if (!generator_next(g) || !generator_next(g))
+        ret |= 0x4;
+
+    ret |= 0x8;
+    generator_rewind(g);
+    if (!generator_next(g) || !generator_next(g))
+        ret |= 0x4;
+
+    ret |= 0x10;
+    if (!generator_next(g))
+        ret |= 0x4;
+
+    ret |= 0x12;
+    if (!generator_next(g) || !generator_next(g) || !generator_next(g))
+        ret |= 0x4;
+
+    if (generator_next(g))
+        ret |= 0x14;
+    generator_del(g);
+
+    return ret;
+}
+
 
 /* Init tests */
 
@@ -599,6 +668,7 @@ main(void)
     UNIT_TEST(test_string)
     UNIT_TEST(test_state)
     UNIT_TEST(test_fork)
+    UNIT_TEST(test_generator)
 
     return 0;
 }

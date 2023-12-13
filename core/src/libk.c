@@ -930,6 +930,103 @@ fork_run(struct fork *fk)
     sfk = prev;
 }
 
+/* Generator helpers */
+
+struct generator
+{
+    bool active, finished;
+
+    void *arg;
+    struct fork *fk;
+
+    struct state *caller, *callee;
+};
+
+extern struct generator *
+generator_new(void (*f)(struct generator *), void *arg)
+{
+    struct generator *ret = mem_new(sizeof(struct generator));
+
+    if (ret)
+    {
+        ret->arg = arg;
+        ret->fk = fork_new((void (*)(void *))f, ret);
+        if (!(ret->fk))
+            ret = generator_del(ret);
+    }
+
+    if (ret)
+    {
+        ret->caller = state_new();
+        ret->callee = state_new();
+        if (!(ret->caller && ret->callee))
+            ret = generator_del(ret);
+    }
+
+    return ret;
+}
+
+extern struct generator *
+generator_del(struct generator *g)
+{
+    if (g)
+    {
+        fork_del(g->fk);
+        state_del(g->caller);
+        state_del(g->callee);
+    }
+
+    return mem_del(g);
+}
+
+extern bool
+generator_next(struct generator *g)
+{
+    if (!(g->finished))
+    {
+        if (state_save(g->caller) == NULL)
+        {
+            if (g->active)
+                state_load(g->callee, (void*)0x1);
+            else
+            {
+                g->active = true;
+                fork_run(g->fk);
+            }
+        }
+    }
+
+    return !(g->finished);
+}
+
+extern void
+generator_rewind(struct generator *g)
+{
+    g->active = false;
+    g->finished = false;
+}
+
+extern void *
+generator_arg(struct generator *g)
+{
+    return g->arg;
+}
+
+extern void
+generator_yield(struct generator *g)
+{
+    if (state_save(g->callee) == NULL)
+        state_load(g->caller, (void*)0x1);
+}
+
+extern noreturn
+generator_finish(struct generator *g)
+{
+    g->finished = true;
+    generator_yield(g);
+    while (true);
+}
+
 /* Initialization helpers */
 
 static void

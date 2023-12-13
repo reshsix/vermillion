@@ -77,6 +77,15 @@ struct fork *fork_new(void (*f)(void *), void *arg);
 struct fork *fork_del(struct fork *fk);
 void fork_run(struct fork *fk);
 
+struct generator;
+struct generator *generator_new(void (*f)(struct generator *), void *arg);
+struct generator *generator_del(struct generator *g);
+bool generator_next(struct generator *g);
+void generator_rewind(struct generator *g);
+void *generator_arg(struct generator *g);
+void generator_yield(struct generator *g);
+noreturn generator_finish(struct generator *g);
+
 void _utils_init(void);
 void _utils_clean(void);
 
