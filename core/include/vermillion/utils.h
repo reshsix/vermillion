@@ -70,7 +70,7 @@ struct state;
 struct state *state_new(void);
 struct state *state_del(struct state *st);
 void *state_save(struct state *st);
-void state_load(struct state *st, void *ret);
+noreturn state_load(struct state *st, void *ret);
 
 struct fork;
 struct fork *fork_new(void (*f)(void *), void *arg);

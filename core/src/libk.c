@@ -340,16 +340,21 @@ mem_renew(void *mem, size_t size)
     }
     else
     {
-        ret = mem;
-        if ((blk->size - size) >= 32)
+        if (mem)
         {
-            blk->size = size;
+            ret = mem;
+            if ((blk->size - size) >= 32)
+            {
+                blk->size = size;
 
-            struct memblk *new = MEMEND(blk);
-            new->size = (u32)MEMEND(blk) - MEMTOTAL(new);
-            new->next = blk->next;
-            blk->next = new;
+                struct memblk *new = MEMEND(blk);
+                new->size = (u32)MEMEND(blk) - MEMTOTAL(new);
+                new->next = blk->next;
+                blk->next = new;
+            }
         }
+        else
+            ret = mem_new(size);
     }
 
     return ret;
@@ -1104,7 +1109,7 @@ thread_sync(struct thread *t, size_t step)
 {
     if ((u32)t > 0x1 && t->persistent)
     {
-        while (t->step < step)
+        while (t->step <= step)
             thread_yield();
     }
 }
