@@ -709,6 +709,109 @@ test_thread(void)
     return ret;
 }
 
+/* Testing synchronization helpers */
+
+static char *test_sync_str[] = {"semaphore_wait", "semaphore_signal",
+                                "mutex_lock", "mutex_unlock"};
+
+static int test_sync_st0 = 0;
+static bool test_sync_st1 = false;
+static bool test_sync_st2[3] = {false};
+static bool test_sync_st2r = true;
+
+THREAD(test_sync_s0)
+{
+    int *arg = thread_arg();
+
+    SEMAPHORE(5)
+    {
+        test_sync_st0++;
+
+        for (int i = 0; i < 10; i++)
+            thread_yield();
+
+        if (test_sync_st0 > 5 || !test_sync_st0)
+            *arg |= 0x1 + 0x2;
+
+        test_sync_st0--;
+    }
+
+    thread_finish();
+}
+
+THREAD(test_sync_s1)
+{
+    int *arg = thread_arg();
+
+    MUTEX()
+    {
+        test_sync_st1 = !test_sync_st1;
+        for (int i = 0; i < 10; i++)
+            thread_yield();
+
+        if (!test_sync_st1)
+            *arg |= 0x4 + 0x8;
+
+        test_sync_st1 = !test_sync_st1;
+    }
+
+    thread_finish();
+}
+
+THREAD(test_sync_s2)
+{
+    int arg = (int)thread_arg();
+
+    MUTEX(arg)
+    {
+        if (test_sync_st2[arg])
+            test_sync_st2r = false;
+
+        test_sync_st2[arg] = !test_sync_st2[arg];
+        for (int i = 0; i < 10; i++)
+            thread_yield();
+
+        if (!test_sync_st2[arg])
+            test_sync_st2r = false;
+
+        test_sync_st2[arg] = !test_sync_st2[arg];
+    }
+
+    thread_finish();
+}
+
+static int
+test_sync(void)
+{
+    int ret = 0;
+
+    struct thread *th[16] = {NULL};
+    for (int i = 0; i < 16; i++)
+        th[i] = thread_new(test_sync_s0, &ret, true);
+    for (int i = 0; i < 16; i++)
+        thread_wait(th[i]);
+    for (int i = 0; i < 16; i++)
+        th[i] = thread_del(th[i]);
+
+    for (int i = 0; i < 16; i++)
+        th[i] = thread_new(test_sync_s1, &ret, true);
+    for (int i = 0; i < 16; i++)
+        thread_wait(th[i]);
+    for (int i = 0; i < 16; i++)
+        th[i] = thread_del(th[i]);
+
+    for (int i = 0; i < 16; i++)
+        th[i] = thread_new(test_sync_s2, (void *)(i % 3), true);
+    for (int i = 0; i < 16; i++)
+        thread_wait(th[i]);
+    for (int i = 0; i < 16; i++)
+        th[i] = thread_del(th[i]);
+    if (!test_sync_st2r)
+        ret |= 0x4 + 0x8;
+
+    return ret;
+}
+
 /* Init tests */
 
 THREAD(main)
@@ -738,6 +841,7 @@ THREAD(main)
     UNIT_TEST(test_fork)
     UNIT_TEST(test_generator)
     UNIT_TEST(test_thread)
+    UNIT_TEST(test_sync)
 
     thread_finish();
 }

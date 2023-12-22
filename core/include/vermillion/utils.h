@@ -99,6 +99,29 @@ void *thread_arg(void);
 void thread_yield(void);
 noreturn thread_finish(void);
 
+#define __CONCAT(a, b) a##b
+#define _CONCAT(a, b) __CONCAT(a, b)
+#define _UNIQUE(x) _CONCAT(x, __LINE__)
+
+#define SEMAPHORE(count) \
+    static int _UNIQUE(_semaphore_s) = count; \
+    bool _UNIQUE(_semaphore) = true; \
+    for (semaphore_wait(&_UNIQUE(_semaphore_s)); _UNIQUE(_semaphore); \
+         semaphore_signal(&_UNIQUE(_semaphore_s)), \
+                          _UNIQUE(_semaphore) = false)
+void semaphore_wait(int *s);
+void semaphore_signal(int *s);
+#define MUTEX(...) \
+    void *_UNIQUE(_mutex_p) = NULL; \
+    __VA_OPT__(_UNIQUE(_mutex_p) = (void *)__VA_ARGS__;) \
+    static void * _UNIQUE(_mutex_m) = NULL; \
+    bool _UNIQUE(_mutex) = true; \
+    for (mutex_lock(&_UNIQUE(_mutex_m), _UNIQUE(_mutex_p)); _UNIQUE(_mutex); \
+         mutex_unlock(&_UNIQUE(_mutex_m), _UNIQUE(_mutex_p)), \
+        _UNIQUE(_mutex) = false)
+void mutex_lock(void **m, void *param);
+void mutex_unlock(void **m, void *param);
+
 void _utils_init(void);
 void _utils_clean(void);
 

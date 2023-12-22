@@ -1149,6 +1149,38 @@ thread_finish(void)
     generator_finish(threads.cur->gen);
 }
 
+/* Synchronization helpers */
+
+extern void
+semaphore_wait(int *s)
+{
+    while (*s == 0)
+        thread_yield();
+    (*s)--;
+}
+
+extern void
+semaphore_signal(int *s)
+{
+    (*s)++;
+}
+
+extern void
+mutex_lock(void **m, void *param)
+{
+    while (*m != NULL)
+        thread_yield();
+
+    *m = ((param) ? param : threads.cur);
+}
+
+extern void
+mutex_unlock(void **m, void *param)
+{
+    if (*m == ((param) ? param : threads.cur))
+        *m = NULL;
+}
+
 /* Initialization helpers */
 
 static void
