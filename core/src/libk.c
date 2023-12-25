@@ -1226,6 +1226,18 @@ mutex_unlock(void **m, void *param)
         *m = NULL;
 }
 
+extern void
+critical_lock(void)
+{
+    thread_block(true);
+}
+
+extern void
+critical_unlock(void)
+{
+    thread_block(false);
+}
+
 /* Initialization helpers */
 
 static void

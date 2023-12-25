@@ -739,7 +739,8 @@ test_thread(void)
 /* Testing synchronization helpers */
 
 static char *test_sync_str[] = {"semaphore_wait", "semaphore_signal",
-                                "mutex_lock", "mutex_unlock"};
+                                "mutex_lock", "mutex_unlock",
+                                "critical_lock", "critical_unlock"};
 
 static int test_sync_st0 = 0;
 static bool test_sync_st1 = false;
@@ -807,6 +808,19 @@ THREAD(test_sync_s2)
     thread_finish();
 }
 
+THREAD(test_sync_s3)
+{
+    int arg = (int)thread_arg();
+
+    CRITICAL
+    {
+        for (int i = 0; i < arg; i++)
+            thread_yield();
+    }
+
+    thread_finish();
+}
+
 static int
 test_sync(void)
 {
@@ -835,6 +849,11 @@ test_sync(void)
         th[i] = thread_del(th[i]);
     if (!test_sync_st2r)
         ret |= 0x4 + 0x8;
+
+    th[0] = thread_new(test_sync_s3, (void *)10, true);
+    if (thread_sync(th[0], 1) != 10)
+        ret |= 0x10 + 0x20;
+    th[0] = thread_del(th[0]);
 
     return ret;
 }

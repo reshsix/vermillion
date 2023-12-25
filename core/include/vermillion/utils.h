@@ -123,6 +123,12 @@ void semaphore_signal(int *s);
         _UNIQUE(_mutex) = false)
 void mutex_lock(void **m, void *param);
 void mutex_unlock(void **m, void *param);
+#define CRITICAL \
+    bool _UNIQUE(_critical) = true; \
+    for (critical_lock(); _UNIQUE(_critical); critical_unlock(), \
+         _UNIQUE(_critical) = false)
+void critical_lock(void);
+void critical_unlock(void);
 
 void _utils_init(void);
 void _utils_clean(void);
