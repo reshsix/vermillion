@@ -1046,6 +1046,7 @@ struct thread
 static struct
 {
     struct thread *head, *cur, *tail;
+    bool blocked;
 } threads = {0};
 
 extern struct thread *
@@ -1104,31 +1105,55 @@ thread_del(struct thread *t)
     return NULL;
 }
 
-extern void
+extern size_t
 thread_sync(struct thread *t, size_t step)
 {
-    if ((u32)t > 0x1 && t->persistent)
+    size_t ret = 0;
+
+    size_t cstep = threads.cur->step;
+    if (!threads.blocked && threads.cur != t && (u32)t > 0x1 && t->persistent)
     {
-        while (t->step <= step)
-            thread_yield();
+        while (t->step < step && !(t->gen->finished))
+            generator_yield(threads.cur->gen);
+
+        ret = t->step;
     }
+    threads.cur->step = cstep + 1;
+
+    return ret;
 }
 
-extern void
+extern size_t
 thread_wait(struct thread *t)
 {
-    if ((u32)t > 0x1 && t->persistent)
+    size_t ret = 0;
+
+    size_t cstep = threads.cur->step;
+    if (!threads.blocked && threads.cur != t && (u32)t > 0x1 && t->persistent)
     {
         while (!(t->gen->finished))
-            thread_yield();
+            generator_yield(threads.cur->gen);
+
+        ret = t->step;
     }
+    threads.cur->step = cstep + 1;
+
+    return ret;
 }
 
-extern void
+extern bool
 thread_rewind(struct thread *t)
 {
-    if ((u32)t > 0x1 && t->persistent)
+    bool ret = false;
+
+    if (!threads.blocked && threads.cur != t && (u32)t > 0x1 && t->persistent)
+    {
+        t->step = 0;
         generator_rewind(t->gen);
+        ret = true;
+    }
+
+    return ret;
 }
 
 extern void *
@@ -1138,14 +1163,34 @@ thread_arg(void)
 }
 
 extern void
+thread_block(bool state)
+{
+    threads.blocked = state;
+}
+
+extern void
 thread_yield(void)
 {
+    if (!threads.blocked)
+        generator_yield(threads.cur->gen);
+    else
+        threads.cur->step++;
+}
+
+extern noreturn
+thread_loop(void)
+{
+    threads.cur->step = 0;
+    generator_rewind(threads.cur->gen);
+
+    threads.blocked = false;
     generator_yield(threads.cur->gen);
 }
 
 extern noreturn
 thread_finish(void)
 {
+    threads.blocked = false;
     generator_finish(threads.cur->gen);
 }
 

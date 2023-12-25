@@ -92,11 +92,13 @@ struct thread;
 struct thread *thread_new(void (*f)(struct generator *), void *arg,
                           bool persistent);
 struct thread *thread_del(struct thread *t);
-void thread_sync(struct thread *t, size_t step);
-void thread_wait(struct thread *t);
-void thread_rewind(struct thread *t);
+size_t thread_sync(struct thread *t, size_t step);
+size_t thread_wait(struct thread *t);
+bool thread_rewind(struct thread *t);
 void *thread_arg(void);
+void thread_block(bool state);
 void thread_yield(void);
+noreturn thread_loop(void);
 noreturn thread_finish(void);
 
 #define __CONCAT(a, b) a##b

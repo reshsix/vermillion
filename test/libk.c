@@ -594,7 +594,7 @@ test_generator_g0(struct generator *g)
     generator_yield(g);
     generator_yield(g);
     generator_yield(g);
-    *ret &= ~0x12;
+    *ret &= ~0x20;
 
     generator_finish(g);
 }
@@ -628,12 +628,12 @@ test_generator(void)
     if (!generator_next(g))
         ret |= 0x4;
 
-    ret |= 0x12;
+    ret |= 0x20;
     if (!generator_next(g) || !generator_next(g) || !generator_next(g))
         ret |= 0x4;
 
     if (generator_next(g))
-        ret |= 0x14;
+        ret |= 0x40;
     generator_del(g);
 
     return ret;
@@ -644,28 +644,53 @@ test_generator(void)
 static char *test_thread_str[] = {"thread_new", "thread_del",
                                   "thread_sync", "thread_wait",
                                   "thread_rewind", "thread_arg",
-                                  "thread_yield", "thread_finish"};
+                                  "thread_block", "thread_yield",
+                                  "thread_loop", "thread_finish"};
 
+static bool test_thread_loop = false;
+static bool test_thread_finish = false;
 THREAD(test_thread_t0)
 {
-    char *ret = thread_arg();
+    int *ret = thread_arg();
 
-    *ret &= ~0x10;
-    thread_yield();
-    *ret &= ~0x12;
-    thread_yield();
+    if (!test_thread_finish)
+    {
+        if (!test_thread_loop)
+            *ret &= ~(0x10 | 0x20); /* thread_rewind + thread_arg */
+        else
+            *ret &= ~0x100; /* thread_loop */
 
-    *ret &= ~0x4;
-    *ret &= ~0x14;
-    thread_yield();
-    thread_yield();
-    thread_yield();
-    thread_yield();
-    thread_yield();
+        thread_yield();
+        thread_block(true);
+        thread_yield();
+        *ret &= ~(0x40 | 0x80); /* thread_block + thread_yield */
+        thread_block(false);
+        thread_yield();
 
-    *ret &= ~0x8;
-    *ret &= ~0x18;
-    thread_finish();
+        *ret &= ~(0x4 | 0x20); /* thread_sync + thread_arg */
+        thread_yield();
+
+        thread_yield();
+        thread_yield();
+        thread_yield();
+        thread_yield();
+        thread_yield();
+        thread_yield();
+
+        *ret &= ~0x8; /* thread_wait */
+    }
+
+    if (!test_thread_loop)
+    {
+        *ret &= ~(0x100 | 0x200); /* thread_loop + thread_finish */
+        thread_finish();
+    }
+    else
+    {
+        test_thread_loop = false;
+        test_thread_finish = true;
+        thread_loop();
+    }
 }
 
 static int
@@ -688,23 +713,25 @@ test_thread(void)
         ret |= 0x1;
 
     ret |= 0x4;
-    thread_sync(t, 2);
+    if (thread_sync(t, 3) < 3)
+        ret |= 0x4;
 
     ret |= 0x8;
-    thread_wait(t);
+    if (!thread_wait(t))
+        ret |= 0x8;
 
-    ret |= 0x10;
-    thread_rewind(t);
+    ret |= 0x10 | 0x20;
+    if (!thread_rewind(t))
+        ret |= 0x10 | 0x20;
     thread_yield();
 
-    ret |= 0x12;
+    ret |= 0x40 | 0x80;
     thread_yield();
 
-    ret |= 0x14;
-    thread_yield();
-
-    ret |= 0x18;
-    thread_wait(t);
+    test_thread_loop = true;
+    ret |= 0x100 | 0x200;
+    if (!thread_wait(t))
+        ret |= 0x100;
 
     return ret;
 }
