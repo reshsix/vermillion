@@ -130,6 +130,12 @@ void mutex_unlock(void **m, void *param);
 void critical_lock(void);
 void critical_unlock(void);
 
+struct channel;
+struct channel *channel_new(size_t type, size_t size);
+struct channel *channel_del(struct channel *ch);
+void channel_read(struct channel *ch, void *data);
+void channel_write(struct channel *ch, void *data);
+
 void _utils_init(void);
 void _utils_clean(void);
 

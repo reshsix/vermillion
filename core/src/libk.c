@@ -1236,6 +1236,70 @@ critical_unlock(void)
     thread_block(false);
 }
 
+/* Inter-thread communication */
+
+struct channel
+{
+    size_t type, size, count;
+    u8 *buffer;
+};
+
+extern struct channel *
+channel_new(size_t type, size_t size)
+{
+    struct channel *ret = mem_new(sizeof(struct channel));
+
+    if (ret)
+    {
+        ret->type = type;
+        ret->size = size + 1;
+
+        ret->buffer = mem_new(type * ret->size);
+        if (!(ret->buffer))
+            ret = mem_del(ret);
+    }
+
+    return ret;
+}
+
+extern struct channel *
+channel_del(struct channel *ch)
+{
+    if (ch)
+        mem_del(ch->buffer);
+
+    return mem_del(ch);
+}
+
+extern void
+channel_read(struct channel *ch, void *data)
+{
+    threads.cur->step++;
+    if (!(threads.blocked))
+    {
+        while (ch->count == 0)
+            generator_yield(threads.cur->gen);
+
+        mem_copy(data, &(ch->buffer[--(ch->count)]), ch->type);
+        generator_yield(threads.cur->gen);
+    }
+}
+
+extern void
+channel_write(struct channel *ch, void *data)
+{
+    threads.cur->step++;
+    if (!(threads.blocked))
+    {
+        while (ch->count >= ch->size)
+            generator_yield(threads.cur->gen);
+
+        mem_copy(&(ch->buffer[ch->count++]), data, ch->type);
+        while (ch->count >= ch->size)
+            thread_yield();
+    }
+}
+
 /* Initialization helpers */
 
 static void

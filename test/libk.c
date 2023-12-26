@@ -858,6 +858,72 @@ test_sync(void)
     return ret;
 }
 
+/* Testing inter-thread communication */
+
+static char *test_channel_str[] = {"channel_new",  "channel_del",
+                                   "channel_read", "channel_write"};
+
+THREAD(test_channel_c0)
+{
+    struct channel *ch = thread_arg();
+
+    int test = 0;
+    channel_read(ch, &test);
+    if (test == 0xAB)
+    {
+        test = 0xBC;
+        channel_write(ch, &test);
+        test = 0xCD;
+        channel_write(ch, &test);
+    }
+
+    channel_read(ch, &test);
+    if (test == 0xDE)
+    {
+        test = 0xFA;
+        channel_write(ch, &test);
+    }
+
+    thread_finish();
+}
+
+static int
+test_channel(void)
+{
+    int ret = 0;
+
+    struct channel *ch = channel_new(sizeof(int), 0);
+    struct channel *pch = ch;
+    if (ch == NULL)
+        ret |= 0x1;
+    ch = channel_del(ch);
+    if (ch != NULL)
+        ret |= 0x2;
+    ch = channel_new(sizeof(int), 0);
+    if (ch == NULL || ch != pch)
+        ret |= 0x1;
+
+    thread_new(test_channel_c0, ch, false);
+
+    int test = 0xAB;
+    channel_write(ch, &test);
+    channel_read(ch, &test);
+    if (test != 0xBC)
+        ret |= 0x4 | 0x8;
+
+    channel_read(ch, &test);
+    if (test != 0xCD)
+        ret |= 0x4 | 0x8;
+
+    test = 0xDE;
+    channel_write(ch, &test);
+    channel_read(ch, &test);
+    if (test != 0xFA)
+        ret |= 0x4 | 0x8;
+
+    return ret;
+}
+
 /* Init tests */
 
 THREAD(main)
@@ -888,6 +954,7 @@ THREAD(main)
     UNIT_TEST(test_generator)
     UNIT_TEST(test_thread)
     UNIT_TEST(test_sync)
+    UNIT_TEST(test_channel)
 
     thread_finish();
 }
