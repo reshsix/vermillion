@@ -851,7 +851,7 @@ test_sync(void)
         ret |= 0x4 + 0x8;
 
     th[0] = thread_new(test_sync_s3, (void *)10, true);
-    if (thread_sync(th[0], 1) != 10)
+    if (thread_sync(th[0], 1) != 11)
         ret |= 0x10 + 0x20;
     th[0] = thread_del(th[0]);
 

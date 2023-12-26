@@ -1110,7 +1110,7 @@ thread_sync(struct thread *t, size_t step)
 {
     size_t ret = 0;
 
-    size_t cstep = threads.cur->step;
+    threads.cur->step++;
     if (!threads.blocked && threads.cur != t && (u32)t > 0x1 && t->persistent)
     {
         while (t->step < step && !(t->gen->finished))
@@ -1118,7 +1118,6 @@ thread_sync(struct thread *t, size_t step)
 
         ret = t->step;
     }
-    threads.cur->step = cstep + 1;
 
     return ret;
 }
@@ -1128,7 +1127,7 @@ thread_wait(struct thread *t)
 {
     size_t ret = 0;
 
-    size_t cstep = threads.cur->step;
+    threads.cur->step++;
     if (!threads.blocked && threads.cur != t && (u32)t > 0x1 && t->persistent)
     {
         while (!(t->gen->finished))
@@ -1136,7 +1135,6 @@ thread_wait(struct thread *t)
 
         ret = t->step;
     }
-    threads.cur->step = cstep + 1;
 
     return ret;
 }
@@ -1171,10 +1169,9 @@ thread_block(bool state)
 extern void
 thread_yield(void)
 {
+    threads.cur->step++;
     if (!threads.blocked)
         generator_yield(threads.cur->gen);
-    else
-        threads.cur->step++;
 }
 
 extern noreturn
@@ -1190,6 +1187,7 @@ thread_loop(void)
 extern noreturn
 thread_finish(void)
 {
+    threads.cur->step++;
     threads.blocked = false;
     generator_finish(threads.cur->gen);
 }
@@ -1266,10 +1264,7 @@ __init(void)
     {
         struct thread *cur = threads.cur;
         if (generator_next(cur->gen))
-        {
             threads.cur = (cur->next) ? cur->next : threads.head;
-            cur->step++;
-        }
         else
         {
             if (cur->persistent)
