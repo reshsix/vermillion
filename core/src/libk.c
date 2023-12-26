@@ -1039,6 +1039,7 @@ struct thread
     size_t step;
     bool persistent;
     struct generator *gen;
+    u8 counter, priority;
 
     struct thread *prev, *next;
 };
@@ -1050,12 +1051,13 @@ static struct
 } threads = {0};
 
 extern struct thread *
-thread_new(THREAD(f), void *arg, bool persistent)
+thread_new(THREAD(f), void *arg, bool persistent, u8 priority)
 {
     struct thread *ret = mem_new(sizeof(struct thread));
 
     if (ret)
     {
+        ret->priority = priority;
         ret->persistent = persistent;
         ret->gen = generator_new(f, arg);
         if (!(ret->gen))
@@ -1323,19 +1325,26 @@ __init(void)
     init_utils();
     _devtree_init();
 
-    thread_new(main, NULL, false);
+    thread_new(main, NULL, false, 255);
     while (threads.cur)
     {
         struct thread *cur = threads.cur;
-        if (generator_next(cur->gen))
-            threads.cur = (cur->next) ? cur->next : threads.head;
-        else
+
+        if (!((cur->counter * cur->priority) % 255))
         {
-            if (cur->persistent)
+            if (generator_next(cur->gen))
                 threads.cur = (cur->next) ? cur->next : threads.head;
             else
-                thread_del(cur);
+            {
+                if (cur->persistent)
+                    threads.cur = (cur->next) ? cur->next : threads.head;
+                else
+                    cur = thread_del(cur);
+            }
         }
+
+        if (cur)
+            cur->counter++;
     }
 
     _devtree_clean();

@@ -698,17 +698,17 @@ test_thread(void)
 {
     int ret = 0;
 
-    struct thread *t = thread_new(test_thread_t0, &ret, false);
+    struct thread *t = thread_new(test_thread_t0, &ret, false, 98);
     if (t != (struct thread *)0x1)
         ret |= 0x1;
     t = thread_del(t);
     if (t != NULL)
         ret |= 0x2;
 
-    t = thread_new(test_thread_t0, &ret, true);
+    t = thread_new(test_thread_t0, &ret, true, 76);
     struct thread *pt = t;
     t = thread_del(t);
-    t = thread_new(test_thread_t0, &ret, true);
+    t = thread_new(test_thread_t0, &ret, true, 54);
     if (t == NULL || t == (struct thread *)0x1 || t != pt)
         ret |= 0x1;
 
@@ -828,21 +828,21 @@ test_sync(void)
 
     struct thread *th[16] = {NULL};
     for (int i = 0; i < 16; i++)
-        th[i] = thread_new(test_sync_s0, &ret, true);
+        th[i] = thread_new(test_sync_s0, &ret, true, 123);
     for (int i = 0; i < 16; i++)
         thread_wait(th[i]);
     for (int i = 0; i < 16; i++)
         th[i] = thread_del(th[i]);
 
     for (int i = 0; i < 16; i++)
-        th[i] = thread_new(test_sync_s1, &ret, true);
+        th[i] = thread_new(test_sync_s1, &ret, true, 45);
     for (int i = 0; i < 16; i++)
         thread_wait(th[i]);
     for (int i = 0; i < 16; i++)
         th[i] = thread_del(th[i]);
 
     for (int i = 0; i < 16; i++)
-        th[i] = thread_new(test_sync_s2, (void *)(i % 3), true);
+        th[i] = thread_new(test_sync_s2, (void *)(i % 3), true, 67);
     for (int i = 0; i < 16; i++)
         thread_wait(th[i]);
     for (int i = 0; i < 16; i++)
@@ -850,7 +850,7 @@ test_sync(void)
     if (!test_sync_st2r)
         ret |= 0x4 + 0x8;
 
-    th[0] = thread_new(test_sync_s3, (void *)10, true);
+    th[0] = thread_new(test_sync_s3, (void *)10, true, 89);
     if (thread_sync(th[0], 1) != 11)
         ret |= 0x10 + 0x20;
     th[0] = thread_del(th[0]);
@@ -903,7 +903,7 @@ test_channel(void)
     if (ch == NULL || ch != pch)
         ret |= 0x1;
 
-    thread_new(test_channel_c0, ch, false);
+    thread_new(test_channel_c0, ch, false, 123);
 
     int test = 0xAB;
     channel_write(ch, &test);
