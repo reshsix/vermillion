@@ -1050,7 +1050,7 @@ static struct
 } threads = {0};
 
 extern struct thread *
-thread_new(void (*f)(struct generator *), void *arg, bool persistent)
+thread_new(THREAD(f), void *arg, bool persistent)
 {
     struct thread *ret = mem_new(sizeof(struct thread));
 
