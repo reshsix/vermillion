@@ -100,9 +100,9 @@ config_get(void *ctx, union config *cfg)
 }
 
 static bool
-block_write(void *ctx, u8 *buffer, u32 block)
+block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
 {
-    bool ret = (block == 0);
+    bool ret = (idx == 0 && block == 0);
 
     if (ret)
     {
@@ -145,5 +145,5 @@ DECLARE_DRIVER(sunxi_timer)
     .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_TIMER,
     .config.get = config_get,
-    .interface.block.write = block_write
+    .block.write = block_write
 };

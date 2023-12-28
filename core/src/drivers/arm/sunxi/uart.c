@@ -246,19 +246,31 @@ config_set(void *ctx, union config *cfg)
 }
 
 static bool
-stream_read(void *ctx, u8 *data)
+stream_read(void *ctx, u32 idx, u8 *data)
 {
-    struct uart *u = ctx;
-    *data = uart_read(u->port);
-    return true;
+    bool ret = (idx == 0);
+
+    if (ret)
+    {
+        struct uart *u = ctx;
+        *data = uart_read(u->port);
+    }
+
+    return ret;
 }
 
 static bool
-stream_write(void *ctx, u8 data)
+stream_write(void *ctx, u32 idx, u8 *data)
 {
-    struct uart *u = ctx;
-    uart_write(u->port, data);
-    return true;
+    bool ret = (idx == 0);
+
+    if (ret)
+    {
+        struct uart *u = ctx;
+        uart_write(u->port, data[0]);
+    }
+
+    return ret;
 }
 
 DECLARE_DRIVER(sunxi_uart)
@@ -268,6 +280,6 @@ DECLARE_DRIVER(sunxi_uart)
     .type = DRIVER_TYPE_SERIAL,
     .config.get = config_get,
     .config.set = config_set,
-    .interface.stream.read  = stream_read,
-    .interface.stream.write = stream_write
+    .stream.read  = stream_read,
+    .stream.write = stream_write
 };

@@ -272,8 +272,7 @@ fat32_directory(struct fat32 *f, u32 cluster, struct fat32e *out)
     cluster &= 0xFFFFFFF;
     u32 firstsect = fat32_fsector(f, cluster);
     for (u8 i = 0; ret && i < f->br.sectspercluster; i++)
-        ret = f->storage->driver->interface.block.read(f->storage->context,
-                &(f->buffer[0x200 * i]), firstsect + i);
+        ret = BLOCK_R(*(f->storage), 0, &(f->buffer[0x200 * i]), firstsect + i);
 
     bool finished = false;
     static char name[(255 * 4) + 1] = {0};
@@ -384,8 +383,7 @@ fat32_new(struct device *storage)
     {
         ret->storage = storage;
 
-        if (!ret->storage->driver->interface.block.read(ret->storage->context,
-                                                        fat32_buf, 0))
+        if (!BLOCK_R(*(ret->storage), 0, fat32_buf, 0))
             ret = fat32_del(ret);
     }
 
@@ -403,10 +401,9 @@ fat32_new(struct device *storage)
     {
         bool success = true;
         for (u32 i = 0; success && i < ret->br.sectspertable; i++)
-            success = ret->storage->driver->interface.block.read(
-                          ret->storage->context,
-                          &(((u8*)(ret->table))[0x200 * i]),
-                          ret->br.reservedsects + i);
+            success = BLOCK_R(*(ret->storage), 0,
+                              &(((u8*)(ret->table))[0x200 * i]),
+                              ret->br.reservedsects + i);
 
         if (!success)
             ret = fat32_del(ret);
@@ -470,9 +467,7 @@ fat32_read(struct fat32 *f, struct fat32e *fe, u32 sector, u8 *out)
     {
         cluster &= 0xFFFFFFF;
         u32 firstsect = fat32_fsector(f, cluster);
-        ret = f->storage->driver->interface.block.read(f->storage->context,
-                                                       out,
-                                                       firstsect + sector_n);
+        ret = BLOCK_R(*(f->storage), 0, out, firstsect + sector_n);
     }
 
     return ret;

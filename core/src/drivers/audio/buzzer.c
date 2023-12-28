@@ -78,13 +78,18 @@ config_get(void *ctx, union config *cfg)
 }
 
 static bool
-stream_write(void *ctx, u8 data)
+stream_write(void *ctx, u32 idx, u8 *data)
 {
-    bool ret = false;
+    bool ret = true;
 
-    struct buzzer *bz = ctx;
-    ret = pin_set(bz->gpio, bz->pin, data >= UINT8_MAX / 2);
-    usleep(bz->timer, 1000000000 / 48000);
+    if (idx == 0)
+    {
+        struct buzzer *bz = ctx;
+        ret = pin_set(bz->gpio, bz->pin, data[0] >= UINT8_MAX / 2);
+        usleep(bz->timer, 1000000000 / 48000);
+    }
+    else
+        ret = false;
 
     return ret;
 }
@@ -95,5 +100,5 @@ DECLARE_DRIVER(buzzer)
     .api = DRIVER_API_STREAM,
     .type = DRIVER_TYPE_AUDIO,
     .config.get = config_get,
-    .interface.stream.write = stream_write
+    .stream.write = stream_write
 };

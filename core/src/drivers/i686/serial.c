@@ -181,21 +181,33 @@ config_set(void *ctx, union config *cfg)
 }
 
 static bool
-stream_read(void *ctx, u8 *data)
+stream_read(void *ctx, u32 idx, u8 *data)
 {
-    struct serial *com = ctx;
-    while (!(in8(IO_LSR(com->port)) & 0x1));
-    *data = in8(IO_DAT(com->port));
-    return true;
+    bool ret = (idx == 0);
+
+    if (ret)
+    {
+        struct serial *com = ctx;
+        while (!(in8(IO_LSR(com->port)) & 0x1));
+        data[0] = in8(IO_DAT(com->port));
+    }
+
+    return ret;
 }
 
 static bool
-stream_write(void *ctx, u8 data)
+stream_write(void *ctx, u32 idx, u8 *data)
 {
-    struct serial *com = ctx;
-    while (!(in8(IO_LSR(com->port)) & 0x20));
-    out8(IO_DAT(com->port), data);
-    return true;
+    bool ret = (idx == 0);
+
+    if (ret)
+    {
+        struct serial *com = ctx;
+        while (!(in8(IO_LSR(com->port)) & 0x20));
+        out8(IO_DAT(com->port), data[0]);
+    }
+
+    return ret;
 }
 
 DECLARE_DRIVER(i686_com)
@@ -205,6 +217,6 @@ DECLARE_DRIVER(i686_com)
     .type = DRIVER_TYPE_SERIAL,
     .config.get = config_get,
     .config.set = config_set,
-    .interface.stream.read  = stream_read,
-    .interface.stream.write = stream_write
+    .stream.read  = stream_read,
+    .stream.write = stream_write
 };

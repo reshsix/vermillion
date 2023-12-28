@@ -148,18 +148,18 @@ struct __attribute__((packed)) driver
         bool (*get)(void *ctx, union config *cfg);
         bool (*set)(void *ctx, union config *cfg);
     } config;
+    struct __attribute__((packed))
+    {
+        bool (*read) (void *ctx, u32 idx, u8 *buffer, u32 block);
+        bool (*write)(void *ctx, u32 idx, u8 *buffer, u32 block);
+    } block;
+    struct __attribute__((packed))
+    {
+        bool (*read)  (void *ctx, u32 idx, u8 *data);
+        bool (*write) (void *ctx, u32 idx, u8 *data);
+    } stream;
     union __attribute__((packed))
     {
-        struct __attribute__((packed))
-        {
-            bool (*read) (void *ctx, u8 *buffer, u32 block);
-            bool (*write)(void *ctx, u8 *buffer, u32 block);
-        } block;
-        struct __attribute__((packed))
-        {
-            bool (*read)  (void *ctx, u8 *data);
-            bool (*write) (void *ctx, u8 data);
-        } stream;
         struct __attribute__((packed))
         {
             struct file * (*open) (void *ctx, char *path);
@@ -176,6 +176,17 @@ struct device
     struct driver *driver;
     void *context;
 };
+
+#define BLOCK_W(device, idx, buffer, block_) \
+    (device).driver->block.write((device).context, (u32)(idx), \
+                                 (u8*)(buffer), (u32)(block_))
+#define BLOCK_R(device, idx, buffer, block_) \
+    (device).driver->block.read((device).context, (u32)(idx), \
+                                (u8*)(buffer), (u32)(block_))
+#define STREAM_W(device, idx, data) \
+    (device).driver->stream.write((device).context, (u32)(idx), (u8*)(data))
+#define STREAM_R(device, idx, data) \
+    (device).driver->stream.read((device).context, (u32)(idx), (u8*)(data))
 
 /* Devtree interface */
 

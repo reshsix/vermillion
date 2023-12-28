@@ -189,17 +189,25 @@ config_set(void *ctx, union config *cfg)
 }
 
 static bool
-stream_read(void *ctx, u8 *data)
+stream_read(void *ctx, u32 idx, u8 *data)
 {
-    *data = spi_transfer(ctx, 0x0);
-    return true;
+    bool ret = (idx == 0);
+
+    if (ret)
+        data[0] = spi_transfer(ctx, 0x0);
+
+    return ret;
 }
 
 static bool
-stream_write(void *ctx, u8 data)
+stream_write(void *ctx, u32 idx, u8 *data)
 {
-    spi_transfer(ctx, data);
-    return true;
+    bool ret = (idx == 0);
+
+    if (ret)
+        spi_transfer(ctx, data[0]);
+
+    return ret;
 }
 
 DECLARE_DRIVER(spi)
@@ -209,6 +217,6 @@ DECLARE_DRIVER(spi)
     .type = DRIVER_TYPE_SPI,
     .config.get = config_get,
     .config.set = config_set,
-    .interface.stream.read = stream_read,
-    .interface.stream.write = stream_write
+    .stream.read = stream_read,
+    .stream.write = stream_write
 };

@@ -64,41 +64,46 @@ clean(void *ctx)
 }
 
 static bool
-block_read(void *ctx, u8 *buffer, u32 block)
+block_read(void *ctx, u32 idx, u8 *buffer, u32 block)
 {
-    struct card *card = ctx;
+    bool ret = (idx == 0);
 
-    SD_BLK(card->base) = 0x200;
-    SD_CFG(card->base) = 1 << 31;
-
-    while (SD_CMD(card->base) >> 31);
-
-    SD_CNT(card->base) = 0x200;
-    if (!(card->mmc))
-        SD_ARG(card->base) = block;
-    else
-        SD_ARG(card->base) = block * 0x200;
-
-    SD_CMD(card->base) = 0x80002251;
-    while (SD_CMD(card->base) >> 31);
-    while (SD_STA(card->base) & (1 << 10));
-
-    for (u32 i = 0; i < (0x200 / 4); i++)
+    if (ret)
     {
-        while (SD_STA(card->base) & (1 << 2));
+        struct card *card = ctx;
 
-        u32 x = SD_FIFO(card->base);
-        for (u8 j = 0; j < 4; j++)
-            buffer[(i * 4) + j] = ((u8*)&x)[j];
+        SD_BLK(card->base) = 0x200;
+        SD_CFG(card->base) = 1 << 31;
+
+        while (SD_CMD(card->base) >> 31);
+
+        SD_CNT(card->base) = 0x200;
+        if (!(card->mmc))
+            SD_ARG(card->base) = block;
+        else
+            SD_ARG(card->base) = block * 0x200;
+
+        SD_CMD(card->base) = 0x80002251;
+        while (SD_CMD(card->base) >> 31);
+        while (SD_STA(card->base) & (1 << 10));
+
+        for (u32 i = 0; i < (0x200 / 4); i++)
+        {
+            while (SD_STA(card->base) & (1 << 2));
+
+            u32 x = SD_FIFO(card->base);
+            for (u8 j = 0; j < 4; j++)
+                buffer[(i * 4) + j] = ((u8*)&x)[j];
+        }
     }
 
-    return true;
+    return ret;
 }
 
 static bool
-block_write(void *ctx, u8 *buffer, u32 block)
+block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
 {
-    (void)(ctx), (void)(buffer), (void)(block);
+    (void)(ctx), (void)(idx), (void)(buffer), (void)(block);
     return false;
 }
 
@@ -107,6 +112,6 @@ DECLARE_DRIVER(sunxi_mmc)
     .init = init, .clean = clean,
     .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_STORAGE,
-    .interface.block.read  = block_read,
-    .interface.block.write = block_write
+    .block.read  = block_read,
+    .block.write = block_write
 };

@@ -19,25 +19,33 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <vermillion/drivers.h>
 
 static bool
-block_read(void *ctx, u8 *buffer, u32 block)
+block_read(void *ctx, u32 idx, u8 *buffer, u32 block)
 {
+    bool ret = (idx == 0);
+
     (void)(ctx);
-    mem_copy(buffer, (void*)(block * 0x200), 0x200);
-    return true;
+    if (ret)
+        mem_copy(buffer, (void*)(block * 0x200), 0x200);
+
+    return ret;
 }
 
 static bool
-block_write(void *ctx, u8 *buffer, u32 block)
+block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
 {
+    bool ret = (idx == 0);
+
     (void)(ctx);
-    mem_copy((void*)(block * 0x200), buffer, 0x200);
-    return true;
+    if (ret)
+        mem_copy((void*)(block * 0x200), buffer, 0x200);
+
+    return ret;
 }
 
 DECLARE_DRIVER(memory)
 {
     .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_STORAGE,
-    .interface.block.read  = block_read,
-    .interface.block.write = block_write
+    .block.read  = block_read,
+    .block.write = block_write
 };

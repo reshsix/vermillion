@@ -35,7 +35,7 @@ extern void
 log_c(const char c)
 {
     if (logdev != NULL)
-        logdev->driver->interface.stream.write(logdev->context, c);
+        STREAM_W(*logdev, 0, &c);
 }
 
 extern void
@@ -113,7 +113,7 @@ clock(struct device *tmr)
 extern void
 csleep(struct device *tmr, const u32 n)
 {
-    tmr->driver->interface.block.write(tmr->context, (u8*)&n, 0);
+    BLOCK_W(*tmr, 0, (u8*)&n, 0);
 }
 
 static void
@@ -165,15 +165,14 @@ pin_set(struct device *gpio, u16 pin, bool data)
     u8 bit = pin % 32;
 
     u32 reg = 0;
-    if (gpio->driver->interface.block.read(gpio->context, (u8*)&reg, block))
+    if (BLOCK_R(*gpio, 0, (u8*)&reg, block))
     {
         if (data)
             reg |= (1 << bit);
         else
             reg &= ~(1 << bit);
 
-        ret = gpio->driver->interface.block.write(gpio->context,
-                                                  (u8*)&reg, block);
+        ret = BLOCK_W(*gpio, 0, (u8*)&reg, block);
     }
 
     return ret;
@@ -188,7 +187,7 @@ pin_get(struct device *gpio, u16 pin, bool *data)
     u8 bit = pin % 32;
 
     u32 reg = 0;
-    if (gpio->driver->interface.block.read(gpio->context, (u8*)&reg, block))
+    if (BLOCK_R(*gpio, 0, (u8*)&reg, block))
     {
         *data = reg & (1 << bit);
         ret = true;

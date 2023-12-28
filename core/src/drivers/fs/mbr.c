@@ -34,8 +34,7 @@ init(void **ctx, struct device *storage, u8 partition)
     if (storage && partition > 0 && partition < 5)
         ret = mem_new(sizeof(struct mbr));
 
-    if (ret && storage->driver->interface.block.read(storage->context,
-                                                     mbr_buf, 0))
+    if (ret && BLOCK_R(*(storage), 0, mbr_buf, 0))
     {
         ret->storage = storage;
         ret->lba = ((u32*)&(mbr_buf[0x1BE + ((partition - 1) * 16)]))[2];
@@ -50,27 +49,25 @@ clean(void *ctx)
 }
 
 static bool
-block_read(void *ctx, u8 *buffer, u32 block)
+block_read(void *ctx, u32 idx, u8 *buffer, u32 block)
 {
     bool ret = false;
 
     struct mbr *mbr = ctx;
-    if ((UINT32_MAX) - mbr->lba > block)
-        ret = mbr->storage->driver->interface.block.read(mbr->storage->context,
-                                                         buffer,
-                                                         block + mbr->lba);
+    if (idx == 0 && (UINT32_MAX) - mbr->lba > block)
+        ret = BLOCK_R(*(mbr->storage), 0, buffer, block + mbr->lba);
+
     return ret;
 }
 
 static bool
-block_write(void *ctx, u8 *buffer, u32 block)
+block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
 {
     bool ret = false;
 
     struct mbr *mbr = ctx;
-    if ((UINT32_MAX) - mbr->lba > block)
-        ret = mbr->storage->driver->interface.block.write
-                (mbr->storage->context, buffer, block + mbr->lba);
+    if (idx == 0 && (UINT32_MAX) - mbr->lba > block)
+        ret = BLOCK_W(*(mbr->storage), 0, buffer, block + mbr->lba);
 
     return ret;
 }
@@ -80,6 +77,6 @@ DECLARE_DRIVER(mbr)
     .init = init, .clean = clean,
     .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_STORAGE,
-    .interface.block.read  = block_read,
-    .interface.block.write = block_write
+    .block.read  = block_read,
+    .block.write = block_write
 };

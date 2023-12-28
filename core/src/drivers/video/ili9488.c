@@ -50,12 +50,11 @@ ili9488_command(struct ili9488 *ili, u8 c, ...)
         buf[i] = va_arg(args, int);
 
     pin_set(ili->gpio, ili->dcrs, false);
-    ili->stream->driver->interface.stream.write(ili->stream->context, buf[0]);
+    STREAM_W(*(ili->stream), 0, &(buf[0]));
 
     pin_set(ili->gpio, ili->dcrs, true);
     for (u8 i = 1; i < c; i++)
-        ili->stream->driver->interface.stream.write(ili->stream->context,
-                                                    buf[i]);
+        STREAM_W(*(ili->stream), 0, &(buf[i]));
     pin_set(ili->gpio, ili->dcrs, false);
 }
 
@@ -63,12 +62,11 @@ static void
 ili9488_command2(struct ili9488 *ili, u8 n, u8 *buf, size_t length)
 {
     pin_set(ili->gpio, ili->dcrs, false);
-    ili->stream->driver->interface.stream.write(ili->stream->context, n);
+    STREAM_W(*(ili->stream), 0, &n);
 
     pin_set(ili->gpio, ili->dcrs, true);
     for (size_t i = 0; i < length; i++)
-        ili->stream->driver->interface.stream.write(ili->stream->context,
-                                                    buf[i]);
+        STREAM_W(*(ili->stream), 0, &(buf[i]));
     pin_set(ili->gpio, ili->dcrs, false);
 }
 
@@ -76,11 +74,11 @@ static void
 ili9488_command3(struct ili9488 *ili, u8 n, u8 c, size_t length)
 {
     pin_set(ili->gpio, ili->dcrs, false);
-    ili->stream->driver->interface.stream.write(ili->stream->context, n);
+    STREAM_W(*(ili->stream), 0, &n);
 
     pin_set(ili->gpio, ili->dcrs, true);
     for (size_t i = 0; i < length; i++)
-        ili->stream->driver->interface.stream.write(ili->stream->context, c);
+        STREAM_W(*(ili->stream), 0, &c);
     pin_set(ili->gpio, ili->dcrs, false);
 }
 
@@ -200,26 +198,25 @@ config_get(void *ctx, union config *data)
 }
 
 static bool
-block_read(void *ctx, u8 *buffer, u32 block)
+block_read(void *ctx, u32 idx, u8 *buffer, u32 block)
 {
-    bool ret = false;
+    bool ret = (idx == 0 && block < 320);
 
-    if (block < 320)
+    if (ret)
     {
         struct ili9488 *ili = ctx;
         mem_copy(buffer, &(ili->buffer32[block * 480 * 4]), 480 * 4);
-        ret = true;
     }
 
     return ret;
 }
 
 static bool
-block_write(void *ctx, u8 *buffer, u32 block)
+block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
 {
-    bool ret = false;
+    bool ret = (idx == 0 && block < 320);
 
-    if (block < 320)
+    if (ret)
     {
         struct ili9488 *ili = ctx;
 
@@ -245,8 +242,6 @@ block_write(void *ctx, u8 *buffer, u32 block)
                 ili9488_update(ili, &(ili->buffer24[w * 3]), 0, y + 1,
                                480 - w, h);
         }
-
-        ret = true;
     }
 
     return ret;
@@ -258,6 +253,6 @@ DECLARE_DRIVER(ili9488)
     .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_VIDEO,
     .config.get = config_get,
-    .interface.block.read = block_read,
-    .interface.block.write = block_write
+    .block.read = block_read,
+    .block.write = block_write
 };

@@ -64,13 +64,13 @@ clean(void *ctx)
 }
 
 static bool
-stream_write(void *ctx, u8 data)
+stream_write(void *ctx, u32 idx, u8 *data)
 {
-    bool ret = false;
+    bool ret = (idx == 0);
 
-    struct sipo *s = ctx;
-    if (s)
+    if (ret)
     {
+        struct sipo *s = ctx;
         pin_set(s->gpio, s->latch, false);
         pin_set(s->gpio, s->data, false);
 
@@ -78,14 +78,13 @@ stream_write(void *ctx, u8 data)
         {
             pin_set(s->gpio, s->clock, false);
             if (s->lsbfirst)
-                pin_set(s->gpio, s->data, data & (1 << (7 - i)));
+                pin_set(s->gpio, s->data, data[0] & (1 << (7 - i)));
             else
-                pin_set(s->gpio, s->data, data & (1 << i));
+                pin_set(s->gpio, s->data, data[0] & (1 << i));
             pin_set(s->gpio, s->clock, true);
         }
 
         pin_set(s->gpio, s->latch, true);
-        ret = true;
     }
 
     return ret;
@@ -96,5 +95,5 @@ DECLARE_DRIVER(sipo)
     .init = init, .clean = clean,
     .api = DRIVER_API_STREAM,
     .type = DRIVER_TYPE_GENERIC,
-    .interface.stream.write = stream_write
+    .stream.write = stream_write
 };

@@ -100,12 +100,12 @@ config_get(void *ctx, union config *cfg)
 }
 
 static bool
-block_read(void *ctx, u8 *buffer, u32 block)
+block_read(void *ctx, u32 idx, u8 *buffer, u32 block)
 {
     bool ret = true;
 
     struct gpio *gpio = ctx;
-    if (block < gpio->io_ports)
+    if (idx == 0 && block < gpio->io_ports)
     {
         u32 data = PN_DAT(gpio->base, block);
         mem_copy(buffer, &data, sizeof(u32));
@@ -117,12 +117,12 @@ block_read(void *ctx, u8 *buffer, u32 block)
 }
 
 static bool
-block_write(void *ctx, u8 *buffer, u32 block)
+block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
 {
     bool ret = true;
 
     struct gpio *gpio = ctx;
-    if (block < gpio->io_ports)
+    if (idx == 0 && block < gpio->io_ports)
     {
         u32 data = 0;
         mem_copy(&data, buffer, sizeof(u32));
@@ -284,6 +284,6 @@ DECLARE_DRIVER(sunxi_gpio)
     .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_GPIO,
     .config.get = config_get,
-    .interface.block.read = block_read,
-    .interface.block.write = block_write
+    .block.read = block_read,
+    .block.write = block_write
 };

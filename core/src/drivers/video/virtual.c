@@ -88,27 +88,26 @@ config_get(void *ctx, union config *data)
 }
 
 static bool
-block_read(void *ctx, u8 *buffer, u32 block)
+block_read(void *ctx, u32 idx, u8 *buffer, u32 block)
 {
-    bool ret = false;
+    bool ret = true;
 
     struct virtual *v = ctx;
-    if (block < v->height)
-    {
+    if (idx == 0 && block < v->height)
         mem_copy(buffer, &(v->buffer[block * v->width * 4]), v->width * 4);
-        ret = true;
-    }
+    else
+        ret = false;
 
     return ret;
 }
 
 static bool
-block_write(void *ctx, u8 *buffer, u32 block)
+block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
 {
     bool ret = true;
 
     struct virtual *v = ctx;
-    if (block < v->height)
+    if (idx == 0 && block < v->height)
     {
         mem_copy(&(v->buffer[block * v->width * 4]), buffer, v->width * 4);
 
@@ -129,8 +128,7 @@ block_write(void *ctx, u8 *buffer, u32 block)
 
                 mem_copy(dest, src, 4);
             }
-            ret = v->video->driver->interface.block.write(v->video->context,
-                                                          v->buffer2, j);
+            ret = BLOCK_W(*(v->video), 0, v->buffer2, j);
         }
     }
     else
@@ -145,6 +143,6 @@ DECLARE_DRIVER(virtual_fb)
     .api = DRIVER_API_BLOCK,
     .type = DRIVER_TYPE_VIDEO,
     .config.get = config_get,
-    .interface.block.read = block_read,
-    .interface.block.write = block_write
+    .block.read = block_read,
+    .block.write = block_write
 };

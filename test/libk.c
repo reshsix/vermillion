@@ -32,15 +32,12 @@ log_clear(void)
 }
 
 static bool
-log_write(void *ctx, u8 c)
+log_write(void *ctx, u32 idx, u8 *c)
 {
-    bool ret = false;
+    bool ret = (ctx == test_ctx && idx == 0);
 
-    if (ctx == test_ctx)
-    {
-        buffer[buffer_s++] = c;
-        ret = true;
-    }
+    if (ret)
+        buffer[buffer_s++] = c[0];
 
     return ret;
 }
@@ -51,7 +48,7 @@ test_log(void)
 {
     u32 ret = 0;
 
-    struct driver logdrv = { .interface.stream.write = log_write };
+    struct driver logdrv = { .stream.write = log_write };
     struct device logdev = { .context = test_ctx, .driver = &logdrv };
 
     struct device *log = logger(NULL);
@@ -102,16 +99,15 @@ clk_getcfg(void *ctx, union config *cfg)
 }
 
 static bool
-clk_write(void *ctx, u8 *data, u32 block)
+clk_write(void *ctx, u32 idx, u8 *data, u32 block)
 {
-    bool ret = false;
+    bool ret = (ctx == test_ctx && idx == 0 && data && block == 0);
 
-    if (ctx == test_ctx && data && block == 0)
+    if (ret)
     {
         u32 t = 0;
         mem_copy(&t, data, sizeof(u32));
         elapsed += t;
-        ret = true;
     }
 
     return ret;
@@ -125,7 +121,7 @@ test_clock(void)
     u32 ret = 0;
 
     struct driver clk = {.config.get = clk_getcfg,
-                         .interface.block.write = clk_write};
+                         .block.write = clk_write};
     struct device tmr = {.context = test_ctx, .driver = &clk};
 
     u32 rate = clock(&tmr);
@@ -186,29 +182,23 @@ io_getcfg(void *ctx, union config *cfg)
 }
 
 static bool
-io_write(void *ctx, u8 *data, u32 block)
+io_write(void *ctx, u32 idx, u8 *data, u32 block)
 {
-    bool ret = false;
+    bool ret = (ctx == test_ctx && idx == 0 && data && block < 4);
 
-    if (ctx == test_ctx && data && block < 4)
-    {
+    if (ret)
         mem_copy(&(io_ports[block]), data, sizeof(u32));
-        ret = true;
-    }
 
     return ret;
 }
 
 static bool
-io_read(void *ctx, u8 *data, u32 block)
+io_read(void *ctx, u32 idx, u8 *data, u32 block)
 {
-    bool ret = false;
+    bool ret = (ctx == test_ctx && idx == 0 && data && block < 4);
 
-    if (ctx == test_ctx && data && block < 4)
-    {
+    if (ret)
         mem_copy(data, &(io_ports[block]), sizeof(u32));
-        ret = true;
-    }
 
     return ret;
 }
@@ -220,8 +210,8 @@ test_io(void)
     int ret = 0;
 
     struct driver drv = {.config.get = io_getcfg,
-                         .interface.block.read = io_read,
-                         .interface.block.write = io_write};
+                         .block.read = io_read,
+                         .block.write = io_write};
 
     struct device gpio = {.context = test_ctx, .driver = &drv};
     io_ports[3] = 0xFFFFFFFF;
