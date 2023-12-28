@@ -33,7 +33,7 @@ init(void **ctx, struct device *gpio, u16 pin, struct device *timer)
     struct buzzer *ret = NULL;
 
     if (timer && gpio)
-        ret = calloc(1, sizeof(struct buzzer));
+        ret = mem_new(sizeof(struct buzzer));
 
     if (ret)
     {
@@ -52,7 +52,7 @@ init(void **ctx, struct device *gpio, u16 pin, struct device *timer)
         if (ok)
             *ctx = ret;
         else
-            free(ret);
+            mem_del(ret);
     }
 }
 
@@ -66,7 +66,7 @@ clean(void *ctx)
     config.gpio.pin(bz->gpio->context, bz->pin, DRIVER_GPIO_OFF,
                     DRIVER_GPIO_PULLOFF);
 
-    free(bz);
+    mem_del(bz);
 }
 
 static bool
