@@ -107,11 +107,9 @@ block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
     return false;
 }
 
-DECLARE_DRIVER(sunxi_mmc)
+DECLARE_DRIVER(storage, sunxi_mmc)
 {
     .init = init, .clean = clean,
-    .api = DRIVER_API_BLOCK,
-    .type = DRIVER_TYPE_STORAGE,
     .block.read  = block_read,
     .block.write = block_write
 };

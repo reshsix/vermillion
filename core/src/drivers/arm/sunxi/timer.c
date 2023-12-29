@@ -29,7 +29,7 @@ struct timer
     u32 base;
     u8 id;
 
-    struct device *pic;
+    dev_pic *pic;
     u16 irq;
 
     union config config;
@@ -48,7 +48,7 @@ static void ack7(void){ ack(timers[7].base, timers[7].id); }
 static void (*acks[8]) = {ack0, ack1, ack2, ack3, ack4, ack5, ack6, ack7};
 
 static void
-init(void **ctx, u32 base, u8 id, struct device *pic, u16 irq)
+init(void **ctx, u32 base, u8 id, dev_pic *pic, u16 irq)
 {
     struct timer *ret = NULL;
 
@@ -139,11 +139,9 @@ block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
     return ret;
 }
 
-DECLARE_DRIVER(sunxi_timer)
+DECLARE_DRIVER(timer, sunxi_timer)
 {
     .init = init, .clean = clean,
-    .api = DRIVER_API_BLOCK,
-    .type = DRIVER_TYPE_TIMER,
     .config.get = config_get,
     .block.write = block_write
 };

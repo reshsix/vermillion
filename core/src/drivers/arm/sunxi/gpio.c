@@ -278,11 +278,9 @@ gpio_ack(void *ctx, u16 intr)
     return ret;
 }
 
-DECLARE_DRIVER(sunxi_gpio)
+DECLARE_DRIVER(gpio, sunxi_gpio)
 {
     .init = init, .clean = clean,
-    .api = DRIVER_API_BLOCK,
-    .type = DRIVER_TYPE_GPIO,
     .config.get = config_get,
     .block.read = block_read,
     .block.write = block_write

@@ -71,7 +71,7 @@ struct fat32e
 
 struct fat32
 {
-    struct device *storage;
+    dev_storage *storage;
 
     struct fat32br br;
     u8 *buffer;
@@ -375,7 +375,7 @@ fat32_del(struct fat32 *f)
 }
 
 static struct fat32 *
-fat32_new(struct device *storage)
+fat32_new(dev_storage *storage)
 {
     struct fat32 *ret = mem_new(sizeof(struct fat32));
 
@@ -480,7 +480,7 @@ struct file
 };
 
 static void
-init(void **ctx, struct device *storage)
+init(void **ctx, dev_storage *storage)
 {
     if (storage)
         *ctx = fat32_new(storage);
@@ -552,14 +552,12 @@ fs_read(struct file *f, u32 sector, u8 *buffer)
     return ret;
 }
 
-DECLARE_DRIVER(fat32)
+DECLARE_DRIVER(fs, fat32)
 {
     .init = init, .clean = clean,
-    .api = DRIVER_API_FS,
-    .type = DRIVER_TYPE_FS,
-    .interface.fs.open  = fs_open,
-    .interface.fs.close = fs_close,
-    .interface.fs.info  = fs_info,
-    .interface.fs.index = fs_index,
-    .interface.fs.read  = fs_read
+    .fs.open  = fs_open,
+    .fs.close = fs_close,
+    .fs.info  = fs_info,
+    .fs.index = fs_index,
+    .fs.read  = fs_read
 };

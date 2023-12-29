@@ -210,11 +210,9 @@ stream_write(void *ctx, u32 idx, u8 *data)
     return ret;
 }
 
-DECLARE_DRIVER(i686_com)
+DECLARE_DRIVER(serial, i686_com)
 {
     .init = init, .clean = clean,
-    .api = DRIVER_API_STREAM,
-    .type = DRIVER_TYPE_SERIAL,
     .config.get = config_get,
     .config.set = config_set,
     .stream.read  = stream_read,

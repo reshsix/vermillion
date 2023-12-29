@@ -21,68 +21,64 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define R_PRCM 0x01F01400
 #define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)
 
-INCLUDE_DRIVER(sunxi_uart)
-INCLUDE_DRIVER(sunxi_gpio)
-INCLUDE_DRIVER(sunxi_timer)
-INCLUDE_DRIVER(sunxi_mmc)
+INCLUDE_DRIVER(serial, sunxi_uart)
+DECLARE_DEVICE(serial, sunxi_uart, tty0)
+DECLARE_DEVICE(serial, sunxi_uart, tty1)
+DECLARE_DEVICE(serial, sunxi_uart, tty2)
+DECLARE_DEVICE(serial, sunxi_uart, tty3)
+DECLARE_DEVICE(serial, sunxi_uart, tty4)
 
-INCLUDE_DRIVER(arm_gic)
+INCLUDE_DRIVER(gpio, sunxi_gpio)
+DECLARE_DEVICE(gpio, sunxi_gpio, gpio0)
+DECLARE_DEVICE(gpio, sunxi_gpio, gpio1)
 
-INCLUDE_DRIVER(mbr)
-INCLUDE_DRIVER(memory)
+INCLUDE_DRIVER(pic, arm_gic)
+DECLARE_DEVICE(pic, arm_gic, pic)
+INCLUDE_DRIVER(timer, sunxi_timer)
+DECLARE_DEVICE(timer, sunxi_timer, timer0)
+DECLARE_DEVICE(timer, sunxi_timer, timer1)
 
-INCLUDE_DRIVER(fat32)
+INCLUDE_DRIVER(storage, sunxi_mmc)
+DECLARE_DEVICE(storage, sunxi_mmc, mmcblk0)
+INCLUDE_DRIVER(storage, mbr)
+DECLARE_DEVICE(storage, mbr, mmcblk0p1)
 
-DECLARE_DEVICE(tty0)
-DECLARE_DEVICE(tty1)
-DECLARE_DEVICE(tty2)
-DECLARE_DEVICE(tty3)
-DECLARE_DEVICE(tty4)
+INCLUDE_DRIVER(storage, memory)
+DECLARE_DEVICE(storage, memory, mem)
 
-DECLARE_DEVICE(gpio0)
-DECLARE_DEVICE(gpio1)
-
-DECLARE_DEVICE(pic)
-DECLARE_DEVICE(timer0)
-DECLARE_DEVICE(timer1)
-
-DECLARE_DEVICE(mmcblk0)
-DECLARE_DEVICE(mmcblk0p1)
-
-DECLARE_DEVICE(mem)
-
-DECLARE_DEVICE(root)
+INCLUDE_DRIVER(fs, fat32)
+DECLARE_DEVICE(fs, fat32, root)
 
 extern void
 _devtree_init(void)
 {
     APB0_GATE = 1;
 
-    INIT_DEVICE(tty0, sunxi_uart, 0x01c28000);
+    INIT_DEVICE(tty0, 0x01c28000);
     CONFIG_DEVICE(tty0, .serial.baud   = 115200,
                         .serial.bits   = DRIVER_SERIAL_CHAR_8B,
                         .serial.parity = DRIVER_SERIAL_PARITY_NONE,
                         .serial.stop   = DRIVER_SERIAL_STOP_1B);
     logger(&DEVICE(tty0));
 
-    INIT_DEVICE(tty1, sunxi_uart, 0x01c28400);
-    INIT_DEVICE(tty2, sunxi_uart, 0x01c28800);
-    INIT_DEVICE(tty3, sunxi_uart, 0x01c28c00);
-    INIT_DEVICE(tty4, sunxi_uart, 0x01f02800);
+    INIT_DEVICE(tty1, 0x01c28400);
+    INIT_DEVICE(tty2, 0x01c28800);
+    INIT_DEVICE(tty3, 0x01c28c00);
+    INIT_DEVICE(tty4, 0x01f02800);
 
-    INIT_DEVICE(gpio0, sunxi_gpio, 0x01c20800, 6, 2);
-    INIT_DEVICE(gpio1, sunxi_gpio, 0x01f02c00, 1, 0);
+    INIT_DEVICE(gpio0, 0x01c20800, 6, 2);
+    INIT_DEVICE(gpio1, 0x01f02c00, 1, 0);
 
-    INIT_DEVICE(pic, arm_gic, 0x01c82000, 0x01c81000);
-    INIT_DEVICE(timer0, sunxi_timer, 0x01c20c00, 0, &DEVICE(pic), 50);
-    INIT_DEVICE(timer1, sunxi_timer, 0x01c20c00, 1, &DEVICE(pic), 51);
+    INIT_DEVICE(pic,    0x01c82000, 0x01c81000);
+    INIT_DEVICE(timer0, 0x01c20c00, 0, &DEVICE(pic), 50);
+    INIT_DEVICE(timer1, 0x01c20c00, 1, &DEVICE(pic), 51);
 
-    INIT_DEVICE(mmcblk0,   sunxi_mmc, 0x01c0f000);
-    INIT_DEVICE(mmcblk0p1, mbr,       &DEVICE(mmcblk0), 1);
+    INIT_DEVICE(mmcblk0,   0x01c0f000);
+    INIT_DEVICE(mmcblk0p1, &DEVICE(mmcblk0), 1);
 
-    INIT_DEVICE(mem,  memory);
+    INIT_DEVICE(mem);
 
-    INIT_DEVICE(root, fat32, &DEVICE(mmcblk0p1));
+    INIT_DEVICE(root, &DEVICE(mmcblk0p1));
 
     pin_cfg(&DEVICE(gpio1), 10, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
     pin_set(&DEVICE(gpio1), 10, true);

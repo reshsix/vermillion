@@ -352,10 +352,8 @@ config_get(void *ctx, union config *cfg)
     return ret;
 }
 
-DECLARE_DRIVER(arm_gic)
+DECLARE_DRIVER(pic, arm_gic)
 {
     .init = init, .clean = clean,
-    .api = DRIVER_API_GENERIC,
-    .type = DRIVER_TYPE_PIC,
     .config.get = config_get
 };

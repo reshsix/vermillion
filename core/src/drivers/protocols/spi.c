@@ -20,8 +20,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 struct spi
 {
-    struct device *gpio;
-    struct device *timer;
+    dev_gpio *gpio;
+    dev_timer *timer;
 
     u16 ss;
     u16 sck;
@@ -33,18 +33,18 @@ struct spi
     bool cpha;
 
     u32 delay;
-    void (*sleep)(struct device *, u32);
+    void (*sleep)(dev_timer *, u32);
 };
 
 static void
-empty(struct device *tmr, u32 x)
+empty(dev_timer *tmr, u32 x)
 {
     (void)(tmr), (void)(x);
     return;
 }
 
 static void
-hsleep(struct device *tmr, u32 n)
+hsleep(dev_timer *tmr, u32 n)
 {
     (void)(tmr);
     for (register u32 i = 0; i < (n / 4); i++)
@@ -84,8 +84,8 @@ spi_transfer(struct spi *spi, u8 x)
 }
 
 static void
-init(void **ctx, struct device *gpio, u16 ss, u16 sck, u16 mosi, u16 miso,
-     struct device *timer)
+init(void **ctx, dev_gpio *gpio, u16 ss, u16 sck, u16 mosi, u16 miso,
+     dev_timer *timer)
 {
     struct spi *ret = NULL;
 
@@ -210,11 +210,9 @@ stream_write(void *ctx, u32 idx, u8 *data)
     return ret;
 }
 
-DECLARE_DRIVER(spi)
+DECLARE_DRIVER(spi, spi)
 {
     .init = init, .clean = clean,
-    .api = DRIVER_API_STREAM,
-    .type = DRIVER_TYPE_SPI,
     .config.get = config_get,
     .config.set = config_set,
     .stream.read = stream_read,

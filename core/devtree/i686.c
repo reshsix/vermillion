@@ -18,26 +18,25 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <vermillion/utils.h>
 #include <vermillion/drivers.h>
 
-INCLUDE_DRIVER(i686_com)
-
-DECLARE_DEVICE(tty0)
-DECLARE_DEVICE(tty1)
-DECLARE_DEVICE(tty2)
-DECLARE_DEVICE(tty3)
+INCLUDE_DRIVER(serial, i686_com)
+DECLARE_DEVICE(serial, i686_com, tty0)
+DECLARE_DEVICE(serial, i686_com, tty1)
+DECLARE_DEVICE(serial, i686_com, tty2)
+DECLARE_DEVICE(serial, i686_com, tty3)
 
 extern void
 _devtree_init(void)
 {
-    INIT_DEVICE(tty0, i686_com, 0x3F8)
+    INIT_DEVICE(tty0, 0x3F8)
     CONFIG_DEVICE(tty0, .serial.baud =   115200,
                         .serial.bits =   DRIVER_SERIAL_CHAR_8B,
                         .serial.parity = DRIVER_SERIAL_PARITY_NONE,
                         .serial.stop   = DRIVER_SERIAL_STOP_1B);
     logger(&DEVICE(tty0));
 
-    INIT_DEVICE(tty1, i686_com, 0x2F8)
-    INIT_DEVICE(tty2, i686_com, 0x3E8)
-    INIT_DEVICE(tty3, i686_com, 0x2E8)
+    INIT_DEVICE(tty1, 0x2F8)
+    INIT_DEVICE(tty2, 0x3E8)
+    INIT_DEVICE(tty3, 0x2E8)
 }
 
 extern void

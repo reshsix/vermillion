@@ -42,10 +42,8 @@ block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
     return ret;
 }
 
-DECLARE_DRIVER(memory)
+DECLARE_DRIVER(storage, memory)
 {
-    .api = DRIVER_API_BLOCK,
-    .type = DRIVER_TYPE_STORAGE,
     .block.read  = block_read,
     .block.write = block_write
 };

@@ -20,16 +20,16 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 struct ili9488
 {
-    struct device *gpio;
+    dev_gpio *gpio;
     u16 dcrs;
     u16 leds;
 
-    struct device *stream;
+    dev_stream *stream;
 
     u8 buffer24[480 * 3];
     u8 *buffer32[480 * 320 * 4];
 
-    struct device *timer;
+    dev_timer *timer;
 };
 
 /* Led pin is negated, so with a transistor in NOT configuration,
@@ -139,8 +139,8 @@ ili9488_start(struct ili9488 *ili)
 }
 
 static void
-init(void **ctx, struct device *gpio, u16 dcrs, u16 leds,
-     struct device *stream, struct device *timer)
+init(void **ctx, dev_gpio *gpio, u16 dcrs, u16 leds,
+     dev_stream *stream, dev_timer *timer)
 {
     struct ili9488 *ret = NULL;
 
@@ -247,11 +247,9 @@ block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
     return ret;
 }
 
-DECLARE_DRIVER(ili9488)
+DECLARE_DRIVER(video, ili9488)
 {
     .init = init, .clean = clean,
-    .api = DRIVER_API_BLOCK,
-    .type = DRIVER_TYPE_VIDEO,
     .config.get = config_get,
     .block.read = block_read,
     .block.write = block_write

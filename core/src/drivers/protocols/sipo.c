@@ -20,7 +20,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 struct sipo
 {
-    struct device *gpio;
+    dev_gpio *gpio;
     u16 data;
     u16 clock;
     u16 latch;
@@ -28,8 +28,7 @@ struct sipo
 };
 
 static void
-init(void **ctx, struct device *gpio, u16 data, u16 clock,
-                 u16 latch, bool lsbfirst)
+init(void **ctx, dev_gpio *gpio, u16 data, u16 clock, u16 latch, bool lsbfirst)
 {
     struct sipo *ret = mem_new(sizeof(struct sipo));
 
@@ -90,10 +89,8 @@ stream_write(void *ctx, u32 idx, u8 *data)
     return ret;
 }
 
-DECLARE_DRIVER(sipo)
+DECLARE_DRIVER(stream, sipo)
 {
     .init = init, .clean = clean,
-    .api = DRIVER_API_STREAM,
-    .type = DRIVER_TYPE_GENERIC,
     .stream.write = stream_write
 };

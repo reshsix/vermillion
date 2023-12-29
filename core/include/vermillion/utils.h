@@ -20,22 +20,22 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <vermillion/types.h>
 #include <vermillion/drivers.h>
 
-struct device *logger(struct device *log);
+dev_stream *logger(dev_stream *log);
 void log_c(const char c);
 void log_s(const char *s);
 void log_h(const u32 n);
 void log_u(const u32 n);
 void panic(const char *s);
 
-u32 clock(struct device *tmr);
-void csleep(struct device *tmr, const u32 n);
-void usleep(struct device *tmr, const u32 n);
-void msleep(struct device *tmr, const u32 n);
-void sleep(struct device *tmr, const u32 n);
+u32 clock(dev_timer *tmr);
+void csleep(dev_timer *tmr, const u32 n);
+void usleep(dev_timer *tmr, const u32 n);
+void msleep(dev_timer *tmr, const u32 n);
+void sleep(dev_timer *tmr, const u32 n);
 
-bool pin_cfg(struct device *gpio, u16 pin, u8 role, u8 pull);
-bool pin_set(struct device *gpio, u16 pin, bool data);
-bool pin_get(struct device *gpio, u16 pin, bool *data);
+bool pin_cfg(dev_gpio *gpio, u16 pin, u8 role, u8 pull);
+bool pin_set(dev_gpio *gpio, u16 pin, bool data);
+bool pin_get(dev_gpio *gpio, u16 pin, bool *data);
 
 void *mem_new(size_t size);
 void *mem_renew(void *mem, size_t size);

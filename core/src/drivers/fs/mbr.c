@@ -22,12 +22,12 @@ static u8 mbr_buf[0x200] __attribute__((aligned(32)));
 
 struct mbr
 {
-    struct device *storage;
+    dev_storage *storage;
     u32 lba;
 };
 
 static void
-init(void **ctx, struct device *storage, u8 partition)
+init(void **ctx, dev_storage *storage, u8 partition)
 {
     struct mbr *ret = NULL;
 
@@ -72,11 +72,9 @@ block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
     return ret;
 }
 
-DECLARE_DRIVER(mbr)
+DECLARE_DRIVER(storage, mbr)
 {
     .init = init, .clean = clean,
-    .api = DRIVER_API_BLOCK,
-    .type = DRIVER_TYPE_STORAGE,
     .block.read  = block_read,
     .block.write = block_write
 };

@@ -125,57 +125,102 @@ enum
 
 /* Driver and device structures */
 
-struct __attribute__((packed)) driver
-{
-    void *init, (*clean)(void *);
-    enum
-    {
-        DRIVER_API_GENERIC,
-        DRIVER_API_BLOCK, DRIVER_API_STREAM,
-        DRIVER_API_FS
-    } api;
-    enum
-    {
-        DRIVER_TYPE_GENERIC,
-        DRIVER_TYPE_VIDEO, DRIVER_TYPE_AUDIO,
-        DRIVER_TYPE_STORAGE, DRIVER_TYPE_FS,
-        DRIVER_TYPE_TIMER, DRIVER_TYPE_SERIAL,
-        DRIVER_TYPE_SPI, DRIVER_TYPE_GPIO,
-        DRIVER_TYPE_PIC
-    } type;
-    struct __attribute__((packed))
-    {
-        bool (*get)(void *ctx, union config *cfg);
-        bool (*set)(void *ctx, union config *cfg);
-    } config;
-    struct __attribute__((packed))
-    {
-        bool (*read) (void *ctx, u32 idx, u8 *buffer, u32 block);
-        bool (*write)(void *ctx, u32 idx, u8 *buffer, u32 block);
-    } block;
-    struct __attribute__((packed))
-    {
-        bool (*read)  (void *ctx, u32 idx, u8 *data);
-        bool (*write) (void *ctx, u32 idx, u8 *data);
-    } stream;
-    union __attribute__((packed))
-    {
-        struct __attribute__((packed))
-        {
-            struct file * (*open) (void *ctx, char *path);
-            struct file * (*close)(struct file *f);
-            void          (*info) (struct file *f, size_t *size, s32 *files);
-            struct file * (*index)(struct file *f, u32 index);
-            bool          (*read) (struct file *f, u32 sector, u8 *buffer);
-        } fs;
-    } interface;
-};
+#define _DRIVER_CUSTOM_TYPE(name) \
+    typedef struct __attribute__((packed)) \
+    { \
+        void *init, (*clean)(void *); \
+        struct __attribute__((packed)) \
+        { \
+            bool (*get)(void *ctx, union config *cfg); \
+            bool (*set)(void *ctx, union config *cfg); \
+        } config; \
+    } drv_##name; \
+    typedef struct __attribute__((packed)) \
+    { \
+        const drv_##name *driver; \
+        void *context; \
+    } dev_##name; \
+    typedef dev_##name _drv_##name##_dev;
 
-struct device
-{
-    struct driver *driver;
-    void *context;
-};
+#define _DRIVER_BLOCK_TYPE(name) \
+    typedef struct __attribute__((packed)) \
+    { \
+        void *init, (*clean)(void *); \
+        struct __attribute__((packed)) \
+        { \
+            bool (*get)(void *ctx, union config *cfg); \
+            bool (*set)(void *ctx, union config *cfg); \
+        } config; \
+        struct __attribute__((packed)) \
+        { \
+            bool (*read) (void *ctx, u32 idx, u8 *buffer, u32 block); \
+            bool (*write)(void *ctx, u32 idx, u8 *buffer, u32 block); \
+        } block; \
+    } drv_##name; \
+    typedef struct __attribute__((packed)) \
+    { \
+        const drv_##name *driver; \
+        void *context; \
+    } dev_##name;
+
+#define _DRIVER_STREAM_TYPE(name) \
+    typedef struct __attribute__((packed)) \
+    { \
+        void *init, (*clean)(void *); \
+        struct __attribute__((packed)) \
+        { \
+            bool (*get)(void *ctx, union config *cfg); \
+            bool (*set)(void *ctx, union config *cfg); \
+        } config; \
+        struct __attribute__((packed)) \
+        { \
+            bool (*read)  (void *ctx, u32 idx, u8 *data); \
+            bool (*write) (void *ctx, u32 idx, u8 *data); \
+        } stream; \
+    } drv_##name; \
+    typedef struct __attribute__((packed)) \
+    { \
+        const drv_##name *driver; \
+        void *context; \
+    } dev_##name;
+
+#define _DRIVER_FS_TYPE(name) \
+    typedef struct __attribute__((packed)) \
+    { \
+        void *init, (*clean)(void *); \
+        struct __attribute__((packed)) \
+        { \
+            bool (*get)(void *ctx, union config *cfg); \
+            bool (*set)(void *ctx, union config *cfg); \
+        } config; \
+        struct __attribute__((packed)) \
+        { \
+            struct file * (*open) (void *ctx, char *path); \
+            struct file * (*close)(struct file *f); \
+            void          (*info) (struct file *f, size_t *size, s32 *files); \
+            struct file * (*index)(struct file *f, u32 index); \
+            bool          (*read) (struct file *f, u32 sector, u8 *buffer); \
+        } fs; \
+    } drv_##name; \
+    typedef struct __attribute__((packed)) \
+    { \
+        const drv_##name *driver; \
+        void *context; \
+    } dev_##name;
+
+_DRIVER_CUSTOM_TYPE(generic)
+_DRIVER_BLOCK_TYPE(block)
+_DRIVER_STREAM_TYPE(stream)
+
+_DRIVER_BLOCK_TYPE(video)
+_DRIVER_STREAM_TYPE(audio)
+_DRIVER_BLOCK_TYPE(storage)
+_DRIVER_FS_TYPE(fs)
+_DRIVER_BLOCK_TYPE(timer)
+_DRIVER_STREAM_TYPE(serial)
+_DRIVER_STREAM_TYPE(spi)
+_DRIVER_BLOCK_TYPE(gpio)
+_DRIVER_CUSTOM_TYPE(pic)
 
 #define BLOCK_W(device, idx, buffer, block_) \
     (device).driver->block.write((device).context, (u32)(idx), \
@@ -194,18 +239,18 @@ void _devtree_init(void);
 void _devtree_clean(void);
 
 #define DRIVER(x) _driver_##x
-#define DECLARE_DRIVER(x) const struct driver DRIVER(x) =
-#define INCLUDE_DRIVER(x) extern const struct driver DRIVER(x);
+#define DECLARE_DRIVER(type, x) const drv_##type DRIVER(x) =
+#define INCLUDE_DRIVER(type, x) extern const drv_##type DRIVER(x);
 
 #define DEVICE(x) _device_##x
-#define DECLARE_DEVICE(x) struct device DEVICE(x) = {0};
-#define INCLUDE_DEVICE(x) extern struct device DEVICE(x);
-#define INIT_DEVICE(x, drv, ...) \
+#define DECLARE_DEVICE(type, drv, x) dev_##type DEVICE(x) = \
+                                     {.driver = &DRIVER(drv)};
+#define INCLUDE_DEVICE(type, x) extern dev_##type DEVICE(x);
+#define INIT_DEVICE(x, ...) \
 { \
-    DEVICE(x).driver = (struct driver *)&DRIVER(drv); \
     if (DEVICE(x).driver->init) \
         ((void (*)(void **, ...))DEVICE(x).driver->init)( \
-                                     &(DEVICE(x).context),##__VA_ARGS__); \
+                               &(DEVICE(x).context),##__VA_ARGS__); \
 }
 #define CONFIG_DEVICE(x, ...) \
 { \

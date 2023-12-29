@@ -48,10 +48,10 @@ test_log(void)
 {
     u32 ret = 0;
 
-    struct driver logdrv = { .stream.write = log_write };
-    struct device logdev = { .context = test_ctx, .driver = &logdrv };
+    drv_stream logdrv = { .stream.write = log_write };
+    dev_stream logdev = { .context = test_ctx, .driver = &logdrv };
 
-    struct device *log = logger(NULL);
+    dev_stream *log = logger(NULL);
     logger(&logdev);
     log_clear();
 
@@ -120,9 +120,8 @@ test_clock(void)
 {
     u32 ret = 0;
 
-    struct driver clk = {.config.get = clk_getcfg,
-                         .block.write = clk_write};
-    struct device tmr = {.context = test_ctx, .driver = &clk};
+    drv_timer clk = {.config.get = clk_getcfg, .block.write = clk_write};
+    dev_timer tmr = {.context = test_ctx, .driver = &clk};
 
     u32 rate = clock(&tmr);
     if (rate != 10000000)
@@ -209,11 +208,9 @@ test_io(void)
 {
     int ret = 0;
 
-    struct driver drv = {.config.get = io_getcfg,
-                         .block.read = io_read,
-                         .block.write = io_write};
-
-    struct device gpio = {.context = test_ctx, .driver = &drv};
+    drv_gpio drv = {.config.get = io_getcfg, .block.read = io_read,
+                                             .block.write = io_write};
+    dev_gpio gpio = {.context = test_ctx, .driver = &drv};
     io_ports[3] = 0xFFFFFFFF;
 
     if (!pin_set(&gpio, 123, false) ||

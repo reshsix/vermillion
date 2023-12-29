@@ -20,10 +20,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 /* Logging helpers */
 
-static struct device *logdev = NULL;
+static dev_stream *logdev = NULL;
 
-extern struct device *
-logger(struct device *log)
+extern dev_stream *
+logger(dev_stream *log)
 {
     if (log != NULL)
         logdev = log;
@@ -103,7 +103,7 @@ log_u(const u32 n)
 /* Timing helpers */
 
 extern u32
-clock(struct device *tmr)
+clock(dev_timer *tmr)
 {
     union config cfg = {0};
     tmr->driver->config.get(tmr->context, &cfg);
@@ -111,13 +111,13 @@ clock(struct device *tmr)
 }
 
 extern void
-csleep(struct device *tmr, const u32 n)
+csleep(dev_timer *tmr, const u32 n)
 {
     BLOCK_W(*tmr, 0, (u8*)&n, 0);
 }
 
 static void
-csleep2(struct device *tmr, const u32 n, u32 div)
+csleep2(dev_timer *tmr, const u32 n, u32 div)
 {
     s64 clk = clock(tmr) / div;
     for (s64 a = clk * (s64)n; a > 0; a -= UINT32_MAX)
@@ -125,19 +125,19 @@ csleep2(struct device *tmr, const u32 n, u32 div)
 }
 
 extern void
-usleep(struct device *tmr, const u32 n)
+usleep(dev_timer *tmr, const u32 n)
 {
     csleep2(tmr, n, 1000000);
 }
 
 extern void
-msleep(struct device *tmr, const u32 n)
+msleep(dev_timer *tmr, const u32 n)
 {
     csleep2(tmr, n, 1000);
 }
 
 extern void
-sleep(struct device *tmr, const u32 n)
+sleep(dev_timer *tmr, const u32 n)
 {
     csleep2(tmr, n, 1);
 }
@@ -145,7 +145,7 @@ sleep(struct device *tmr, const u32 n)
 /* IO helpers */
 
 extern bool
-pin_cfg(struct device *gpio, u16 pin, u8 role, u8 pull)
+pin_cfg(dev_gpio *gpio, u16 pin, u8 role, u8 pull)
 {
     bool ret = false;
 
@@ -157,7 +157,7 @@ pin_cfg(struct device *gpio, u16 pin, u8 role, u8 pull)
 }
 
 extern bool
-pin_set(struct device *gpio, u16 pin, bool data)
+pin_set(dev_gpio *gpio, u16 pin, bool data)
 {
     bool ret = false;
 
@@ -179,7 +179,7 @@ pin_set(struct device *gpio, u16 pin, bool data)
 }
 
 extern bool
-pin_get(struct device *gpio, u16 pin, bool *data)
+pin_get(dev_gpio *gpio, u16 pin, bool *data)
 {
     bool ret = false;
 

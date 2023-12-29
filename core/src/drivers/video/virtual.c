@@ -21,7 +21,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 struct virtual
 {
     u16 width, height;
-    struct device *video;
+    dev_video *video;
     u8 *buffer;
 
     u16 width2, height2;
@@ -31,7 +31,7 @@ struct virtual
 /* TODO other formats and conversion support */
 
 static void
-init(void **ctx, u16 width, u16 height, struct device *video)
+init(void **ctx, u16 width, u16 height, dev_video *video)
 {
     struct virtual *ret = NULL;
 
@@ -137,11 +137,9 @@ block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
     return ret;
 }
 
-DECLARE_DRIVER(virtual_fb)
+DECLARE_DRIVER(video, virtual_fb)
 {
     .init = init, .clean = clean,
-    .api = DRIVER_API_BLOCK,
-    .type = DRIVER_TYPE_VIDEO,
     .config.get = config_get,
     .block.read = block_read,
     .block.write = block_write
