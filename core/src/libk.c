@@ -711,25 +711,25 @@ str_dupl(char *str, size_t length)
 
 /* For GCC optimizations */
 
-extern void
+extern void __attribute__((weak))
 memcpy(void * restrict dest, const void * restrict src, size_t length)
 {
     mem_copy(dest, src, length);
 }
 
-extern void
+extern void __attribute__((weak))
 memmove(void *dest, const void *src, size_t length)
 {
     mem_copy(dest, src, length);
 }
 
-extern void
+extern void __attribute__((weak))
 memset(void *mem, int c, size_t length)
 {
     mem_init(mem, c, length);
 }
 
-extern int
+extern int __attribute__((weak))
 memcmp(const void *mem, const void *mem2, size_t length)
 {
     return mem_comp(mem, mem2, length);
