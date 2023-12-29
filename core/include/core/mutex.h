@@ -20,7 +20,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/types.h>
 #include <core/macros.h>
 
-#define MUTEX(...) \
+#define mutex(...) \
     void *UNIQUE(_mutex_p) = NULL; \
     __VA_OPT__(UNIQUE(_mutex_p) = (void *)__VA_ARGS__;) \
     static void * UNIQUE(_mutex_m) = NULL; \

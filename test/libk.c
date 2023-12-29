@@ -648,7 +648,7 @@ static char *test_thread_str[] = {"thread_new", "thread_del",
 
 static bool test_thread_loop = false;
 static bool test_thread_finish = false;
-THREAD(test_thread_t0)
+thread_task (test_thread_t0)
 {
     int *ret = thread_arg();
 
@@ -746,11 +746,11 @@ static bool test_sync_st1 = false;
 static bool test_sync_st2[3] = {false};
 static bool test_sync_st2r = true;
 
-THREAD(test_sync_s0)
+thread_task (test_sync_s0)
 {
     int *arg = thread_arg();
 
-    SEMAPHORE(5)
+    semaphore (5)
     {
         test_sync_st0++;
 
@@ -766,11 +766,11 @@ THREAD(test_sync_s0)
     thread_finish();
 }
 
-THREAD(test_sync_s1)
+thread_task (test_sync_s1)
 {
     int *arg = thread_arg();
 
-    MUTEX()
+    mutex ()
     {
         test_sync_st1 = !test_sync_st1;
         for (int i = 0; i < 10; i++)
@@ -785,11 +785,11 @@ THREAD(test_sync_s1)
     thread_finish();
 }
 
-THREAD(test_sync_s2)
+thread_task (test_sync_s2)
 {
     int arg = (int)thread_arg();
 
-    MUTEX(arg)
+    mutex (arg)
     {
         if (test_sync_st2[arg])
             test_sync_st2r = false;
@@ -807,11 +807,11 @@ THREAD(test_sync_s2)
     thread_finish();
 }
 
-THREAD(test_sync_s3)
+thread_task (test_sync_s3)
 {
     int arg = (int)thread_arg();
 
-    CRITICAL
+    critical
     {
         for (int i = 0; i < arg; i++)
             thread_yield();
@@ -862,7 +862,7 @@ test_sync(void)
 static char *test_channel_str[] = {"channel_new",  "channel_del",
                                    "channel_read", "channel_write"};
 
-THREAD(test_channel_c0)
+thread_task (test_channel_c0)
 {
     channel *ch = thread_arg();
 
@@ -925,7 +925,7 @@ test_channel(void)
 
 /* Init tests */
 
-THREAD(main)
+thread_task (main)
 {
     log_s("\r\n[ Testing utils.o ]\r\n");
     #define UNIT_TEST(x) \

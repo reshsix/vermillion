@@ -20,7 +20,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/types.h>
 #include <core/macros.h>
 
-#define CRITICAL \
+#define critical \
     bool UNIQUE(_critical) = true; \
     for (critical_lock(); UNIQUE(_critical); critical_unlock(), \
          UNIQUE(_critical) = false)

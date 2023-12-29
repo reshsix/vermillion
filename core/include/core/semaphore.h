@@ -20,7 +20,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/types.h>
 #include <core/macros.h>
 
-#define SEMAPHORE(count) \
+#define semaphore(count) \
     static int UNIQUE(_semaphore_s) = count; \
     bool UNIQUE(_semaphore) = true; \
     for (semaphore_wait(&UNIQUE(_semaphore_s)); UNIQUE(_semaphore); \

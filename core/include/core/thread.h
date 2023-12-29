@@ -20,10 +20,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/types.h>
 #include <core/generator.h>
 
-#define THREAD(id) \
+#define thread_task(id) \
     noreturn id(__attribute__((unused)) generator *___)
 typedef struct _thread thread;
-thread *thread_new(THREAD(f), void *arg, bool persistent, u8 priority);
+thread *thread_new(thread_task(f), void *arg, bool persistent, u8 priority);
 thread *thread_del(thread *t);
 size_t thread_sync(thread *t, size_t step);
 size_t thread_wait(thread *t);

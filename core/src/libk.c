@@ -1091,7 +1091,7 @@ static struct
 } threads = {0};
 
 extern thread *
-thread_new(THREAD(f), void *arg, bool persistent, u8 priority)
+thread_new(thread_task(f), void *arg, bool persistent, u8 priority)
 {
     thread *ret = mem_new(sizeof(thread));
 
@@ -1358,7 +1358,7 @@ clean_utils(void)
 
 /* Initialization function */
 
-extern THREAD(main);
+extern thread_task(main);
 extern void
 __init(void)
 {
