@@ -19,13 +19,13 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/types.h>
 
-struct generator;
-struct generator *generator_new(void (*f)(struct generator *), void *arg);
-struct generator *generator_del(struct generator *g);
-bool generator_next(struct generator *g);
-void generator_rewind(struct generator *g);
-void *generator_arg(struct generator *g);
-void generator_yield(struct generator *g);
-noreturn generator_finish(struct generator *g);
+typedef struct _generator generator;
+generator *generator_new(void (*f)(generator *), void *arg);
+generator *generator_del(generator *g);
+bool generator_next(generator *g);
+void generator_rewind(generator *g);
+void *generator_arg(generator *g);
+void generator_yield(generator *g);
+noreturn generator_finish(generator *g);
 
 #endif

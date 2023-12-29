@@ -737,7 +737,7 @@ memcmp(const void *mem, const void *mem2, size_t length)
 
 /* Processor state helpers */
 
-struct __attribute__((packed)) state
+struct __attribute__((packed)) _state
 {
     #if defined(CONFIG_ARCH_ARM)
     void *gpr[12];
@@ -746,21 +746,21 @@ struct __attribute__((packed)) state
     #endif
 };
 
-extern struct state *
+extern state *
 state_new(void)
 {
-    struct state *ret = mem_new(sizeof(struct state));
+    state *ret = mem_new(sizeof(state));
     return ret;
 }
 
-extern struct state *
-state_del(struct state *st)
+extern state *
+state_del(state *st)
 {
     return mem_del(st);
 }
 
 extern void * __attribute__((naked))
-state_save(struct state *st)
+state_save(state *st)
 {
     (void)st;
 
@@ -821,7 +821,7 @@ state_save(struct state *st)
 }
 
 extern void __attribute__((naked, noreturn))
-state_load(struct state *st, void *ret)
+state_load(state *st, void *ret)
 {
     (void)st, (void)ret;
 
@@ -879,7 +879,7 @@ state_load(struct state *st, void *ret)
 
 /* Forking helpers */
 
-struct fork
+struct _fork
 {
     void *stack;
     void (*f)(void*), *arg;
@@ -890,13 +890,13 @@ struct fork
     void *ebp, *esp;
     #endif
 
-    struct fork *previous;
+    fork *previous;
 };
 
-extern struct fork *
+extern fork *
 fork_new(void (*f)(void *), void *arg)
 {
-    struct fork *ret = mem_new(sizeof(struct fork));
+    fork *ret = mem_new(sizeof(fork));
 
     if (ret)
     {
@@ -911,8 +911,8 @@ fork_new(void (*f)(void *), void *arg)
     return ret;
 }
 
-extern struct fork *
-fork_del(struct fork *fk)
+extern fork *
+fork_del(fork *fk)
 {
     if (fk)
         mem_del(fk->stack);
@@ -921,10 +921,10 @@ fork_del(struct fork *fk)
 }
 
 extern void
-fork_run(struct fork *fk)
+fork_run(fork *fk)
 {
     /* Saving both current and previous fork as static for recursion */
-    static struct fork *sfk = NULL;
+    static fork *sfk = NULL;
     fk->previous = sfk;
     sfk = fk;
 
@@ -970,27 +970,27 @@ fork_run(struct fork *fk)
     #endif
 
     /* Loading previous fork for next run */
-    struct fork *prev = sfk->previous;
+    fork *prev = sfk->previous;
     sfk->previous = NULL;
     sfk = prev;
 }
 
 /* Generator helpers */
 
-struct generator
+struct _generator
 {
     bool active, finished;
 
     void *arg;
-    struct fork *fk;
+    fork *fk;
 
-    struct state *caller, *callee;
+    state *caller, *callee;
 };
 
-extern struct generator *
-generator_new(void (*f)(struct generator *), void *arg)
+extern generator *
+generator_new(void (*f)(generator *), void *arg)
 {
-    struct generator *ret = mem_new(sizeof(struct generator));
+    generator *ret = mem_new(sizeof(generator));
 
     if (ret)
     {
@@ -1011,8 +1011,8 @@ generator_new(void (*f)(struct generator *), void *arg)
     return ret;
 }
 
-extern struct generator *
-generator_del(struct generator *g)
+extern generator *
+generator_del(generator *g)
 {
     if (g)
     {
@@ -1025,7 +1025,7 @@ generator_del(struct generator *g)
 }
 
 extern bool
-generator_next(struct generator *g)
+generator_next(generator *g)
 {
     if (!(g->finished))
     {
@@ -1045,27 +1045,27 @@ generator_next(struct generator *g)
 }
 
 extern void
-generator_rewind(struct generator *g)
+generator_rewind(generator *g)
 {
     g->active = false;
     g->finished = false;
 }
 
 extern void *
-generator_arg(struct generator *g)
+generator_arg(generator *g)
 {
     return g->arg;
 }
 
 extern void
-generator_yield(struct generator *g)
+generator_yield(generator *g)
 {
     if (state_save(g->callee) == NULL)
         state_load(g->caller, (void*)0x1);
 }
 
 extern noreturn
-generator_finish(struct generator *g)
+generator_finish(generator *g)
 {
     g->finished = true;
     generator_yield(g);
@@ -1074,26 +1074,26 @@ generator_finish(struct generator *g)
 
 /* Thread functions */
 
-struct thread
+struct _thread
 {
     size_t step;
     bool persistent;
-    struct generator *gen;
+    generator *gen;
     u8 counter, priority;
 
-    struct thread *prev, *next;
+    thread *prev, *next;
 };
 
 static struct
 {
-    struct thread *head, *cur, *tail;
+    thread *head, *cur, *tail;
     bool blocked;
 } threads = {0};
 
-extern struct thread *
+extern thread *
 thread_new(THREAD(f), void *arg, bool persistent, u8 priority)
 {
-    struct thread *ret = mem_new(sizeof(struct thread));
+    thread *ret = mem_new(sizeof(thread));
 
     if (ret)
     {
@@ -1119,13 +1119,13 @@ thread_new(THREAD(f), void *arg, bool persistent, u8 priority)
     }
 
     if (ret && !persistent)
-        ret = (struct thread *)0x1;
+        ret = (thread *)0x1;
 
     return ret;
 }
 
-extern struct thread *
-thread_del(struct thread *t)
+extern thread *
+thread_del(thread *t)
 {
     if ((u32)t > 0x1)
     {
@@ -1148,7 +1148,7 @@ thread_del(struct thread *t)
 }
 
 extern size_t
-thread_sync(struct thread *t, size_t step)
+thread_sync(thread *t, size_t step)
 {
     size_t ret = 0;
 
@@ -1165,7 +1165,7 @@ thread_sync(struct thread *t, size_t step)
 }
 
 extern size_t
-thread_wait(struct thread *t)
+thread_wait(thread *t)
 {
     size_t ret = 0;
 
@@ -1182,7 +1182,7 @@ thread_wait(struct thread *t)
 }
 
 extern bool
-thread_rewind(struct thread *t)
+thread_rewind(thread *t)
 {
     bool ret = false;
 
@@ -1280,16 +1280,16 @@ critical_unlock(void)
 
 /* Inter-thread communication */
 
-struct channel
+struct _channel
 {
     size_t type, size, count;
     u8 *buffer;
 };
 
-extern struct channel *
+extern channel *
 channel_new(size_t type, size_t size)
 {
-    struct channel *ret = mem_new(sizeof(struct channel));
+    channel *ret = mem_new(sizeof(channel));
 
     if (ret)
     {
@@ -1304,8 +1304,8 @@ channel_new(size_t type, size_t size)
     return ret;
 }
 
-extern struct channel *
-channel_del(struct channel *ch)
+extern channel *
+channel_del(channel *ch)
 {
     if (ch)
         mem_del(ch->buffer);
@@ -1314,7 +1314,7 @@ channel_del(struct channel *ch)
 }
 
 extern void
-channel_read(struct channel *ch, void *data)
+channel_read(channel *ch, void *data)
 {
     threads.cur->step++;
     if (!(threads.blocked))
@@ -1328,7 +1328,7 @@ channel_read(struct channel *ch, void *data)
 }
 
 extern void
-channel_write(struct channel *ch, void *data)
+channel_write(channel *ch, void *data)
 {
     threads.cur->step++;
     if (!(threads.blocked))
@@ -1368,7 +1368,7 @@ __init(void)
     thread_new(main, NULL, false, 255);
     while (threads.cur)
     {
-        struct thread *cur = threads.cur;
+        thread *cur = threads.cur;
 
         if (!((cur->counter * cur->priority) % 255))
         {

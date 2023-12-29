@@ -17,9 +17,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef CORE_FORK_H
 #define CORE_FORK_H
 
-struct fork;
-struct fork *fork_new(void (*f)(void *), void *arg);
-struct fork *fork_del(struct fork *fk);
-void fork_run(struct fork *fk);
+typedef struct _fork fork;
+fork *fork_new(void (*f)(void *), void *arg);
+fork *fork_del(fork *fk);
+void fork_run(fork *fk);
 
 #endif

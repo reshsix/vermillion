@@ -19,10 +19,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/state.h>
 
-struct state;
-struct state *state_new(void);
-struct state *state_del(struct state *st);
-void *state_save(struct state *st);
-noreturn state_load(struct state *st, void *ret);
+typedef struct _state state;
+state *state_new(void);
+state *state_del(state *st);
+void *state_save(state *st);
+noreturn state_load(state *st, void *ret);
 
 #endif

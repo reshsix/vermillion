@@ -21,13 +21,13 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/generator.h>
 
 #define THREAD(id) \
-    noreturn id(__attribute__((unused)) struct generator *___)
-struct thread;
-struct thread *thread_new(THREAD(f), void *arg, bool persistent, u8 priority);
-struct thread *thread_del(struct thread *t);
-size_t thread_sync(struct thread *t, size_t step);
-size_t thread_wait(struct thread *t);
-bool thread_rewind(struct thread *t);
+    noreturn id(__attribute__((unused)) generator *___)
+typedef struct _thread thread;
+thread *thread_new(THREAD(f), void *arg, bool persistent, u8 priority);
+thread *thread_del(thread *t);
+size_t thread_sync(thread *t, size_t step);
+size_t thread_wait(thread *t);
+bool thread_rewind(thread *t);
 void *thread_arg(void);
 void thread_block(bool state);
 void thread_yield(void);

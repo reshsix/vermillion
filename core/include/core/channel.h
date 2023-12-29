@@ -19,10 +19,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/types.h>
 
-struct channel;
-struct channel *channel_new(size_t type, size_t size);
-struct channel *channel_del(struct channel *ch);
-void channel_read(struct channel *ch, void *data);
-void channel_write(struct channel *ch, void *data);
+typedef struct _channel channel;
+channel *channel_new(size_t type, size_t size);
+channel *channel_del(channel *ch);
+void channel_read(channel *ch, void *data);
+void channel_write(channel *ch, void *data);
 
 #endif

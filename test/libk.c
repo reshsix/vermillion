@@ -484,8 +484,8 @@ test_state(void)
 {
     int ret = 0;
 
-    struct state *st = state_new();
-    struct state *pst = st;
+    state *st = state_new();
+    state *pst = st;
     if (st == NULL)
         ret |= 0x1;
     st = state_del(st);
@@ -529,7 +529,7 @@ test_fork_f2(void *arg)
 static void
 test_fork_f1(void *arg)
 {
-    struct fork *fk = fork_new(test_fork_f2, arg);
+    fork *fk = fork_new(test_fork_f2, arg);
     if (fk)
         fork_run(fk);
     fork_del(fk);
@@ -538,7 +538,7 @@ test_fork_f1(void *arg)
 static void
 test_fork_f0(void *arg)
 {
-    struct fork *fk = fork_new(test_fork_f1, arg);
+    fork *fk = fork_new(test_fork_f1, arg);
     if (fk)
         fork_run(fk);
     fork_del(fk);
@@ -550,8 +550,8 @@ test_fork(void)
 {
     int ret = 0;
 
-    struct fork *fk = fork_new(test_fork_f0, (void*)0x12345);
-    struct fork *pfk = fk;
+    fork *fk = fork_new(test_fork_f0, (void*)0x12345);
+    fork *pfk = fk;
     if (fk == NULL)
         ret |= 0x1;
     fk = fork_del(fk);
@@ -577,7 +577,7 @@ static char *test_generator_str[] = {"generator_new", "generator_del",
                                      "generator_finish"};
 
 static noreturn
-test_generator_g0(struct generator *g)
+test_generator_g0(generator *g)
 {
     int *ret = generator_arg(g);
 
@@ -603,8 +603,8 @@ test_generator(void)
 {
     int ret = 0;
 
-    struct generator *g = generator_new(test_generator_g0, &ret);
-    struct generator *pg = g;
+    generator *g = generator_new(test_generator_g0, &ret);
+    generator *pg = g;
     if (g == NULL)
         ret |= 0x1;
     g = generator_del(g);
@@ -697,18 +697,18 @@ test_thread(void)
 {
     int ret = 0;
 
-    struct thread *t = thread_new(test_thread_t0, &ret, false, 98);
-    if (t != (struct thread *)0x1)
+    thread *t = thread_new(test_thread_t0, &ret, false, 98);
+    if (t != (thread *)0x1)
         ret |= 0x1;
     t = thread_del(t);
     if (t != NULL)
         ret |= 0x2;
 
     t = thread_new(test_thread_t0, &ret, true, 76);
-    struct thread *pt = t;
+    thread *pt = t;
     t = thread_del(t);
     t = thread_new(test_thread_t0, &ret, true, 54);
-    if (t == NULL || t == (struct thread *)0x1 || t != pt)
+    if (t == NULL || t == (thread *)0x1 || t != pt)
         ret |= 0x1;
 
     ret |= 0x4;
@@ -825,7 +825,7 @@ test_sync(void)
 {
     int ret = 0;
 
-    struct thread *th[16] = {NULL};
+    thread *th[16] = {NULL};
     for (int i = 0; i < 16; i++)
         th[i] = thread_new(test_sync_s0, &ret, true, 123);
     for (int i = 0; i < 16; i++)
@@ -864,7 +864,7 @@ static char *test_channel_str[] = {"channel_new",  "channel_del",
 
 THREAD(test_channel_c0)
 {
-    struct channel *ch = thread_arg();
+    channel *ch = thread_arg();
 
     int test = 0;
     channel_read(ch, &test);
@@ -891,8 +891,8 @@ test_channel(void)
 {
     int ret = 0;
 
-    struct channel *ch = channel_new(sizeof(int), 0);
-    struct channel *pch = ch;
+    channel *ch = channel_new(sizeof(int), 0);
+    channel *pch = ch;
     if (ch == NULL)
         ret |= 0x1;
     ch = channel_del(ch);
