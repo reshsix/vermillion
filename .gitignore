@@ -1,0 +1,15 @@
+# When building deps
+core/deps
+
+# When building test
+test/build
+
+# Config anywhere
+*/.config
+*/.config.old
+
+# Personal files
+backup/
+future/
+TODO
+token
