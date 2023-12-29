@@ -181,7 +181,7 @@ config_set(void *ctx, union config *cfg)
 }
 
 static bool
-stream_read(void *ctx, u32 idx, u8 *data)
+stream_read(void *ctx, u32 idx, void *data)
 {
     bool ret = (idx == 0);
 
@@ -189,14 +189,14 @@ stream_read(void *ctx, u32 idx, u8 *data)
     {
         struct serial *com = ctx;
         while (!(in8(IO_LSR(com->port)) & 0x1));
-        data[0] = in8(IO_DAT(com->port));
+        *((u8*)data) = in8(IO_DAT(com->port));
     }
 
     return ret;
 }
 
 static bool
-stream_write(void *ctx, u32 idx, u8 *data)
+stream_write(void *ctx, u32 idx, void *data)
 {
     bool ret = (idx == 0);
 
@@ -204,7 +204,7 @@ stream_write(void *ctx, u32 idx, u8 *data)
     {
         struct serial *com = ctx;
         while (!(in8(IO_LSR(com->port)) & 0x20));
-        out8(IO_DAT(com->port), data[0]);
+        out8(IO_DAT(com->port), *((u8*)data));
     }
 
     return ret;

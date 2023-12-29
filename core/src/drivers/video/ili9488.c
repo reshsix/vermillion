@@ -50,11 +50,11 @@ ili9488_command(struct ili9488 *ili, u8 c, ...)
         buf[i] = va_arg(args, int);
 
     pin_set(ili->gpio, ili->dcrs, false);
-    STREAM_W(*(ili->stream), 0, &(buf[0]));
+    dev_stream_write(ili->stream, 0, &(buf[0]));
 
     pin_set(ili->gpio, ili->dcrs, true);
     for (u8 i = 1; i < c; i++)
-        STREAM_W(*(ili->stream), 0, &(buf[i]));
+        dev_stream_write(ili->stream, 0, &(buf[i]));
     pin_set(ili->gpio, ili->dcrs, false);
 }
 
@@ -62,11 +62,11 @@ static void
 ili9488_command2(struct ili9488 *ili, u8 n, u8 *buf, size_t length)
 {
     pin_set(ili->gpio, ili->dcrs, false);
-    STREAM_W(*(ili->stream), 0, &n);
+    dev_stream_write(ili->stream, 0, &n);
 
     pin_set(ili->gpio, ili->dcrs, true);
     for (size_t i = 0; i < length; i++)
-        STREAM_W(*(ili->stream), 0, &(buf[i]));
+        dev_stream_write(ili->stream, 0, &(buf[i]));
     pin_set(ili->gpio, ili->dcrs, false);
 }
 
@@ -74,11 +74,11 @@ static void
 ili9488_command3(struct ili9488 *ili, u8 n, u8 c, size_t length)
 {
     pin_set(ili->gpio, ili->dcrs, false);
-    STREAM_W(*(ili->stream), 0, &n);
+    dev_stream_write(ili->stream, 0, &n);
 
     pin_set(ili->gpio, ili->dcrs, true);
     for (size_t i = 0; i < length; i++)
-        STREAM_W(*(ili->stream), 0, &c);
+        dev_stream_write(ili->stream, 0, &c);
     pin_set(ili->gpio, ili->dcrs, false);
 }
 
@@ -198,7 +198,7 @@ config_get(void *ctx, union config *data)
 }
 
 static bool
-block_read(void *ctx, u32 idx, u8 *buffer, u32 block)
+block_read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = (idx == 0 && block < 320);
 
@@ -212,17 +212,18 @@ block_read(void *ctx, u32 idx, u8 *buffer, u32 block)
 }
 
 static bool
-block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
+block_write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = (idx == 0 && block < 320);
 
     if (ret)
     {
         struct ili9488 *ili = ctx;
+        u8 *buffer8 = buffer;
 
         bool diff = false;
         for (u16 i = 0; !diff && i < 480; i++)
-            diff = mem_comp(&(ili->buffer32[i * 4]), &(buffer[i * 4]), 3);
+            diff = mem_comp(&(ili->buffer32[i * 4]), &(buffer8[i * 4]), 3);
 
         if (diff)
         {
@@ -230,7 +231,7 @@ block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
 
             u32 index = block * 480;
             for (u16 i = 0; i < 480; i++)
-                mem_copy(&(ili->buffer24[i * 3]), &(buffer[i * 4]), 3);
+                mem_copy(&(ili->buffer24[i * 3]), &(buffer8[i * 4]), 3);
 
             u32 x = index % 480;
             u32 y = index / 480;

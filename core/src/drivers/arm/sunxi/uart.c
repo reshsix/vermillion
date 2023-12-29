@@ -246,28 +246,28 @@ config_set(void *ctx, union config *cfg)
 }
 
 static bool
-stream_read(void *ctx, u32 idx, u8 *data)
+stream_read(void *ctx, u32 idx, void *data)
 {
     bool ret = (idx == 0);
 
     if (ret)
     {
         struct uart *u = ctx;
-        *data = uart_read(u->port);
+        *((u8*)data) = uart_read(u->port);
     }
 
     return ret;
 }
 
 static bool
-stream_write(void *ctx, u32 idx, u8 *data)
+stream_write(void *ctx, u32 idx, void *data)
 {
     bool ret = (idx == 0);
 
     if (ret)
     {
         struct uart *u = ctx;
-        uart_write(u->port, data[0]);
+        uart_write(u->port, *((u8*)data));
     }
 
     return ret;

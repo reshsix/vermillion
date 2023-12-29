@@ -18,15 +18,45 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <vermillion/utils.h>
 #include <vermillion/drivers.h>
 
+/* Driver helpers */
+
+extern bool
+dev_block_read(union dev_block_ptr dev, u32 idx, void *buf, u32 block)
+{
+    dev_block *dev2 = dev.block;
+    return dev2->driver->block.read(dev2->context, idx, buf, block);
+}
+
+extern bool
+dev_block_write(union dev_block_ptr dev, u32 idx, void *buf, u32 block)
+{
+    dev_block *dev2 = dev.block;
+    return dev2->driver->block.write(dev2->context, idx, buf, block);
+}
+
+extern bool
+dev_stream_read(union dev_stream_ptr dev, u32 idx, void *data)
+{
+    dev_stream *dev2 = dev.stream;
+    return dev2->driver->stream.read(dev2->context, idx, data);
+}
+
+extern bool
+dev_stream_write(union dev_stream_ptr dev, u32 idx, void *data)
+{
+    dev_stream *dev2 = dev.stream;
+    return dev2->driver->stream.write(dev2->context, idx, data);
+}
+
 /* Logging helpers */
 
 static dev_stream *logdev = NULL;
 
 extern dev_stream *
-logger(dev_stream *log)
+logger(union dev_stream_ptr log)
 {
-    if (log != NULL)
-        logdev = log;
+    if (log.stream != NULL)
+        logdev = log.stream;
 
     return logdev;
 }
@@ -35,7 +65,7 @@ extern void
 log_c(const char c)
 {
     if (logdev != NULL)
-        STREAM_W(*logdev, 0, &c);
+        dev_stream_write(logdev, 0, (char *)&c);
 }
 
 extern void
@@ -113,7 +143,7 @@ clock(dev_timer *tmr)
 extern void
 csleep(dev_timer *tmr, const u32 n)
 {
-    BLOCK_W(*tmr, 0, (u8*)&n, 0);
+    dev_block_write(tmr, 0, (u8*)&n, 0);
 }
 
 static void
@@ -165,14 +195,14 @@ pin_set(dev_gpio *gpio, u16 pin, bool data)
     u8 bit = pin % 32;
 
     u32 reg = 0;
-    if (BLOCK_R(*gpio, 0, (u8*)&reg, block))
+    if (dev_block_read(gpio, 0, (u8*)&reg, block))
     {
         if (data)
             reg |= (1 << bit);
         else
             reg &= ~(1 << bit);
 
-        ret = BLOCK_W(*gpio, 0, (u8*)&reg, block);
+        ret = dev_block_write(gpio, 0, (u8*)&reg, block);
     }
 
     return ret;
@@ -187,7 +217,7 @@ pin_get(dev_gpio *gpio, u16 pin, bool *data)
     u8 bit = pin % 32;
 
     u32 reg = 0;
-    if (BLOCK_R(*gpio, 0, (u8*)&reg, block))
+    if (dev_block_read(gpio, 0, (u8*)&reg, block))
     {
         *data = reg & (1 << bit);
         ret = true;

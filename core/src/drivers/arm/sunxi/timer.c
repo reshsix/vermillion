@@ -100,7 +100,7 @@ config_get(void *ctx, union config *cfg)
 }
 
 static bool
-block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
+block_write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = (idx == 0 && block == 0);
 

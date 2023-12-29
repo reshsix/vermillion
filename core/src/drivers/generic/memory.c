@@ -19,7 +19,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <vermillion/drivers.h>
 
 static bool
-block_read(void *ctx, u32 idx, u8 *buffer, u32 block)
+block_read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = (idx == 0);
 
@@ -31,7 +31,7 @@ block_read(void *ctx, u32 idx, u8 *buffer, u32 block)
 }
 
 static bool
-block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
+block_write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = (idx == 0);
 

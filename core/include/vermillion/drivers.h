@@ -153,8 +153,8 @@ enum
         } config; \
         struct __attribute__((packed)) \
         { \
-            bool (*read) (void *ctx, u32 idx, u8 *buffer, u32 block); \
-            bool (*write)(void *ctx, u32 idx, u8 *buffer, u32 block); \
+            bool (*read) (void *ctx, u32 idx, void *buffer, u32 block); \
+            bool (*write)(void *ctx, u32 idx, void *buffer, u32 block); \
         } block; \
     } drv_##name; \
     typedef struct __attribute__((packed)) \
@@ -174,8 +174,8 @@ enum
         } config; \
         struct __attribute__((packed)) \
         { \
-            bool (*read)  (void *ctx, u32 idx, u8 *data); \
-            bool (*write) (void *ctx, u32 idx, u8 *data); \
+            bool (*read)  (void *ctx, u32 idx, void *data); \
+            bool (*write) (void *ctx, u32 idx, void *data); \
         } stream; \
     } drv_##name; \
     typedef struct __attribute__((packed)) \
@@ -222,16 +222,28 @@ _DRIVER_STREAM_TYPE(spi)
 _DRIVER_BLOCK_TYPE(gpio)
 _DRIVER_CUSTOM_TYPE(pic)
 
-#define BLOCK_W(device, idx, buffer, block_) \
-    (device).driver->block.write((device).context, (u32)(idx), \
-                                 (u8*)(buffer), (u32)(block_))
-#define BLOCK_R(device, idx, buffer, block_) \
-    (device).driver->block.read((device).context, (u32)(idx), \
-                                (u8*)(buffer), (u32)(block_))
-#define STREAM_W(device, idx, data) \
-    (device).driver->stream.write((device).context, (u32)(idx), (u8*)(data))
-#define STREAM_R(device, idx, data) \
-    (device).driver->stream.read((device).context, (u32)(idx), (u8*)(data))
+union __attribute__((transparent_union)) dev_generic_ptr
+{
+    dev_generic *generic;
+    dev_pic *pic;
+};
+
+union __attribute__((transparent_union)) dev_block_ptr
+{
+    dev_block *block;
+    dev_video *video;
+    dev_storage *storage;
+    dev_timer *timer;
+    dev_gpio *gpio;
+};
+
+union __attribute__((transparent_union)) dev_stream_ptr
+{
+    dev_stream *stream;
+    dev_audio *video;
+    dev_serial *storage;
+    dev_spi *timer;
+};
 
 /* Devtree interface */
 

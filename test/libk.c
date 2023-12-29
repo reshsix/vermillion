@@ -32,12 +32,12 @@ log_clear(void)
 }
 
 static bool
-log_write(void *ctx, u32 idx, u8 *c)
+log_write(void *ctx, u32 idx, void *data)
 {
     bool ret = (ctx == test_ctx && idx == 0);
 
     if (ret)
-        buffer[buffer_s++] = c[0];
+        buffer[buffer_s++] = *((u8*)(data));
 
     return ret;
 }
@@ -99,7 +99,7 @@ clk_getcfg(void *ctx, union config *cfg)
 }
 
 static bool
-clk_write(void *ctx, u32 idx, u8 *data, u32 block)
+clk_write(void *ctx, u32 idx, void *data, u32 block)
 {
     bool ret = (ctx == test_ctx && idx == 0 && data && block == 0);
 
@@ -181,7 +181,7 @@ io_getcfg(void *ctx, union config *cfg)
 }
 
 static bool
-io_write(void *ctx, u32 idx, u8 *data, u32 block)
+io_write(void *ctx, u32 idx, void *data, u32 block)
 {
     bool ret = (ctx == test_ctx && idx == 0 && data && block < 4);
 
@@ -192,7 +192,7 @@ io_write(void *ctx, u32 idx, u8 *data, u32 block)
 }
 
 static bool
-io_read(void *ctx, u32 idx, u8 *data, u32 block)
+io_read(void *ctx, u32 idx, void *data, u32 block)
 {
     bool ret = (ctx == test_ctx && idx == 0 && data && block < 4);
 

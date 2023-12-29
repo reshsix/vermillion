@@ -63,7 +63,7 @@ clean(void *ctx)
 }
 
 static bool
-stream_write(void *ctx, u32 idx, u8 *data)
+stream_write(void *ctx, u32 idx, void *data)
 {
     bool ret = (idx == 0);
 
@@ -77,9 +77,9 @@ stream_write(void *ctx, u32 idx, u8 *data)
         {
             pin_set(s->gpio, s->clock, false);
             if (s->lsbfirst)
-                pin_set(s->gpio, s->data, data[0] & (1 << (7 - i)));
+                pin_set(s->gpio, s->data, *((u8*)data) & (1 << (7 - i)));
             else
-                pin_set(s->gpio, s->data, data[0] & (1 << i));
+                pin_set(s->gpio, s->data, *((u8*)data) & (1 << i));
             pin_set(s->gpio, s->clock, true);
         }
 

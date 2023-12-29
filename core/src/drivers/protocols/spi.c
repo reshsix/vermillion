@@ -189,23 +189,23 @@ config_set(void *ctx, union config *cfg)
 }
 
 static bool
-stream_read(void *ctx, u32 idx, u8 *data)
+stream_read(void *ctx, u32 idx, void *data)
 {
     bool ret = (idx == 0);
 
     if (ret)
-        data[0] = spi_transfer(ctx, 0x0);
+        *((u8*)data) = spi_transfer(ctx, 0x0);
 
     return ret;
 }
 
 static bool
-stream_write(void *ctx, u32 idx, u8 *data)
+stream_write(void *ctx, u32 idx, void *data)
 {
     bool ret = (idx == 0);
 
     if (ret)
-        spi_transfer(ctx, data[0]);
+        spi_transfer(ctx, *((u8*)data));
 
     return ret;
 }

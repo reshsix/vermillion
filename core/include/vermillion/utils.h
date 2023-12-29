@@ -20,7 +20,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <vermillion/types.h>
 #include <vermillion/drivers.h>
 
-dev_stream *logger(dev_stream *log);
+bool dev_block_read(union dev_block_ptr dev, u32 idx, void *buffer, u32 block);
+bool dev_block_write(union dev_block_ptr dev, u32 idx, void *buffer, u32 block);
+bool dev_stream_read(union dev_stream_ptr dev, u32 idx, void *data);
+bool dev_stream_write(union dev_stream_ptr dev, u32 idx, void *data);
+
+dev_stream *logger(union dev_stream_ptr log);
 void log_c(const char c);
 void log_s(const char *s);
 void log_h(const u32 n);

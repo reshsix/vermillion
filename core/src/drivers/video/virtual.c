@@ -88,7 +88,7 @@ config_get(void *ctx, union config *data)
 }
 
 static bool
-block_read(void *ctx, u32 idx, u8 *buffer, u32 block)
+block_read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = true;
 
@@ -102,7 +102,7 @@ block_read(void *ctx, u32 idx, u8 *buffer, u32 block)
 }
 
 static bool
-block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
+block_write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = true;
 
@@ -128,7 +128,7 @@ block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
 
                 mem_copy(dest, src, 4);
             }
-            ret = BLOCK_W(*(v->video), 0, v->buffer2, j);
+            ret = dev_block_write(v->video, 0, v->buffer2, j);
         }
     }
     else

@@ -78,14 +78,14 @@ config_get(void *ctx, union config *cfg)
 }
 
 static bool
-stream_write(void *ctx, u32 idx, u8 *data)
+stream_write(void *ctx, u32 idx, void *data)
 {
     bool ret = true;
 
     if (idx == 0)
     {
         struct buzzer *bz = ctx;
-        ret = pin_set(bz->gpio, bz->pin, data[0] >= UINT8_MAX / 2);
+        ret = pin_set(bz->gpio, bz->pin, *((u8*)data) >= UINT8_MAX / 2);
         usleep(bz->timer, 1000000000 / 48000);
     }
     else

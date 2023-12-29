@@ -64,7 +64,7 @@ clean(void *ctx)
 }
 
 static bool
-block_read(void *ctx, u32 idx, u8 *buffer, u32 block)
+block_read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = (idx == 0);
 
@@ -93,7 +93,7 @@ block_read(void *ctx, u32 idx, u8 *buffer, u32 block)
 
             u32 x = SD_FIFO(card->base);
             for (u8 j = 0; j < 4; j++)
-                buffer[(i * 4) + j] = ((u8*)&x)[j];
+                ((u8*)buffer)[(i * 4) + j] = ((u8*)&x)[j];
         }
     }
 
@@ -101,7 +101,7 @@ block_read(void *ctx, u32 idx, u8 *buffer, u32 block)
 }
 
 static bool
-block_write(void *ctx, u32 idx, u8 *buffer, u32 block)
+block_write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     (void)(ctx), (void)(idx), (void)(buffer), (void)(block);
     return false;
