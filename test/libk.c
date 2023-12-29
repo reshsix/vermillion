@@ -927,7 +927,7 @@ test_channel(void)
 
 thread_task (main)
 {
-    log_s("\r\n[ Testing utils.o ]\r\n");
+    log_s("\r\n[ Testing libk.o ]\r\n");
     #define UNIT_TEST(x) \
     { \
         u32 result = x(); \
