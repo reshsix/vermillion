@@ -14,9 +14,10 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <vermillion/types.h>
-#include <vermillion/utils.h>
-#include <vermillion/drivers.h>
+#include <core/types.h>
+#include <core/drivers.h>
+
+#include <core/mem.h>
 
 #define UART_BUF(p) *(volatile u32*)(p + 0x00)
 #define UART_DLL(p) *(volatile u32*)(p + 0x00)

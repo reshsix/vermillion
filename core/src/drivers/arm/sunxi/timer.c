@@ -14,9 +14,10 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <vermillion/types.h>
-#include <vermillion/utils.h>
-#include <vermillion/drivers.h>
+#include <core/types.h>
+#include <core/drivers.h>
+
+#include <core/mem.h>
 
 #define TMR_IRQ_EN(x)  *(volatile u32*)(x + 0x0)
 #define TMR_IRQ_STA(x) *(volatile u32*)(x + 0x4)

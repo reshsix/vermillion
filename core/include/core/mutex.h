@@ -14,37 +14,21 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#ifndef CORE_MUTEX_H
+#define CORE_MUTEX_H
+
 #include <core/types.h>
-#include <core/drivers.h>
+#include <core/macros.h>
 
-#include <core/mem.h>
+#define MUTEX(...) \
+    void *UNIQUE(_mutex_p) = NULL; \
+    __VA_OPT__(UNIQUE(_mutex_p) = (void *)__VA_ARGS__;) \
+    static void * UNIQUE(_mutex_m) = NULL; \
+    bool UNIQUE(_mutex) = true; \
+    for (mutex_lock(&UNIQUE(_mutex_m), UNIQUE(_mutex_p)); UNIQUE(_mutex); \
+         mutex_unlock(&UNIQUE(_mutex_m), UNIQUE(_mutex_p)), \
+         UNIQUE(_mutex) = false)
+void mutex_lock(void **m, void *param);
+void mutex_unlock(void **m, void *param);
 
-static bool
-block_read(void *ctx, u32 idx, void *buffer, u32 block)
-{
-    bool ret = (idx == 0);
-
-    (void)(ctx);
-    if (ret)
-        mem_copy(buffer, (void*)(block * 0x200), 0x200);
-
-    return ret;
-}
-
-static bool
-block_write(void *ctx, u32 idx, void *buffer, u32 block)
-{
-    bool ret = (idx == 0);
-
-    (void)(ctx);
-    if (ret)
-        mem_copy((void*)(block * 0x200), buffer, 0x200);
-
-    return ret;
-}
-
-DECLARE_DRIVER(storage, memory)
-{
-    .block.read  = block_read,
-    .block.write = block_write
-};
+#endif

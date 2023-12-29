@@ -14,9 +14,9 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <vermillion/types.h>
-#include <vermillion/utils.h>
-#include <vermillion/drivers.h>
+#include <core/types.h>
+#include <core/utils.h>
+#include <core/drivers.h>
 
 INCLUDE_DRIVER(serial, i686_com)
 DECLARE_DEVICE(serial, i686_com, tty0)

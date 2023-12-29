@@ -14,9 +14,11 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <vermillion/types.h>
-#include <vermillion/utils.h>
-#include <vermillion/drivers.h>
+#include <core/types.h>
+#include <core/utils.h>
+#include <core/drivers.h>
+
+#include <core/mem.h>
 
 struct buzzer
 {
@@ -73,7 +75,7 @@ static bool
 config_get(void *ctx, union config *cfg)
 {
     struct buzzer *bz = ctx;
-    memcpy(cfg, &(bz->config), sizeof(union config));
+    mem_copy(cfg, &(bz->config), sizeof(union config));
     return true;
 }
 

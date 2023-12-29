@@ -14,9 +14,10 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <vermillion/types.h>
-#include <vermillion/utils.h>
-#include <vermillion/drivers.h>
+#include <core/types.h>
+#include <core/drivers.h>
+
+#include <core/mem.h>
 
 #define PN_CFG(c, n, i) *(volatile u32*)(c + (n * 0x24) + (0x4 * i))
 #define PN_DAT(c, n)    *(volatile u32*)(c + (n * 0x24) + 0x10)

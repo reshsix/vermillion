@@ -14,37 +14,11 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <core/types.h>
-#include <core/drivers.h>
+#ifndef CORE_MACROS_H
+#define CORE_MACROS_H
 
-#include <core/mem.h>
+#define __CONCAT(a, b) a##b
+#define _CONCAT(a, b) __CONCAT(a, b)
+#define UNIQUE(x) _CONCAT(x, __LINE__)
 
-static bool
-block_read(void *ctx, u32 idx, void *buffer, u32 block)
-{
-    bool ret = (idx == 0);
-
-    (void)(ctx);
-    if (ret)
-        mem_copy(buffer, (void*)(block * 0x200), 0x200);
-
-    return ret;
-}
-
-static bool
-block_write(void *ctx, u32 idx, void *buffer, u32 block)
-{
-    bool ret = (idx == 0);
-
-    (void)(ctx);
-    if (ret)
-        mem_copy((void*)(block * 0x200), buffer, 0x200);
-
-    return ret;
-}
-
-DECLARE_DRIVER(storage, memory)
-{
-    .block.read  = block_read,
-    .block.write = block_write
-};
+#endif

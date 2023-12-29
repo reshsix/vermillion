@@ -14,10 +14,10 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef _I686_ENV_H
-#define _I686_ENV_H
+#ifndef I686_ENV_H
+#define I686_ENV_H
 
-#include <vermillion/types.h>
+#include <core/types.h>
 
 static inline u8
 in8(u16 port)

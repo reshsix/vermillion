@@ -14,37 +14,19 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#ifndef CORE_SEMAPHORE_H
+#define CORE_SEMAPHORE_H
+
 #include <core/types.h>
-#include <core/drivers.h>
+#include <core/macros.h>
 
-#include <core/mem.h>
+#define SEMAPHORE(count) \
+    static int UNIQUE(_semaphore_s) = count; \
+    bool UNIQUE(_semaphore) = true; \
+    for (semaphore_wait(&UNIQUE(_semaphore_s)); UNIQUE(_semaphore); \
+         semaphore_signal(&UNIQUE(_semaphore_s)), \
+                          UNIQUE(_semaphore) = false)
+void semaphore_wait(int *s);
+void semaphore_signal(int *s);
 
-static bool
-block_read(void *ctx, u32 idx, void *buffer, u32 block)
-{
-    bool ret = (idx == 0);
-
-    (void)(ctx);
-    if (ret)
-        mem_copy(buffer, (void*)(block * 0x200), 0x200);
-
-    return ret;
-}
-
-static bool
-block_write(void *ctx, u32 idx, void *buffer, u32 block)
-{
-    bool ret = (idx == 0);
-
-    (void)(ctx);
-    if (ret)
-        mem_copy((void*)(block * 0x200), buffer, 0x200);
-
-    return ret;
-}
-
-DECLARE_DRIVER(storage, memory)
-{
-    .block.read  = block_read,
-    .block.write = block_write
-};
+#endif

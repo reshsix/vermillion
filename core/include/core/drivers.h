@@ -17,7 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef VERMILLION_DRIVERS_H
 #define VERMILLION_DRIVERS_H
 
-#include <vermillion/types.h>
+#include <core/types.h>
 
 /* Definitions for specific driver types */
 

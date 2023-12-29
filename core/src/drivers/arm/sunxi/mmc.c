@@ -16,9 +16,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 /* Considers card to have already been initialized by u-boot */
 
-#include <vermillion/types.h>
-#include <vermillion/utils.h>
-#include <vermillion/drivers.h>
+#include <core/types.h>
+#include <core/drivers.h>
+
+#include <core/mem.h>
 
 #define SD_CFG(x)   *(volatile u32*)(x + 0x00)
 #define SD_BLK(x)   *(volatile u32*)(x + 0x10)
