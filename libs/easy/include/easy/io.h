@@ -17,8 +17,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #ifndef EASY_IO_H
 #define EASY_IO_H
 
-#include <vermillion/types.h>
-#include <vermillion/drivers.h>
+#include <core/types.h>
+
+#include <core/dev.h>
 
 #define LOW  false
 #define HIGH true
@@ -33,7 +34,7 @@ enum
     EXTRA,
 };
 
-void io_chip(struct device *chip);
+void io_chip(dev_gpio *chip);
 void io_config(u16 pin, u8 mode);
 bool io_read(u16 pin);
 void io_write(u16 pin, bool value);

@@ -14,16 +14,17 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <vermillion/types.h>
-#include <vermillion/utils.h>
-#include <vermillion/drivers.h>
+#include <core/types.h>
+#include <core/utils.h>
+
+#include <core/dev.h>
 
 #include <easy/io.h>
 
-static struct device *gpio = NULL;
+static dev_gpio *gpio = NULL;
 
 extern void
-io_chip(struct device *chip)
+io_chip(dev_gpio *chip)
 {
     gpio = chip;
 }
