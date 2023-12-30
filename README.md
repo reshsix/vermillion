@@ -21,19 +21,20 @@ qemu-system-arm qemu-system-i386 gdb-multiarch
 ```c
 #include <easy/io.h>
 
-#include <vermillion/utils.h>
-#include <vermillion/drivers.h>
-INCLUDE_DEVICE(gpio0)
+#include <core/types.h>
+#include <core/utils.h>
 
-THREAD(main)
+#include <core/dev.h>
+dev_incl (gpio, gpio0)
+
+extern void
+main(void)
 {
     log_s("Hello World!\r\n");
 
-    io_chip(&DEVICE(gpio0));
+    io_chip(&dev(gpio0));
     io_config(13, OUTPUT);
     io_write(13, HIGH);
-
-    thread_finish();
 }
 ```
 
