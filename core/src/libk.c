@@ -1346,13 +1346,13 @@ channel_write(channel *ch, void *data)
 /* Initialization helpers */
 
 static void
-init_utils(void)
+init_libk(void)
 {
     init_mem();
 }
 
 static void
-clean_utils(void)
+clean_libk(void)
 {
     clean_mem();
 }
@@ -1372,7 +1372,7 @@ static thread_task(_main)
 extern void
 __init(void)
 {
-    init_utils();
+    init_libk();
     _devtree_init();
 
     thread_new(_main, NULL, false, 255);
@@ -1398,7 +1398,7 @@ __init(void)
     }
 
     _devtree_clean();
-    clean_utils();
+    clean_libk();
 
     while (true);
 }
