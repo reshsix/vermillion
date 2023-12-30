@@ -926,7 +926,8 @@ test_channel(void)
 
 /* Init tests */
 
-thread_task (main)
+extern void
+main(void)
 {
     log_s("\r\n[ Testing libk.o ]\r\n");
     #define UNIT_TEST(x) \
@@ -955,6 +956,4 @@ thread_task (main)
     UNIT_TEST(test_thread)
     UNIT_TEST(test_sync)
     UNIT_TEST(test_channel)
-
-    thread_finish();
 }

@@ -1362,14 +1362,20 @@ clean_utils(void)
 extern void _devtree_init(void);
 extern void _devtree_clean(void);
 
-extern thread_task(main);
+extern void main(void);
+static thread_task(_main)
+{
+    main();
+    thread_finish();
+}
+
 extern void
 __init(void)
 {
     init_utils();
     _devtree_init();
 
-    thread_new(main, NULL, false, 255);
+    thread_new(_main, NULL, false, 255);
     while (threads.cur)
     {
         thread *cur = threads.cur;
