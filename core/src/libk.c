@@ -30,7 +30,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/generator.h>
 #include <core/semaphore.h>
 
-/* Driver helpers */
+/* Device helpers */
 
 extern bool
 dev_block_read(union dev_block_ptr dev, u32 idx, void *buf, u32 block)

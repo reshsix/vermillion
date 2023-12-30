@@ -95,3 +95,10 @@ union __attribute__((transparent_union)) dev_stream_ptr
 }
 
 #endif
+
+/* Device functions */
+
+bool dev_block_read(union dev_block_ptr dev, u32 idx, void *buffer, u32 block);
+bool dev_block_write(union dev_block_ptr dev, u32 idx, void *buffer, u32 block);
+bool dev_stream_read(union dev_stream_ptr dev, u32 idx, void *data);
+bool dev_stream_write(union dev_stream_ptr dev, u32 idx, void *data);

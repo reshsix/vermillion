@@ -216,10 +216,10 @@ io_read(void *ctx, u32 idx, void *data, u32 block)
 }
 
 static char *test_io_str[] = {"pin_set", "pin_get", "pin_cfg"};
-static int
+static u32
 test_io(void)
 {
-    int ret = 0;
+    u32 ret = 0;
 
     drv_gpio drv = {.config.get = io_getcfg, .block.read = io_read,
                                              .block.write = io_write};
@@ -245,10 +245,10 @@ test_io(void)
 /* Testing memory allocation helpers */
 
 static char *test_alloc_str[] = {"mem_new", "mem_renew", "mem_del"};
-static int
+static u32
 test_alloc(void)
 {
-    int ret = 0;
+    u32 ret = 0;
 
     u8 *a = mem_new(10);
     u8 *b = mem_new(20);
@@ -306,10 +306,10 @@ test_alloc(void)
 
 static char *test_memory_str[] = {"mem_comp", "mem_find",
                                   "mem_init", "mem_copy"};
-static int
+static u32
 test_memory(void)
 {
-    int ret = 0;
+    u32 ret = 0;
 
     static u8 a[128] = {0};
     static u8 b[128] = {0};
@@ -365,10 +365,10 @@ static char *test_string_str[] = {"str_length", "str_comp", "str_span",
                                   "str_find_m", "str_find_s",
                                   "str_token", "str_copy",
                                   "str_concat", "str_dupl"};
-static int
+static u32
 test_string(void)
 {
-    int ret = 0;
+    u32 ret = 0;
 
     char str[] = "test1234";
     char str2[] = "test5678";
@@ -480,10 +480,10 @@ test_string(void)
 
 static char *test_state_str[] = {"state_new", "state_del",
                                  "state_save", "state_load"};
-static int
+static u32
 test_state(void)
 {
-    int ret = 0;
+    u32 ret = 0;
 
     state *st = state_new();
     state *pst = st;
@@ -546,10 +546,10 @@ test_fork_f0(void *arg)
 }
 
 static char *test_fork_str[] = {"fork_new", "fork_del", "fork_run"};
-static int
+static u32
 test_fork(void)
 {
-    int ret = 0;
+    u32 ret = 0;
 
     fork *fk = fork_new(test_fork_f0, (void*)0x12345);
     fork *pfk = fk;
@@ -580,7 +580,7 @@ static char *test_generator_str[] = {"generator_new", "generator_del",
 static noreturn
 test_generator_g0(generator *g)
 {
-    int *ret = generator_arg(g);
+    u32 *ret = generator_arg(g);
 
     *ret &= ~0x8;
     generator_yield(g);
@@ -599,10 +599,10 @@ test_generator_g0(generator *g)
     generator_finish(g);
 }
 
-static int
+static u32
 test_generator(void)
 {
-    int ret = 0;
+    u32 ret = 0;
 
     generator *g = generator_new(test_generator_g0, &ret);
     generator *pg = g;
@@ -651,7 +651,7 @@ static bool test_thread_loop = false;
 static bool test_thread_finish = false;
 thread_task (test_thread_t0)
 {
-    int *ret = thread_arg();
+    u32 *ret = thread_arg();
 
     if (!test_thread_finish)
     {
@@ -693,10 +693,10 @@ thread_task (test_thread_t0)
     }
 }
 
-static int
+static u32
 test_thread(void)
 {
-    int ret = 0;
+    u32 ret = 0;
 
     thread *t = thread_new(test_thread_t0, &ret, false, 98);
     if (t != (thread *)0x1)
@@ -742,20 +742,20 @@ static char *test_sync_str[] = {"semaphore_wait", "semaphore_signal",
                                 "mutex_lock", "mutex_unlock",
                                 "critical_lock", "critical_unlock"};
 
-static int test_sync_st0 = 0;
+static u8 test_sync_st0 = 0;
 static bool test_sync_st1 = false;
 static bool test_sync_st2[3] = {false};
 static bool test_sync_st2r = true;
 
 thread_task (test_sync_s0)
 {
-    int *arg = thread_arg();
+    u32 *arg = thread_arg();
 
     semaphore (5)
     {
         test_sync_st0++;
 
-        for (int i = 0; i < 10; i++)
+        for (u8 i = 0; i < 10; i++)
             thread_yield();
 
         if (test_sync_st0 > 5 || !test_sync_st0)
@@ -769,12 +769,12 @@ thread_task (test_sync_s0)
 
 thread_task (test_sync_s1)
 {
-    int *arg = thread_arg();
+    u32 *arg = thread_arg();
 
     mutex ()
     {
         test_sync_st1 = !test_sync_st1;
-        for (int i = 0; i < 10; i++)
+        for (u8 i = 0; i < 10; i++)
             thread_yield();
 
         if (!test_sync_st1)
@@ -788,7 +788,7 @@ thread_task (test_sync_s1)
 
 thread_task (test_sync_s2)
 {
-    int arg = (int)thread_arg();
+    u32 arg = (u32)thread_arg();
 
     mutex (arg)
     {
@@ -796,7 +796,7 @@ thread_task (test_sync_s2)
             test_sync_st2r = false;
 
         test_sync_st2[arg] = !test_sync_st2[arg];
-        for (int i = 0; i < 10; i++)
+        for (u8 i = 0; i < 10; i++)
             thread_yield();
 
         if (!test_sync_st2[arg])
@@ -810,42 +810,42 @@ thread_task (test_sync_s2)
 
 thread_task (test_sync_s3)
 {
-    int arg = (int)thread_arg();
+    u32 arg = (u32)thread_arg();
 
     critical
     {
-        for (int i = 0; i < arg; i++)
+        for (u32 i = 0; i < arg; i++)
             thread_yield();
     }
 
     thread_finish();
 }
 
-static int
+static u32
 test_sync(void)
 {
-    int ret = 0;
+    u32 ret = 0;
 
     thread *th[16] = {NULL};
-    for (int i = 0; i < 16; i++)
+    for (u8 i = 0; i < 16; i++)
         th[i] = thread_new(test_sync_s0, &ret, true, 123);
-    for (int i = 0; i < 16; i++)
+    for (u8 i = 0; i < 16; i++)
         thread_wait(th[i]);
-    for (int i = 0; i < 16; i++)
+    for (u8 i = 0; i < 16; i++)
         th[i] = thread_del(th[i]);
 
-    for (int i = 0; i < 16; i++)
+    for (u8 i = 0; i < 16; i++)
         th[i] = thread_new(test_sync_s1, &ret, true, 45);
-    for (int i = 0; i < 16; i++)
+    for (u8 i = 0; i < 16; i++)
         thread_wait(th[i]);
-    for (int i = 0; i < 16; i++)
+    for (u8 i = 0; i < 16; i++)
         th[i] = thread_del(th[i]);
 
-    for (int i = 0; i < 16; i++)
+    for (u8 i = 0; i < 16; i++)
         th[i] = thread_new(test_sync_s2, (void *)(i % 3), true, 67);
-    for (int i = 0; i < 16; i++)
+    for (u8 i = 0; i < 16; i++)
         thread_wait(th[i]);
-    for (int i = 0; i < 16; i++)
+    for (u8 i = 0; i < 16; i++)
         th[i] = thread_del(th[i]);
     if (!test_sync_st2r)
         ret |= 0x4 + 0x8;
@@ -867,7 +867,7 @@ thread_task (test_channel_c0)
 {
     channel *ch = thread_arg();
 
-    int test = 0;
+    u32 test = 0;
     channel_read(ch, &test);
     if (test == 0xAB)
     {
@@ -887,25 +887,25 @@ thread_task (test_channel_c0)
     thread_finish();
 }
 
-static int
+static u32
 test_channel(void)
 {
-    int ret = 0;
+    u32 ret = 0;
 
-    channel *ch = channel_new(sizeof(int), 0);
+    channel *ch = channel_new(sizeof(u32), 0);
     channel *pch = ch;
     if (ch == NULL)
         ret |= 0x1;
     ch = channel_del(ch);
     if (ch != NULL)
         ret |= 0x2;
-    ch = channel_new(sizeof(int), 0);
+    ch = channel_new(sizeof(u32), 0);
     if (ch == NULL || ch != pch)
         ret |= 0x1;
 
     thread_new(test_channel_c0, ch, false, 123);
 
-    int test = 0xAB;
+    u32 test = 0xAB;
     channel_write(ch, &test);
     channel_read(ch, &test);
     if (test != 0xBC)
