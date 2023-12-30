@@ -78,9 +78,10 @@ union __attribute__((transparent_union)) dev_stream_ptr
 
 #define dev_init(x, ...) \
 { \
+    void *_ctx = NULL; \
     if (dev(x).driver->init) \
-        ((void (*)(void **, ...))dev(x).driver->init)( \
-                               &(dev(x).context),##__VA_ARGS__); \
+        ((void (*)(void **, ...))dev(x).driver->init)(&_ctx,##__VA_ARGS__); \
+    dev(x).context = _ctx; \
 }
 #define dev_config(x, ...) \
 { \
