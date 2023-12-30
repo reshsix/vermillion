@@ -101,9 +101,15 @@ union __attribute__((packed)) config
                                   bool edge, bool high);
         void (*wait)  (void *ctx);
     } pic;
-};
 
-struct file;
+    struct __attribute__((packed))
+    {
+        u32  (*open) (void *ctx, char *path);
+        u32  (*close)(void *ctx, u32 idx);
+        void (*info) (void *ctx, u32 idx, size_t *size, s32 *files);
+        u32  (*index)(void *ctx, u32 idx, u32 sub);
+    } fs;
+};
 
 enum
 {
@@ -184,30 +190,6 @@ enum
         void *context; \
     } dev_##name;
 
-#define _DRIVER_FS_TYPE(name) \
-    typedef struct __attribute__((packed)) \
-    { \
-        void *init, (*clean)(void *); \
-        struct __attribute__((packed)) \
-        { \
-            bool (*get)(void *ctx, union config *cfg); \
-            bool (*set)(void *ctx, union config *cfg); \
-        } config; \
-        struct __attribute__((packed)) \
-        { \
-            struct file * (*open) (void *ctx, char *path); \
-            struct file * (*close)(struct file *f); \
-            void          (*info) (struct file *f, size_t *size, s32 *files); \
-            struct file * (*index)(struct file *f, u32 index); \
-            bool          (*read) (struct file *f, u32 sector, u8 *buffer); \
-        } fs; \
-    } drv_##name; \
-    typedef struct __attribute__((packed)) \
-    { \
-        const drv_##name *driver; \
-        void *context; \
-    } dev_##name;
-
 _DRIVER_CUSTOM_TYPE(generic)
 _DRIVER_BLOCK_TYPE(block)
 _DRIVER_STREAM_TYPE(stream)
@@ -215,7 +197,7 @@ _DRIVER_STREAM_TYPE(stream)
 _DRIVER_BLOCK_TYPE(video)
 _DRIVER_STREAM_TYPE(audio)
 _DRIVER_BLOCK_TYPE(storage)
-_DRIVER_FS_TYPE(fs)
+_DRIVER_BLOCK_TYPE(fs)
 _DRIVER_BLOCK_TYPE(timer)
 _DRIVER_STREAM_TYPE(serial)
 _DRIVER_STREAM_TYPE(spi)
@@ -233,6 +215,7 @@ union __attribute__((transparent_union)) dev_block_ptr
     dev_block *block;
     dev_video *video;
     dev_storage *storage;
+    dev_fs *fs;
     dev_timer *timer;
     dev_gpio *gpio;
 };

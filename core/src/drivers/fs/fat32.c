@@ -476,12 +476,6 @@ fat32_read(struct fat32 *f, struct fat32e *fe, u32 sector, u8 *out)
     return ret;
 }
 
-struct file
-{
-    struct fat32 *fat32;
-    struct fat32e *fat32e;
-};
-
 static void
 init(void **ctx, dev_storage *storage)
 {
@@ -495,62 +489,70 @@ clean(void *ctx)
     fat32_del(ctx);
 }
 
-static struct file *
-fs_close(struct file *f)
+static u32
+fs_close(void *ctx, u32 idx)
 {
-    return mem_del(f);
+    (void)ctx, (void)idx;
+    return 0;
 }
 
-static struct file *
+static u32
 fs_open(void *ctx, char *path)
 {
-    struct file *ret = mem_new(sizeof(struct file));
-
-    if (ret)
-    {
-        ret->fat32 = ctx;
-        ret->fat32e = fat32_find(ret->fat32, path);
-        if (!(ret->fat32e))
-            ret = fs_close(ret);
-    }
-
-    return ret;
+    return (u32)fat32_find(ctx, path);
 }
 
 static void
-fs_info(struct file *f, size_t *size, s32 *files)
+fs_info(void *ctx, u32 idx, size_t *size, s32 *files)
 {
-    if (f && size)
-        *size = f->fat32e->size;
-    if (f && files)
-        *files = (f->fat32e->attributes & 0x10) ?
-                  (s32)f->fat32e->files.count : -1;
+    (void)ctx;
+
+    struct fat32e *e = (void *)idx;
+    if (e && size)
+        *size = e->size;
+    if (e && files)
+        *files = (e->attributes & 0x10) ? (s32)e->files.count : -1;
 }
 
-static struct file *
-fs_index(struct file *f, u32 index)
+static u32
+fs_index(void *ctx, u32 idx, u32 sub)
 {
-    struct file *ret = NULL;
+    struct fat32e *ret = NULL;
+    (void)ctx;
 
-    if (f && f->fat32e->files.count > index)
-        ret = mem_new(sizeof(struct file));
+    struct fat32e *e = (void *)idx;
+    if (e && e->files.count > sub)
+        ret = &(e->files.data[sub]);
 
-    if (ret)
+    return (u32)ret;
+}
+
+static bool
+config_get(void *ctx, union config *cfg)
+{
+    bool ret = true;
+
+    if (ctx)
     {
-        ret->fat32 = f->fat32;
-        ret->fat32e = &(f->fat32e->files.data[index]);
+        cfg->fs.open  = fs_open;
+        cfg->fs.close = fs_close;
+        cfg->fs.info  = fs_info;
+        cfg->fs.index = fs_index;
     }
+    else
+        ret = false;
 
     return ret;
 }
 
 static bool
-fs_read(struct file *f, u32 sector, u8 *buffer)
+block_read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (f)
-        ret = fat32_read(f->fat32, f->fat32e, sector, buffer);
+    struct fat32e *e = (void *)idx;
+    if (e)
+        ret = fat32_read(ctx, e, block, buffer);
 
     return ret;
 }
@@ -558,9 +560,6 @@ fs_read(struct file *f, u32 sector, u8 *buffer)
 DECLARE_DRIVER(fs, fat32)
 {
     .init = init, .clean = clean,
-    .fs.open  = fs_open,
-    .fs.close = fs_close,
-    .fs.info  = fs_info,
-    .fs.index = fs_index,
-    .fs.read  = fs_read
+    .config.get = config_get,
+    .block.read = block_read
 };
