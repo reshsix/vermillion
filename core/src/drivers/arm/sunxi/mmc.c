@@ -17,8 +17,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 /* Considers card to have already been initialized by u-boot */
 
 #include <core/types.h>
-#include <core/drivers.h>
 
+#include <core/dev.h>
+#include <core/drv.h>
 #include <core/mem.h>
 
 #define SD_CFG(x)   *(volatile u32*)(x + 0x00)
@@ -108,7 +109,7 @@ block_write(void *ctx, u32 idx, void *buffer, u32 block)
     return false;
 }
 
-DECLARE_DRIVER(storage, sunxi_mmc)
+drv_decl (storage, sunxi_mmc)
 {
     .init = init, .clean = clean,
     .block.read  = block_read,

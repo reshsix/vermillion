@@ -17,8 +17,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <i686/env.h>
 
 #include <core/types.h>
-#include <core/drivers.h>
 
+#include <core/dev.h>
+#include <core/drv.h>
 #include <core/mem.h>
 
 #define IO_DAT(x)  (x + 0)
@@ -213,7 +214,7 @@ stream_write(void *ctx, u32 idx, void *data)
     return ret;
 }
 
-DECLARE_DRIVER(serial, i686_com)
+drv_decl (serial, i686_com)
 {
     .init = init, .clean = clean,
     .config.get = config_get,

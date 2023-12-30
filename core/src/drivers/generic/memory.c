@@ -15,8 +15,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <core/types.h>
-#include <core/drivers.h>
 
+#include <core/dev.h>
+#include <core/drv.h>
 #include <core/mem.h>
 
 static bool
@@ -43,7 +44,7 @@ block_write(void *ctx, u32 idx, void *buffer, u32 block)
     return ret;
 }
 
-DECLARE_DRIVER(storage, memory)
+drv_decl (storage, memory)
 {
     .block.read  = block_read,
     .block.write = block_write

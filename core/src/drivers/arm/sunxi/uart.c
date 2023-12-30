@@ -15,8 +15,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <core/types.h>
-#include <core/drivers.h>
 
+#include <core/dev.h>
+#include <core/drv.h>
 #include <core/mem.h>
 
 #define UART_BUF(p) *(volatile u32*)(p + 0x00)
@@ -274,7 +275,7 @@ stream_write(void *ctx, u32 idx, void *data)
     return ret;
 }
 
-DECLARE_DRIVER(serial, sunxi_uart)
+drv_decl (serial, sunxi_uart)
 {
     .init = init, .clean = clean,
     .config.get = config_get,

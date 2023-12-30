@@ -15,8 +15,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <core/types.h>
-#include <core/drivers.h>
 
+#include <core/dev.h>
+#include <core/drv.h>
 #include <core/mem.h>
 
 #define TMR_IRQ_EN(x)  *(volatile u32*)(x + 0x0)
@@ -140,7 +141,7 @@ block_write(void *ctx, u32 idx, void *buffer, u32 block)
     return ret;
 }
 
-DECLARE_DRIVER(timer, sunxi_timer)
+drv_decl (timer, sunxi_timer)
 {
     .init = init, .clean = clean,
     .config.get = config_get,

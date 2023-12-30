@@ -14,8 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef VERMILLION_DRIVERS_H
-#define VERMILLION_DRIVERS_H
+#ifndef CORE_DRV_H
+#define CORE_DRV_H
 
 #include <core/types.h>
 
@@ -129,7 +129,7 @@ enum
 
 #define DRIVER_SPI_MAX 0
 
-/* Driver and device structures */
+/* Driver structures */
 
 #define _DRIVER_CUSTOM_TYPE(name) \
     typedef struct __attribute__((packed)) \
@@ -141,12 +141,6 @@ enum
             bool (*set)(void *ctx, union config *cfg); \
         } config; \
     } drv_##name; \
-    typedef struct __attribute__((packed)) \
-    { \
-        const drv_##name *driver; \
-        void *context; \
-    } dev_##name; \
-    typedef dev_##name _drv_##name##_dev;
 
 #define _DRIVER_BLOCK_TYPE(name) \
     typedef struct __attribute__((packed)) \
@@ -163,11 +157,6 @@ enum
             bool (*write)(void *ctx, u32 idx, void *buffer, u32 block); \
         } block; \
     } drv_##name; \
-    typedef struct __attribute__((packed)) \
-    { \
-        const drv_##name *driver; \
-        void *context; \
-    } dev_##name;
 
 #define _DRIVER_STREAM_TYPE(name) \
     typedef struct __attribute__((packed)) \
@@ -184,11 +173,6 @@ enum
             bool (*write) (void *ctx, u32 idx, void *data); \
         } stream; \
     } drv_##name; \
-    typedef struct __attribute__((packed)) \
-    { \
-        const drv_##name *driver; \
-        void *context; \
-    } dev_##name;
 
 _DRIVER_CUSTOM_TYPE(generic)
 _DRIVER_BLOCK_TYPE(block)
@@ -204,58 +188,8 @@ _DRIVER_STREAM_TYPE(spi)
 _DRIVER_BLOCK_TYPE(gpio)
 _DRIVER_CUSTOM_TYPE(pic)
 
-union __attribute__((transparent_union)) dev_generic_ptr
-{
-    dev_generic *generic;
-    dev_pic *pic;
-};
-
-union __attribute__((transparent_union)) dev_block_ptr
-{
-    dev_block *block;
-    dev_video *video;
-    dev_storage *storage;
-    dev_fs *fs;
-    dev_timer *timer;
-    dev_gpio *gpio;
-};
-
-union __attribute__((transparent_union)) dev_stream_ptr
-{
-    dev_stream *stream;
-    dev_audio *video;
-    dev_serial *storage;
-    dev_spi *timer;
-};
-
-/* Devtree interface */
-
-void _devtree_init(void);
-void _devtree_clean(void);
-
-#define DRIVER(x) _driver_##x
-#define DECLARE_DRIVER(type, x) const drv_##type DRIVER(x) =
-#define INCLUDE_DRIVER(type, x) extern const drv_##type DRIVER(x);
-
-#define DEVICE(x) _device_##x
-#define DECLARE_DEVICE(type, drv, x) dev_##type DEVICE(x) = \
-                                     {.driver = &DRIVER(drv)};
-#define INCLUDE_DEVICE(type, x) extern dev_##type DEVICE(x);
-#define INIT_DEVICE(x, ...) \
-{ \
-    if (DEVICE(x).driver->init) \
-        ((void (*)(void **, ...))DEVICE(x).driver->init)( \
-                               &(DEVICE(x).context),##__VA_ARGS__); \
-}
-#define CONFIG_DEVICE(x, ...) \
-{ \
-    union config _cfg = {__VA_ARGS__}; \
-    DEVICE(x).driver->config.set(DEVICE(x).context, &_cfg); \
-}
-#define CLEAN_DEVICE(x) \
-{ \
-    if (DEVICE(x).driver->clean) \
-        DEVICE(x).driver->clean(DEVICE(x).context); \
-}
+#define drv(x) _driver_##x
+#define drv_decl(type, x) const drv_##type drv(x) =
+#define drv_incl(type, x) extern const drv_##type drv(x);
 
 #endif

@@ -16,36 +16,38 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/types.h>
 #include <core/utils.h>
-#include <core/drivers.h>
 
-INCLUDE_DRIVER(serial, i686_com)
-DECLARE_DEVICE(serial, i686_com, tty0)
-DECLARE_DEVICE(serial, i686_com, tty1)
-DECLARE_DEVICE(serial, i686_com, tty2)
-DECLARE_DEVICE(serial, i686_com, tty3)
+#include <core/dev.h>
+#include <core/drv.h>
+
+drv_incl (serial, i686_com)
+dev_decl (serial, i686_com, tty0)
+dev_decl (serial, i686_com, tty1)
+dev_decl (serial, i686_com, tty2)
+dev_decl (serial, i686_com, tty3)
 
 extern void
 _devtree_init(void)
 {
-    INIT_DEVICE(tty0, 0x3F8)
-    CONFIG_DEVICE(tty0, .serial.baud =   115200,
-                        .serial.bits =   DRIVER_SERIAL_CHAR_8B,
-                        .serial.parity = DRIVER_SERIAL_PARITY_NONE,
-                        .serial.stop   = DRIVER_SERIAL_STOP_1B);
-    logger(&DEVICE(tty0));
+    dev_init (tty0, 0x3F8)
+    dev_config (tty0, .serial.baud   = 115200,
+                      .serial.bits   = DRIVER_SERIAL_CHAR_8B,
+                      .serial.parity = DRIVER_SERIAL_PARITY_NONE,
+                      .serial.stop   = DRIVER_SERIAL_STOP_1B);
+    logger(&dev(tty0));
 
-    INIT_DEVICE(tty1, 0x2F8)
-    INIT_DEVICE(tty2, 0x3E8)
-    INIT_DEVICE(tty3, 0x2E8)
+    dev_init (tty1, 0x2F8)
+    dev_init (tty2, 0x3E8)
+    dev_init (tty3, 0x2E8)
 }
 
 extern void
 _devtree_clean(void)
 {
-    CLEAN_DEVICE(tty1)
-    CLEAN_DEVICE(tty3)
-    CLEAN_DEVICE(tty2)
+    dev_clean (tty1)
+    dev_clean (tty3)
+    dev_clean (tty2)
 
-    CLEAN_DEVICE(tty0)
+    dev_clean (tty0)
     logger(NULL);
 }

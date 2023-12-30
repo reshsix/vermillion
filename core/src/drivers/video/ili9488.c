@@ -16,8 +16,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/types.h>
 #include <core/utils.h>
-#include <core/drivers.h>
 
+#include <core/dev.h>
+#include <core/drv.h>
 #include <core/mem.h>
 
 struct ili9488
@@ -250,7 +251,7 @@ block_write(void *ctx, u32 idx, void *buffer, u32 block)
     return ret;
 }
 
-DECLARE_DRIVER(video, ili9488)
+drv_decl (video, ili9488)
 {
     .init = init, .clean = clean,
     .config.get = config_get,

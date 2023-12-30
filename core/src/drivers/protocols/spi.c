@@ -16,8 +16,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/types.h>
 #include <core/utils.h>
-#include <core/drivers.h>
 
+#include <core/dev.h>
+#include <core/drv.h>
 #include <core/mem.h>
 
 struct spi
@@ -212,7 +213,7 @@ stream_write(void *ctx, u32 idx, void *data)
     return ret;
 }
 
-DECLARE_DRIVER(spi, spi)
+drv_decl (spi, spi)
 {
     .init = init, .clean = clean,
     .config.get = config_get,

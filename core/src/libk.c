@@ -16,8 +16,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/types.h>
 #include <core/utils.h>
-#include <core/drivers.h>
 
+#include <core/dev.h>
+#include <core/drv.h>
 #include <core/mem.h>
 #include <core/str.h>
 #include <core/fork.h>
@@ -1357,6 +1358,9 @@ clean_utils(void)
 }
 
 /* Initialization function */
+
+extern void _devtree_init(void);
+extern void _devtree_clean(void);
 
 extern thread_task(main);
 extern void

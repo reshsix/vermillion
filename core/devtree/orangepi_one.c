@@ -16,102 +16,104 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/types.h>
 #include <core/utils.h>
-#include <core/drivers.h>
+
+#include <core/dev.h>
+#include <core/drv.h>
 
 #define R_PRCM 0x01F01400
 #define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)
 
-INCLUDE_DRIVER(serial, sunxi_uart)
-DECLARE_DEVICE(serial, sunxi_uart, tty0)
-DECLARE_DEVICE(serial, sunxi_uart, tty1)
-DECLARE_DEVICE(serial, sunxi_uart, tty2)
-DECLARE_DEVICE(serial, sunxi_uart, tty3)
-DECLARE_DEVICE(serial, sunxi_uart, tty4)
+drv_incl (serial, sunxi_uart)
+dev_decl (serial, sunxi_uart, tty0)
+dev_decl (serial, sunxi_uart, tty1)
+dev_decl (serial, sunxi_uart, tty2)
+dev_decl (serial, sunxi_uart, tty3)
+dev_decl (serial, sunxi_uart, tty4)
 
-INCLUDE_DRIVER(gpio, sunxi_gpio)
-DECLARE_DEVICE(gpio, sunxi_gpio, gpio0)
-DECLARE_DEVICE(gpio, sunxi_gpio, gpio1)
+drv_incl (gpio, sunxi_gpio)
+dev_decl (gpio, sunxi_gpio, gpio0)
+dev_decl (gpio, sunxi_gpio, gpio1)
 
-INCLUDE_DRIVER(pic, arm_gic)
-DECLARE_DEVICE(pic, arm_gic, pic)
-INCLUDE_DRIVER(timer, sunxi_timer)
-DECLARE_DEVICE(timer, sunxi_timer, timer0)
-DECLARE_DEVICE(timer, sunxi_timer, timer1)
+drv_incl (pic, arm_gic)
+dev_decl (pic, arm_gic, pic)
+drv_incl (timer, sunxi_timer)
+dev_decl (timer, sunxi_timer, timer0)
+dev_decl (timer, sunxi_timer, timer1)
 
-INCLUDE_DRIVER(storage, sunxi_mmc)
-DECLARE_DEVICE(storage, sunxi_mmc, mmcblk0)
-INCLUDE_DRIVER(storage, mbr)
-DECLARE_DEVICE(storage, mbr, mmcblk0p1)
+drv_incl (storage, sunxi_mmc)
+dev_decl (storage, sunxi_mmc, mmcblk0)
+drv_incl (storage, mbr)
+dev_decl (storage, mbr, mmcblk0p1)
 
-INCLUDE_DRIVER(storage, memory)
-DECLARE_DEVICE(storage, memory, mem)
+drv_incl (storage, memory)
+dev_decl (storage, memory, mem)
 
-INCLUDE_DRIVER(fs, fat32)
-DECLARE_DEVICE(fs, fat32, root)
+drv_incl (fs, fat32)
+dev_decl (fs, fat32, root)
 
 extern void
 _devtree_init(void)
 {
     APB0_GATE = 1;
 
-    INIT_DEVICE(tty0, 0x01c28000);
-    CONFIG_DEVICE(tty0, .serial.baud   = 115200,
-                        .serial.bits   = DRIVER_SERIAL_CHAR_8B,
-                        .serial.parity = DRIVER_SERIAL_PARITY_NONE,
-                        .serial.stop   = DRIVER_SERIAL_STOP_1B);
-    logger(&DEVICE(tty0));
+    dev_init (tty0, 0x01c28000);
+    dev_config (tty0, .serial.baud   = 115200,
+                      .serial.bits   = DRIVER_SERIAL_CHAR_8B,
+                      .serial.parity = DRIVER_SERIAL_PARITY_NONE,
+                      .serial.stop   = DRIVER_SERIAL_STOP_1B);
+    logger(&dev(tty0));
 
-    INIT_DEVICE(tty1, 0x01c28400);
-    INIT_DEVICE(tty2, 0x01c28800);
-    INIT_DEVICE(tty3, 0x01c28c00);
-    INIT_DEVICE(tty4, 0x01f02800);
+    dev_init (tty1, 0x01c28400);
+    dev_init (tty2, 0x01c28800);
+    dev_init (tty3, 0x01c28c00);
+    dev_init (tty4, 0x01f02800);
 
-    INIT_DEVICE(gpio0, 0x01c20800, 6, 2);
-    INIT_DEVICE(gpio1, 0x01f02c00, 1, 0);
+    dev_init (gpio0, 0x01c20800, 6, 2);
+    dev_init (gpio1, 0x01f02c00, 1, 0);
 
-    INIT_DEVICE(pic,    0x01c82000, 0x01c81000);
-    INIT_DEVICE(timer0, 0x01c20c00, 0, &DEVICE(pic), 50);
-    INIT_DEVICE(timer1, 0x01c20c00, 1, &DEVICE(pic), 51);
+    dev_init (pic,    0x01c82000, 0x01c81000);
+    dev_init (timer0, 0x01c20c00, 0, &dev(pic), 50);
+    dev_init (timer1, 0x01c20c00, 1, &dev(pic), 51);
 
-    INIT_DEVICE(mmcblk0,   0x01c0f000);
-    INIT_DEVICE(mmcblk0p1, &DEVICE(mmcblk0), 1);
+    dev_init (mmcblk0,   0x01c0f000);
+    dev_init (mmcblk0p1, &dev(mmcblk0), 1);
 
-    INIT_DEVICE(mem);
+    dev_init (mem);
 
-    INIT_DEVICE(root, &DEVICE(mmcblk0p1));
+    dev_init (root, &dev(mmcblk0p1));
 
-    pin_cfg(&DEVICE(gpio1), 10, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
-    pin_set(&DEVICE(gpio1), 10, true);
+    pin_cfg(&dev(gpio1), 10, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
+    pin_set(&dev(gpio1), 10, true);
 }
 
 extern void
 _devtree_clean(void)
 {
-    CLEAN_DEVICE(tty1)
-    CLEAN_DEVICE(tty2)
-    CLEAN_DEVICE(tty3)
-    CLEAN_DEVICE(tty4)
+    dev_clean (tty1)
+    dev_clean (tty2)
+    dev_clean (tty3)
+    dev_clean (tty4)
 
-    pin_set(&DEVICE(gpio1), 10, false);
-    pin_cfg(&DEVICE(gpio1), 10, DRIVER_GPIO_OFF, DRIVER_GPIO_PULLOFF);
+    pin_set(&dev(gpio1), 10, false);
+    pin_cfg(&dev(gpio1), 10, DRIVER_GPIO_OFF, DRIVER_GPIO_PULLOFF);
 
-    pin_cfg(&DEVICE(gpio0), 15, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
-    pin_set(&DEVICE(gpio0), 15, true);
+    pin_cfg(&dev(gpio0), 15, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
+    pin_set(&dev(gpio0), 15, true);
 
-    CLEAN_DEVICE(gpio0)
-    CLEAN_DEVICE(gpio1)
+    dev_clean (gpio0)
+    dev_clean (gpio1)
 
-    CLEAN_DEVICE(timer0)
-    CLEAN_DEVICE(timer1)
+    dev_clean (timer0)
+    dev_clean (timer1)
 
-    CLEAN_DEVICE(mmcblk0)
-    CLEAN_DEVICE(mmcblk0p1)
+    dev_clean (mmcblk0)
+    dev_clean (mmcblk0p1)
 
-    CLEAN_DEVICE(mem)
+    dev_clean (mem)
 
-    CLEAN_DEVICE(root)
+    dev_clean (root)
 
-    CLEAN_DEVICE(tty0)
+    dev_clean (tty0)
     logger(NULL);
 
     APB0_GATE = 0;

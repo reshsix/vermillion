@@ -18,7 +18,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define CORE_UTILS_H
 
 #include <core/types.h>
-#include <core/drivers.h>
+
+#include <core/drv.h>
+#include <core/dev.h>
 
 bool dev_block_read(union dev_block_ptr dev, u32 idx, void *buffer, u32 block);
 bool dev_block_write(union dev_block_ptr dev, u32 idx, void *buffer, u32 block);

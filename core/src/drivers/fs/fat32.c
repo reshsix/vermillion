@@ -16,8 +16,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/types.h>
 #include <core/utils.h>
-#include <core/drivers.h>
 
+#include <core/dev.h>
+#include <core/drv.h>
 #include <core/mem.h>
 #include <core/str.h>
 
@@ -557,7 +558,7 @@ block_read(void *ctx, u32 idx, void *buffer, u32 block)
     return ret;
 }
 
-DECLARE_DRIVER(fs, fat32)
+drv_decl (fs, fat32)
 {
     .init = init, .clean = clean,
     .config.get = config_get,
