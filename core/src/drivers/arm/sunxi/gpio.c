@@ -20,6 +20,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/mem.h>
 
+#include <core/gpio.h>
+
 #define PN_CFG(c, n, i) *(volatile u32*)(c + (n * 0x24) + (0x4 * i))
 #define PN_DAT(c, n)    *(volatile u32*)(c + (n * 0x24) + 0x10)
 #define PN_PUL(c, n, i) *(volatile u32*)(c + (n * 0x24) + 0x1C + (0x4 * i))
@@ -102,7 +104,7 @@ config_get(void *ctx, union config *cfg)
 }
 
 static bool
-block_read(void *ctx, u32 idx, void *buffer, u32 block)
+read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = true;
 
@@ -119,7 +121,7 @@ block_read(void *ctx, u32 idx, void *buffer, u32 block)
 }
 
 static bool
-block_write(void *ctx, u32 idx, void *buffer, u32 block)
+write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = true;
 
@@ -284,6 +286,5 @@ drv_decl (gpio, sunxi_gpio)
 {
     .init = init, .clean = clean,
     .config.get = config_get,
-    .block.read = block_read,
-    .block.write = block_write
+    .read = read, .write = write
 };

@@ -131,7 +131,7 @@ enum
 
 /* Driver structures */
 
-#define _DRIVER_CUSTOM_TYPE(name) \
+#define _drv_typedef_block(x) \
     typedef struct __attribute__((packed)) \
     { \
         void *init, (*clean)(void *); \
@@ -140,9 +140,11 @@ enum
             bool (*get)(void *ctx, union config *cfg); \
             bool (*set)(void *ctx, union config *cfg); \
         } config; \
-    } drv_##name; \
+        bool (*read) (void *ctx, u32 idx, void *buffer, u32 block); \
+        bool (*write)(void *ctx, u32 idx, void *buffer, u32 block); \
+    } drv_##x; \
 
-#define _DRIVER_BLOCK_TYPE(name) \
+#define _drv_typedef_stream(x) \
     typedef struct __attribute__((packed)) \
     { \
         void *init, (*clean)(void *); \
@@ -151,42 +153,11 @@ enum
             bool (*get)(void *ctx, union config *cfg); \
             bool (*set)(void *ctx, union config *cfg); \
         } config; \
-        struct __attribute__((packed)) \
-        { \
-            bool (*read) (void *ctx, u32 idx, void *buffer, u32 block); \
-            bool (*write)(void *ctx, u32 idx, void *buffer, u32 block); \
-        } block; \
-    } drv_##name; \
+        bool (*read)  (void *ctx, u32 idx, void *data); \
+        bool (*write) (void *ctx, u32 idx, void *data); \
+    } drv_##x; \
 
-#define _DRIVER_STREAM_TYPE(name) \
-    typedef struct __attribute__((packed)) \
-    { \
-        void *init, (*clean)(void *); \
-        struct __attribute__((packed)) \
-        { \
-            bool (*get)(void *ctx, union config *cfg); \
-            bool (*set)(void *ctx, union config *cfg); \
-        } config; \
-        struct __attribute__((packed)) \
-        { \
-            bool (*read)  (void *ctx, u32 idx, void *data); \
-            bool (*write) (void *ctx, u32 idx, void *data); \
-        } stream; \
-    } drv_##name; \
-
-_DRIVER_CUSTOM_TYPE(generic)
-_DRIVER_BLOCK_TYPE(block)
-_DRIVER_STREAM_TYPE(stream)
-
-_DRIVER_BLOCK_TYPE(video)
-_DRIVER_STREAM_TYPE(audio)
-_DRIVER_BLOCK_TYPE(storage)
-_DRIVER_BLOCK_TYPE(fs)
-_DRIVER_BLOCK_TYPE(timer)
-_DRIVER_STREAM_TYPE(serial)
-_DRIVER_STREAM_TYPE(spi)
-_DRIVER_BLOCK_TYPE(gpio)
-_DRIVER_CUSTOM_TYPE(pic)
+#define drv_typedef(archetype, x) _drv_typedef_##archetype(x)
 
 #define drv(x) _driver_##x
 #define drv_decl(type, x) const drv_##type drv(x) =

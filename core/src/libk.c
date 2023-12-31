@@ -31,34 +31,42 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/generator.h>
 #include <core/semaphore.h>
 
+#include <core/fs.h>
+#include <core/pic.h>
+#include <core/spi.h>
+#include <core/gpio.h>
+#include <core/audio.h>
+#include <core/block.h>
+#include <core/timer.h>
+#include <core/video.h>
+#include <core/serial.h>
+#include <core/stream.h>
+#include <core/storage.h>
+
 /* Device helpers */
 
 extern bool
-dev_block_read(union dev_block_ptr dev, u32 idx, void *buf, u32 block)
+block_read(dev_block *db, u32 idx, void *buf, u32 block)
 {
-    dev_block *dev2 = dev.block;
-    return dev2->driver->block.read(dev2->context, idx, buf, block);
+    return db->driver->read(db->context, idx, buf, block);
 }
 
 extern bool
-dev_block_write(union dev_block_ptr dev, u32 idx, void *buf, u32 block)
+block_write(dev_block *db, u32 idx, void *buf, u32 block)
 {
-    dev_block *dev2 = dev.block;
-    return dev2->driver->block.write(dev2->context, idx, buf, block);
+    return db->driver->write(db->context, idx, buf, block);
 }
 
 extern bool
-dev_stream_read(union dev_stream_ptr dev, u32 idx, void *data)
+stream_read(dev_stream *ds, u32 idx, void *data)
 {
-    dev_stream *dev2 = dev.stream;
-    return dev2->driver->stream.read(dev2->context, idx, data);
+    return ds->driver->read(ds->context, idx, data);
 }
 
 extern bool
-dev_stream_write(union dev_stream_ptr dev, u32 idx, void *data)
+stream_write(dev_stream *ds, u32 idx, void *data)
 {
-    dev_stream *dev2 = dev.stream;
-    return dev2->driver->stream.write(dev2->context, idx, data);
+    return ds->driver->write(ds->context, idx, data);
 }
 
 /* Logging helpers */
@@ -66,9 +74,9 @@ dev_stream_write(union dev_stream_ptr dev, u32 idx, void *data)
 static dev_stream *logdev = NULL;
 
 extern void
-log_set_dev(union dev_stream_ptr logger)
+log_set_dev(dev_stream *logger)
 {
-    logdev = logger.stream;
+    logdev = logger;
 }
 
 extern dev_stream *
@@ -81,7 +89,7 @@ extern void
 log_char(const char c)
 {
     if (logdev != NULL)
-        dev_stream_write(logdev, 0, (char *)&c);
+        stream_write((dev_stream *)logdev, 0, (char *)&c);
 }
 
 extern void
@@ -170,7 +178,7 @@ clock(dev_timer *tmr)
 extern void
 csleep(dev_timer *tmr, const u32 n)
 {
-    dev_block_write(tmr, 0, (u8*)&n, 0);
+    block_write((dev_block *)tmr, 0, (u8*)&n, 0);
 }
 
 static void
@@ -222,14 +230,14 @@ pin_set(dev_gpio *gpio, u16 pin, bool data)
     u8 bit = pin % 32;
 
     u32 reg = 0;
-    if (dev_block_read(gpio, 0, (u8*)&reg, block))
+    if (block_read((dev_block *)gpio, 0, (u8*)&reg, block))
     {
         if (data)
             reg |= (1 << bit);
         else
             reg &= ~(1 << bit);
 
-        ret = dev_block_write(gpio, 0, (u8*)&reg, block);
+        ret = block_write((dev_block *)gpio, 0, (u8*)&reg, block);
     }
 
     return ret;
@@ -244,7 +252,7 @@ pin_get(dev_gpio *gpio, u16 pin, bool *data)
     u8 bit = pin % 32;
 
     u32 reg = 0;
-    if (dev_block_read(gpio, 0, (u8*)&reg, block))
+    if (block_read((dev_block *)gpio, 0, (u8*)&reg, block))
     {
         *data = reg & (1 << bit);
         ret = true;

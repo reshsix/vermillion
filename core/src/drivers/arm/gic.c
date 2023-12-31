@@ -21,6 +21,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/log.h>
 #include <core/mem.h>
 
+#include <core/pic.h>
+
 enum
 {
     IVT_RESET = 0,

@@ -20,6 +20,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/mem.h>
 
+#include <core/serial.h>
+
 #define UART_BUF(p) *(volatile u32*)(p + 0x00)
 #define UART_DLL(p) *(volatile u32*)(p + 0x00)
 #define UART_DLH(p) *(volatile u32*)(p + 0x04)
@@ -248,7 +250,7 @@ config_set(void *ctx, union config *cfg)
 }
 
 static bool
-stream_read(void *ctx, u32 idx, void *data)
+read(void *ctx, u32 idx, void *data)
 {
     bool ret = (idx == 0);
 
@@ -262,7 +264,7 @@ stream_read(void *ctx, u32 idx, void *data)
 }
 
 static bool
-stream_write(void *ctx, u32 idx, void *data)
+write(void *ctx, u32 idx, void *data)
 {
     bool ret = (idx == 0);
 
@@ -280,6 +282,5 @@ drv_decl (serial, sunxi_uart)
     .init = init, .clean = clean,
     .config.get = config_get,
     .config.set = config_set,
-    .stream.read  = stream_read,
-    .stream.write = stream_write
+    .read = read, .write = write
 };

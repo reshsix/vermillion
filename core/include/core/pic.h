@@ -14,24 +14,13 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef CORE_UTILS_H
-#define CORE_UTILS_H
+#ifndef CORE_PIC_H
+#define CORE_PIC_H
 
-#include <core/types.h>
-
+#include <core/drv.h>
 #include <core/dev.h>
 
-#include <core/gpio.h>
-#include <core/timer.h>
-
-u32 clock(dev_timer *tmr);
-void csleep(dev_timer *tmr, const u32 n);
-void usleep(dev_timer *tmr, const u32 n);
-void msleep(dev_timer *tmr, const u32 n);
-void sleep(dev_timer *tmr, const u32 n);
-
-bool pin_cfg(dev_gpio *gpio, u16 pin, u8 role, u8 pull);
-bool pin_set(dev_gpio *gpio, u16 pin, bool data);
-bool pin_get(dev_gpio *gpio, u16 pin, bool *data);
+drv_typedef (block, pic);
+dev_typedef (pic);
 
 #endif

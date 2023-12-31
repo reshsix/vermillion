@@ -31,6 +31,18 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/generator.h>
 #include <core/semaphore.h>
 
+#include <core/fs.h>
+#include <core/pic.h>
+#include <core/spi.h>
+#include <core/gpio.h>
+#include <core/audio.h>
+#include <core/block.h>
+#include <core/timer.h>
+#include <core/video.h>
+#include <core/serial.h>
+#include <core/stream.h>
+#include <core/storage.h>
+
 static void *test_ctx = (void *)0xABCD;
 
 /* Testing log helpers */
@@ -64,7 +76,7 @@ test_log(void)
 {
     u32 ret = 0;
 
-    drv_stream logdrv = { .stream.write = test_log_write };
+    drv_stream logdrv = { .write = test_log_write };
     dev_stream logdev = { .context = test_ctx, .driver = &logdrv };
 
     dev_stream *logger = log_get_dev();
@@ -130,7 +142,7 @@ test_clock(void)
 {
     u32 ret = 0;
 
-    drv_timer clk = {.config.get = clk_getcfg, .block.write = clk_write};
+    drv_timer clk = {.config.get = clk_getcfg, .write = clk_write};
     dev_timer tmr = {.context = test_ctx, .driver = &clk};
 
     u32 rate = clock(&tmr);
@@ -218,8 +230,8 @@ test_io(void)
 {
     u32 ret = 0;
 
-    drv_gpio drv = {.config.get = io_getcfg, .block.read = io_read,
-                                             .block.write = io_write};
+    drv_gpio drv = {.config.get = io_getcfg, .read = io_read,
+                                             .write = io_write};
     dev_gpio gpio = {.context = test_ctx, .driver = &drv};
     io_ports[3] = 0xFFFFFFFF;
 

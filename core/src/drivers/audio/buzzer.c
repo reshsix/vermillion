@@ -21,6 +21,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/mem.h>
 
+#include <core/gpio.h>
+#include <core/audio.h>
+#include <core/timer.h>
+
 struct buzzer
 {
     dev_timer *timer;
@@ -81,7 +85,7 @@ config_get(void *ctx, union config *cfg)
 }
 
 static bool
-stream_write(void *ctx, u32 idx, void *data)
+write(void *ctx, u32 idx, void *data)
 {
     bool ret = true;
 
@@ -101,5 +105,5 @@ drv_decl (audio, buzzer)
 {
     .init = init, .clean = clean,
     .config.get = config_get,
-    .stream.write = stream_write
+    .write = write
 };

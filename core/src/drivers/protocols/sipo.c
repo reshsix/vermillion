@@ -21,6 +21,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/mem.h>
 
+#include <core/gpio.h>
+#include <core/stream.h>
+
 struct sipo
 {
     dev_gpio *gpio;
@@ -66,7 +69,7 @@ clean(void *ctx)
 }
 
 static bool
-stream_write(void *ctx, u32 idx, void *data)
+write(void *ctx, u32 idx, void *data)
 {
     bool ret = (idx == 0);
 
@@ -95,5 +98,5 @@ stream_write(void *ctx, u32 idx, void *data)
 drv_decl (stream, sipo)
 {
     .init = init, .clean = clean,
-    .stream.write = stream_write
+    .write = write
 };

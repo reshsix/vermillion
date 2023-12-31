@@ -21,6 +21,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/mem.h>
 
+#include <core/spi.h>
+#include <core/gpio.h>
+#include <core/timer.h>
+
 struct spi
 {
     dev_gpio *gpio;
@@ -192,7 +196,7 @@ config_set(void *ctx, union config *cfg)
 }
 
 static bool
-stream_read(void *ctx, u32 idx, void *data)
+read(void *ctx, u32 idx, void *data)
 {
     bool ret = (idx == 0);
 
@@ -203,7 +207,7 @@ stream_read(void *ctx, u32 idx, void *data)
 }
 
 static bool
-stream_write(void *ctx, u32 idx, void *data)
+write(void *ctx, u32 idx, void *data)
 {
     bool ret = (idx == 0);
 
@@ -218,6 +222,5 @@ drv_decl (spi, spi)
     .init = init, .clean = clean,
     .config.get = config_get,
     .config.set = config_set,
-    .stream.read = stream_read,
-    .stream.write = stream_write
+    .read = read, .write = write
 };

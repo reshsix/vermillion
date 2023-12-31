@@ -21,6 +21,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/mem.h>
 
+#include <core/block.h>
+#include <core/video.h>
+
 struct virtual
 {
     u16 width, height;
@@ -91,7 +94,7 @@ config_get(void *ctx, union config *data)
 }
 
 static bool
-block_read(void *ctx, u32 idx, void *buffer, u32 block)
+read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = true;
 
@@ -105,7 +108,7 @@ block_read(void *ctx, u32 idx, void *buffer, u32 block)
 }
 
 static bool
-block_write(void *ctx, u32 idx, void *buffer, u32 block)
+write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = true;
 
@@ -131,7 +134,7 @@ block_write(void *ctx, u32 idx, void *buffer, u32 block)
 
                 mem_copy(dest, src, 4);
             }
-            ret = dev_block_write(v->video, 0, v->buffer2, j);
+            ret = block_write((dev_block *)v->video, 0, v->buffer2, j);
         }
     }
     else
@@ -144,6 +147,5 @@ drv_decl (video, virtual_fb)
 {
     .init = init, .clean = clean,
     .config.get = config_get,
-    .block.read = block_read,
-    .block.write = block_write
+    .read = read, .write = write
 };

@@ -22,6 +22,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/mem.h>
 
+#include <core/storage.h>
+
 #define SD_CFG(x)   *(volatile u32*)(x + 0x00)
 #define SD_BLK(x)   *(volatile u32*)(x + 0x10)
 #define SD_CNT(x)   *(volatile u32*)(x + 0x14)
@@ -66,7 +68,7 @@ clean(void *ctx)
 }
 
 static bool
-block_read(void *ctx, u32 idx, void *buffer, u32 block)
+read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = (idx == 0);
 
@@ -103,7 +105,7 @@ block_read(void *ctx, u32 idx, void *buffer, u32 block)
 }
 
 static bool
-block_write(void *ctx, u32 idx, void *buffer, u32 block)
+write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     (void)(ctx), (void)(idx), (void)(buffer), (void)(block);
     return false;
@@ -112,6 +114,5 @@ block_write(void *ctx, u32 idx, void *buffer, u32 block)
 drv_decl (storage, sunxi_mmc)
 {
     .init = init, .clean = clean,
-    .block.read  = block_read,
-    .block.write = block_write
+    .read = read, .write = write
 };

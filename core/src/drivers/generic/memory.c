@@ -20,8 +20,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/mem.h>
 
+#include <core/storage.h>
+
 static bool
-block_read(void *ctx, u32 idx, void *buffer, u32 block)
+read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = (idx == 0);
 
@@ -33,7 +35,7 @@ block_read(void *ctx, u32 idx, void *buffer, u32 block)
 }
 
 static bool
-block_write(void *ctx, u32 idx, void *buffer, u32 block)
+write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = (idx == 0);
 
@@ -46,6 +48,5 @@ block_write(void *ctx, u32 idx, void *buffer, u32 block)
 
 drv_decl (storage, memory)
 {
-    .block.read  = block_read,
-    .block.write = block_write
+    .read = read, .write = write
 };

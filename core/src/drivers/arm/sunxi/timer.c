@@ -20,6 +20,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/mem.h>
 
+#include <core/pic.h>
+#include <core/timer.h>
+
 #define TMR_IRQ_EN(x)  *(volatile u32*)(x + 0x0)
 #define TMR_IRQ_STA(x) *(volatile u32*)(x + 0x4)
 #define TMR_CTRL(x, n) *(volatile u32*)(x + ((n + 1) * 0x10))
@@ -102,7 +105,7 @@ config_get(void *ctx, union config *cfg)
 }
 
 static bool
-block_write(void *ctx, u32 idx, void *buffer, u32 block)
+write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = (idx == 0 && block == 0);
 
@@ -145,5 +148,5 @@ drv_decl (timer, sunxi_timer)
 {
     .init = init, .clean = clean,
     .config.get = config_get,
-    .block.write = block_write
+    .write = write
 };

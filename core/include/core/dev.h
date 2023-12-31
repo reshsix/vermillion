@@ -21,56 +21,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/drv.h>
 
-/* Device structures */
-
-#define _DEVICE_TYPE(name) \
+#define dev_typedef(x) \
     typedef struct __attribute__((packed)) \
     { \
-        const drv_##name *driver; \
+        const drv_##x *driver; \
         void *context; \
-    } dev_##name; \
-
-_DEVICE_TYPE(generic)
-_DEVICE_TYPE(block)
-_DEVICE_TYPE(stream)
-
-_DEVICE_TYPE(video)
-_DEVICE_TYPE(audio)
-_DEVICE_TYPE(storage)
-_DEVICE_TYPE(fs)
-_DEVICE_TYPE(timer)
-_DEVICE_TYPE(serial)
-_DEVICE_TYPE(spi)
-_DEVICE_TYPE(gpio)
-_DEVICE_TYPE(pic)
-
-/* Device function parameters */
-
-union __attribute__((transparent_union)) dev_generic_ptr
-{
-    dev_generic *generic;
-    dev_pic *pic;
-};
-
-union __attribute__((transparent_union)) dev_block_ptr
-{
-    dev_block *block;
-    dev_video *video;
-    dev_storage *storage;
-    dev_fs *fs;
-    dev_timer *timer;
-    dev_gpio *gpio;
-};
-
-union __attribute__((transparent_union)) dev_stream_ptr
-{
-    dev_stream *stream;
-    dev_audio *video;
-    dev_serial *storage;
-    dev_spi *timer;
-};
-
-/* Device macros */
+    } dev_##x; \
 
 #define dev(x) _device_##x
 #define dev_decl(type, drv_, x) dev_##type dev(x) = {.driver = &drv(drv_)};
@@ -95,10 +51,3 @@ union __attribute__((transparent_union)) dev_stream_ptr
 }
 
 #endif
-
-/* Device functions */
-
-bool dev_block_read(union dev_block_ptr dev, u32 idx, void *buffer, u32 block);
-bool dev_block_write(union dev_block_ptr dev, u32 idx, void *buffer, u32 block);
-bool dev_stream_read(union dev_stream_ptr dev, u32 idx, void *data);
-bool dev_stream_write(union dev_stream_ptr dev, u32 idx, void *data);

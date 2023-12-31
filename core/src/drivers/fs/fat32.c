@@ -22,6 +22,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/mem.h>
 #include <core/str.h>
 
+#include <core/fs.h>
+#include <core/block.h>
+#include <core/storage.h>
+
 struct fat32br
 {
     u8 jmp[3];
@@ -276,8 +280,8 @@ fat32_directory(struct fat32 *f, u32 cluster, struct fat32e *out)
     cluster &= 0xFFFFFFF;
     u32 firstsect = fat32_fsector(f, cluster);
     for (u8 i = 0; ret && i < f->br.sectspercluster; i++)
-        ret = dev_block_read(f->storage, 0, &(f->buffer[0x200 * i]),
-                             firstsect + i);
+        ret = block_read((dev_block *)f->storage, 0, &(f->buffer[0x200 * i]),
+                         firstsect + i);
     bool finished = false;
     static char name[(255 * 4) + 1] = {0};
     static u16 lfn[(255 * 4) + 1] = {0};
@@ -387,7 +391,7 @@ fat32_new(dev_storage *storage)
     {
         ret->storage = storage;
 
-        if (!dev_block_read(ret->storage, 0, fat32_buf, 0))
+        if (!block_read((dev_block *)ret->storage, 0, fat32_buf, 0))
             ret = fat32_del(ret);
     }
 
@@ -405,9 +409,9 @@ fat32_new(dev_storage *storage)
     {
         bool success = true;
         for (u32 i = 0; success && i < ret->br.sectspertable; i++)
-            success = dev_block_read(ret->storage, 0,
+            success = block_read((dev_block *)ret->storage, 0,
                                  &(((u8*)(ret->table))[0x200 * i]),
-                              ret->br.reservedsects + i);
+                                 ret->br.reservedsects + i);
 
         if (!success)
             ret = fat32_del(ret);
@@ -471,7 +475,8 @@ fat32_read(struct fat32 *f, struct fat32e *fe, u32 sector, u8 *out)
     {
         cluster &= 0xFFFFFFF;
         u32 firstsect = fat32_fsector(f, cluster);
-        ret = dev_block_read(f->storage, 0, out, firstsect + sector_n);
+        ret = block_read((dev_block *)f->storage, 0, out,
+                         firstsect + sector_n);
     }
 
     return ret;
@@ -547,7 +552,7 @@ config_get(void *ctx, union config *cfg)
 }
 
 static bool
-block_read(void *ctx, u32 idx, void *buffer, u32 block)
+read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
@@ -562,5 +567,5 @@ drv_decl (fs, fat32)
 {
     .init = init, .clean = clean,
     .config.get = config_get,
-    .block.read = block_read
+    .read = read
 };

@@ -21,7 +21,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/dev.h>
 
-void log_set_dev(union dev_stream_ptr logger);
+#include <core/stream.h>
+
+void log_set_dev(dev_stream *logger);
 dev_stream *log_get_dev(void);
 
 void log_char(const char c);

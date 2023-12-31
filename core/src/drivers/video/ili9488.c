@@ -21,6 +21,11 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/mem.h>
 
+#include <core/gpio.h>
+#include <core/timer.h>
+#include <core/video.h>
+#include <core/stream.h>
+
 struct ili9488
 {
     dev_gpio *gpio;
@@ -53,11 +58,11 @@ ili9488_command(struct ili9488 *ili, u8 c, ...)
         buf[i] = va_arg(args, int);
 
     pin_set(ili->gpio, ili->dcrs, false);
-    dev_stream_write(ili->stream, 0, &(buf[0]));
+    stream_write(ili->stream, 0, &(buf[0]));
 
     pin_set(ili->gpio, ili->dcrs, true);
     for (u8 i = 1; i < c; i++)
-        dev_stream_write(ili->stream, 0, &(buf[i]));
+        stream_write(ili->stream, 0, &(buf[i]));
     pin_set(ili->gpio, ili->dcrs, false);
 }
 
@@ -65,11 +70,11 @@ static void
 ili9488_command2(struct ili9488 *ili, u8 n, u8 *buf, size_t length)
 {
     pin_set(ili->gpio, ili->dcrs, false);
-    dev_stream_write(ili->stream, 0, &n);
+    stream_write(ili->stream, 0, &n);
 
     pin_set(ili->gpio, ili->dcrs, true);
     for (size_t i = 0; i < length; i++)
-        dev_stream_write(ili->stream, 0, &(buf[i]));
+        stream_write(ili->stream, 0, &(buf[i]));
     pin_set(ili->gpio, ili->dcrs, false);
 }
 
@@ -77,11 +82,11 @@ static void
 ili9488_command3(struct ili9488 *ili, u8 n, u8 c, size_t length)
 {
     pin_set(ili->gpio, ili->dcrs, false);
-    dev_stream_write(ili->stream, 0, &n);
+    stream_write(ili->stream, 0, &n);
 
     pin_set(ili->gpio, ili->dcrs, true);
     for (size_t i = 0; i < length; i++)
-        dev_stream_write(ili->stream, 0, &c);
+        stream_write(ili->stream, 0, &c);
     pin_set(ili->gpio, ili->dcrs, false);
 }
 
@@ -201,7 +206,7 @@ config_get(void *ctx, union config *data)
 }
 
 static bool
-block_read(void *ctx, u32 idx, void *buffer, u32 block)
+read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = (idx == 0 && block < 320);
 
@@ -215,7 +220,7 @@ block_read(void *ctx, u32 idx, void *buffer, u32 block)
 }
 
 static bool
-block_write(void *ctx, u32 idx, void *buffer, u32 block)
+write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = (idx == 0 && block < 320);
 
@@ -255,6 +260,5 @@ drv_decl (video, ili9488)
 {
     .init = init, .clean = clean,
     .config.get = config_get,
-    .block.read = block_read,
-    .block.write = block_write
+    .read = read, .write = write
 };
