@@ -88,7 +88,7 @@ CC="$( (cat .config; echo 'echo $CONFIG_TARGET') | sh)-gcc"
 export CC
 
 CFLAGS="-Wall -Wextra -Wno-attributes"
-CFLAGS="$CFLAGS -c -std=gnu99 -nostdlib -ffreestanding"
+CFLAGS="$CFLAGS -c -std=gnu2x -nostdlib -ffreestanding"
 CFLAGS="$CFLAGS -I$VERMILLION/core/include"
 CFLAGS="$CFLAGS $( (cat .config; echo 'echo $CONFIG_CFLAGS_ARCH')  | sh)"
 CFLAGS="$CFLAGS $( (cat .config; echo 'echo $CONFIG_CFLAGS_BOARD') | sh)"

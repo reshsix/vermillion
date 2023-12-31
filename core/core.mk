@@ -32,7 +32,7 @@ endif
 CC = $(TARGET)-gcc
 LD = $(TARGET)-ld
 CFLAGS += -I. -Iinclude -Iarch/$(ARCH)/include
-CFLAGS += -std=gnu99 -nostdlib -ffreestanding
+CFLAGS += -std=gnu2x -nostdlib -ffreestanding
 CFLAGS += -Wall -Wextra -Wno-attributes
 CFLAGS += $(shell echo $(CONFIG_CFLAGS_ARCH))
 CFLAGS += $(shell echo $(CONFIG_CFLAGS_BOARD))
