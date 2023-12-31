@@ -46,6 +46,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 /* Device helpers */
 
 extern bool
+block_stat(dev_block *db, u32 idx, u32 *width, u32 *length)
+{
+    return db->driver->stat(db->context, idx, width, length);
+}
+
+extern bool
 block_read(dev_block *db, u32 idx, void *buf, u32 block)
 {
     return db->driver->read(db->context, idx, buf, block);
@@ -55,6 +61,12 @@ extern bool
 block_write(dev_block *db, u32 idx, void *buf, u32 block)
 {
     return db->driver->write(db->context, idx, buf, block);
+}
+
+extern bool
+stream_stat(dev_stream *ds, u32 idx, u32 *width)
+{
+    return ds->driver->stat(ds->context, idx, width);
 }
 
 extern bool

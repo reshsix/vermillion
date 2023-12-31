@@ -23,6 +23,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 drv_typedef (stream, stream);
 dev_typedef (stream);
 
+bool stream_stat(dev_stream *ds, u32 idx, u32 *width);
 bool stream_read(dev_stream *ds, u32 idx, void *data);
 bool stream_write(dev_stream *ds, u32 idx, void *data);
 

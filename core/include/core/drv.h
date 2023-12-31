@@ -140,6 +140,7 @@ enum
             bool (*get)(void *ctx, union config *cfg); \
             bool (*set)(void *ctx, union config *cfg); \
         } config; \
+        bool (*stat) (void *ctx, u32 idx, u32 *width, u32 *length); \
         bool (*read) (void *ctx, u32 idx, void *buffer, u32 block); \
         bool (*write)(void *ctx, u32 idx, void *buffer, u32 block); \
     } drv_##x; \
@@ -153,6 +154,7 @@ enum
             bool (*get)(void *ctx, union config *cfg); \
             bool (*set)(void *ctx, union config *cfg); \
         } config; \
+        bool (*stat) (void *ctx, u32 idx, u32 *width); \
         bool (*read)  (void *ctx, u32 idx, void *data); \
         bool (*write) (void *ctx, u32 idx, void *data); \
     } drv_##x; \

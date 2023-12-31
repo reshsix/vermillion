@@ -23,6 +23,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 drv_typedef (block, block);
 dev_typedef (block);
 
+bool block_stat(dev_block *db, u32 idx, u32 *width, u32 *length);
 bool block_read(dev_block *db, u32 idx, void *buffer, u32 block);
 bool block_write(dev_block *db, u32 idx, void *buffer, u32 block);
 
