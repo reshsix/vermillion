@@ -19,6 +19,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/dev.h>
 #include <core/drv.h>
+#include <core/log.h>
 #include <core/mem.h>
 #include <core/str.h>
 #include <core/fork.h>
@@ -38,14 +39,14 @@ static char buffer[128] = {0};
 static u32 buffer_s = 0;
 
 static void
-log_clear(void)
+test_log_clear(void)
 {
     mem_init(buffer, 0, sizeof(buffer));
     buffer_s = 0;
 }
 
 static bool
-log_write(void *ctx, u32 idx, void *data)
+test_log_write(void *ctx, u32 idx, void *data)
 {
     bool ret = (ctx == test_ctx && idx == 0);
 
@@ -55,40 +56,36 @@ log_write(void *ctx, u32 idx, void *data)
     return ret;
 }
 
-static char *test_log_str[] = {"log_c", "log_s", "log_h", "log_u"};
+static char *test_log_str[] = {"log_set_dev", "log_get_dev",
+                               "log_char", "log_string", "log_bool",
+                               "log_unsigned", "log_signed"};
 static u32
 test_log(void)
 {
     u32 ret = 0;
 
-    drv_stream logdrv = { .stream.write = log_write };
+    drv_stream logdrv = { .stream.write = test_log_write };
     dev_stream logdev = { .context = test_ctx, .driver = &logdrv };
 
-    dev_stream *log = logger(NULL);
-    logger(&logdev);
-    log_clear();
+    dev_stream *logger = log_get_dev();
+    log_set_dev(&logdev);
 
-    log_c('a');
-    if (buffer[0] != 'a')
-        ret |= 0x1;
-    log_clear();
+    if (log_get_dev() != &logdev)
+        ret |= 0x1 | 0x2;
 
-    log_s("bcd");
-    if (str_comp(buffer, "bcd", 0) != 0)
-        ret |= 0x2;
-    log_clear();
+    log((char)'a');    if (buffer[0] != 'a')                   ret |= 0x4;
+    test_log_clear();
+    log("bcd");        if (str_comp(buffer, "bcd", 0) != 0)    ret |= 0x8;
+    test_log_clear();
+    log((bool)true);   if (str_comp(buffer, "true", 0) != 0)   ret |= 0x10;
+    test_log_clear();
+    log((u64)0x2345678910); if (str_comp(buffer, "0x2345678910", 0))
+                                ret |= 0x20;
+    test_log_clear();
+    log((s64)-12345678901); if (str_comp(buffer, "-12345678901", 0) != 0)
+                                ret |= 0x40;
 
-    log_h(0xABCDEF);
-    if (str_comp(buffer, "0xABCDEF", 0) != 0)
-        ret |= 0x4;
-    log_clear();
-
-    log_u(123456789);
-    if (str_comp(buffer, "123456789", 0) != 0)
-        ret |= 0x8;
-    log_clear();
-
-    logger(log);
+    log_set_dev(logger);
 
     return ret;
 }
@@ -929,19 +926,19 @@ test_channel(void)
 extern void
 main(void)
 {
-    log_s("\r\n[ Testing libk.o ]\r\n");
+    log("\r\n[ Testing libk.o ]\r\n");
     #define UNIT_TEST(x) \
     { \
         u32 result = x(); \
         for (u8 i = 0; i < sizeof(x##_str) / sizeof(char *); i++) \
         { \
-            log_s("  "); \
-            log_s(x##_str[i]); \
-            log_s("(): "); \
-            log_s(!(result & (1 << i)) ? "Pass" : "Failed"); \
-            log_s("\r\n"); \
+            log("  "); \
+            log(x##_str[i]); \
+            log("(): "); \
+            log(!(result & (1 << i)) ? "Pass" : "Failed"); \
+            log("\r\n"); \
         } \
-        log_s("\r\n"); \
+        log("\r\n"); \
     }
 
     UNIT_TEST(test_log)

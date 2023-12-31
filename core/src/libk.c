@@ -19,6 +19,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/dev.h>
 #include <core/drv.h>
+#include <core/log.h>
 #include <core/mem.h>
 #include <core/str.h>
 #include <core/fork.h>
@@ -64,73 +65,87 @@ dev_stream_write(union dev_stream_ptr dev, u32 idx, void *data)
 
 static dev_stream *logdev = NULL;
 
-extern dev_stream *
-logger(union dev_stream_ptr log)
+extern void
+log_set_dev(union dev_stream_ptr logger)
 {
-    if (log.stream != NULL)
-        logdev = log.stream;
+    logdev = logger.stream;
+}
 
+extern dev_stream *
+log_get_dev(void)
+{
     return logdev;
 }
 
 extern void
-log_c(const char c)
+log_char(const char c)
 {
     if (logdev != NULL)
         dev_stream_write(logdev, 0, (char *)&c);
 }
 
 extern void
-log_s(const char *s)
+log_string(const char *s)
 {
     for (; s[0] != '\0'; s = &(s[1]))
     {
         if (s[0] != '\0')
-            log_c(s[0]);
+            log_char(s[0]);
     }
 }
 
-static void
-log_h8(const u8 n)
+extern void
+log_bool(const bool n)
 {
-    for (u8 i = 1; i <= 1; i--)
+    if (n)
+        log_string("true");
+    else
+        log_string("false");
+}
+
+extern void
+log_unsigned(const u64 n)
+{
+    bool started = false;
+
+    log_string("0x");
+    for (u8 i = 0; i < 16; i++)
     {
-        u8 x = (n >> (i * 4)) & 0xF;
-        if (x < 10)
-            log_c(x + '0');
-        else
-            log_c(x - 10 + 'A');
+        u8 x = (n >> ((15 - i) * 4)) & 0xF;
+        if (x != 0)
+            started = true;
+
+        if (started)
+        {
+            if (x < 10)
+                log_char(x + '0');
+            else
+                log_char(x - 10 + 'A');
+        }
     }
 }
 
 extern void
-log_h(const u32 n)
+log_signed(s64 n)
 {
-    log_s("0x");
-    if (n >= (1 << 24))
-        log_h8(n >> 24);
-    if (n >= (1 << 16))
-        log_h8(n >> 16);
-    if (n >= (1 << 8))
-        log_h8(n >> 8);
-    log_h8(n);
-}
+    bool started = false;
 
-extern void
-log_u(const u32 n)
-{
-    bool start = false;
+    if (n < 0)
+    {
+        log_char('-');
+        n = -n;
+    }
 
-    u32 a = n;
-    for (int i = 1000000000;; i /= 10)
+    u64 a = n;
+    for (u64 i = 10000000000000000000ULL;; i /= 10)
     {
         u8 d = a / i;
         if (d != 0)
-            start = true;
+            started = true;
 
-        if (start)
+        if (started)
         {
-            log_c(d + '0');
+            log_char(d + '0');
             a -= i * d;
         }
 
@@ -138,8 +153,8 @@ log_u(const u32 n)
             break;
     }
 
-    if (!start)
-        log_c('0');
+    if (!started)
+        log_char('0');
 }
 
 /* Timing helpers */

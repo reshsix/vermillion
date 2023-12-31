@@ -15,10 +15,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <core/types.h>
-#include <core/utils.h>
 
 #include <core/dev.h>
 #include <core/drv.h>
+#include <core/log.h>
 #include <core/mem.h>
 
 enum
@@ -201,7 +201,7 @@ static struct gic *gic = NULL;
 static interrupt(undef)
 handler_undef(void)
 {
-    log_s("Undefined Instruction");
+    log("Undefined Instruction");
     for (;;)
         arm_wait_interrupts();
 }
@@ -210,7 +210,7 @@ static interrupt(swi)
 handler_swi(void)
 {
     // TODO add a handler for software interrupts
-    log_s("Unhandled Supervisor Call");
+    log("Unhandled Supervisor Call");
     for (;;)
         arm_wait_interrupts();
 }
@@ -218,7 +218,7 @@ handler_swi(void)
 static interrupt(abort)
 handler_prefetch(void)
 {
-    log_s("Prefetch Abort");
+    log("Prefetch Abort");
     for (;;)
         arm_wait_interrupts();
 }
@@ -226,7 +226,7 @@ handler_prefetch(void)
 static interrupt(abort)
 handler_data(void)
 {
-    log_s("Data Abort");
+    log("Data Abort");
     for (;;)
         arm_wait_interrupts();
 }

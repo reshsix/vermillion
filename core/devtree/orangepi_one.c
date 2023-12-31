@@ -19,6 +19,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/dev.h>
 #include <core/drv.h>
+#include <core/log.h>
 
 #define R_PRCM 0x01F01400
 #define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)
@@ -61,7 +62,7 @@ _devtree_init(void)
                       .serial.bits   = DRIVER_SERIAL_CHAR_8B,
                       .serial.parity = DRIVER_SERIAL_PARITY_NONE,
                       .serial.stop   = DRIVER_SERIAL_STOP_1B);
-    logger(&dev(tty0));
+    log_set_dev(&dev(tty0));
 
     dev_init (tty1, 0x01c28400);
     dev_init (tty2, 0x01c28800);
@@ -114,7 +115,7 @@ _devtree_clean(void)
     dev_clean (root)
 
     dev_clean (tty0)
-    logger(NULL);
+    log_set_dev(NULL);
 
     APB0_GATE = 0;
 }

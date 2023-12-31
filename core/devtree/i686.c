@@ -15,10 +15,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <core/types.h>
-#include <core/utils.h>
 
 #include <core/dev.h>
 #include <core/drv.h>
+#include <core/log.h>
 
 drv_incl (serial, i686_com)
 dev_decl (serial, i686_com, tty0)
@@ -34,7 +34,7 @@ _devtree_init(void)
                       .serial.bits   = DRIVER_SERIAL_CHAR_8B,
                       .serial.parity = DRIVER_SERIAL_PARITY_NONE,
                       .serial.stop   = DRIVER_SERIAL_STOP_1B);
-    logger(&dev(tty0));
+    log_set_dev(&dev(tty0));
 
     dev_init (tty1, 0x2F8)
     dev_init (tty2, 0x3E8)
@@ -49,5 +49,5 @@ _devtree_clean(void)
     dev_clean (tty2)
 
     dev_clean (tty0)
-    logger(NULL);
+    log_set_dev(NULL);
 }
