@@ -43,6 +43,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/stream.h>
 #include <core/storage.h>
 
+#if defined(CONFIG_ARCH_I686)
+#include <i686/env.h>
+#endif
+
 /* Device helpers */
 
 extern bool
@@ -79,6 +83,47 @@ extern bool
 stream_write(dev_stream *ds, u32 idx, void *data)
 {
     return ds->driver->write(ds->context, idx, data);
+}
+
+/* Assertion helpers */
+
+bool assert_failed = false;
+
+extern void
+assert_fail(const char *file, int line, const char *func, const char *text)
+{
+    assert_failed = true;
+    log (file);
+    log (":");
+    log (line);
+    log (": ");
+    log (func);
+    log (": ");
+    log ("Assertion '");
+    log (text);
+    log ("' failed\n");
+}
+
+/* Emulator exit helpers */
+
+extern noreturn
+exit_qemu(bool failure)
+{
+    #if defined(CONFIG_ARCH_ARM)
+
+    register int r0 asm("r0") = 0x18;
+    register int r1 asm("r1") = (failure) ? 0x20024 : 0x20026;
+    (void)r0, (void)r1;
+
+    asm volatile ("svc #0x00123456");
+
+    #elif defined(CONFIG_ARCH_I686)
+
+    out8(0x501, (failure) ? 1 : (255 - 1) / 2);
+
+    #endif
+
+    while (true);
 }
 
 /* Logging helpers */
