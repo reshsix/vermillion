@@ -84,7 +84,7 @@ defconfig: config/$(BOARD)_defconfig
 	@rm -rf $(BUILD) .config.old
 
 # Folder creation
-FOLDERS := $(BUILD) $(BUILD)/libc $(BUILD)/arch $(BUILD)/mount
+FOLDERS := $(BUILD) $(BUILD)/arch $(BUILD)/mount
 FOLDERS += $(BUILD)/drivers $(BUILD)/drivers/audio
 FOLDERS += $(BUILD)/drivers/video $(BUILD)/drivers/fs
 FOLDERS += $(BUILD)/drivers/generic $(BUILD)/drivers/protocols
