@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # This file is part of vermillion.
 
 # Vermillion is free software: you can redistribute it and/or modify it
@@ -12,18 +14,37 @@
 # You should have received a copy of the GNU General Public License
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
-.PHONY: all image clean tools depclean debug test uart \
-        config menuconfig xconfig defconfig
+run_test()
+{
+    ARG="${1%.c}.o"
+    OBJS="$ARG" vmake all && vmake test
+    RET="$?"
 
-BUILD := $(BUILD)/user
-OBJS := $(addprefix $(BUILD)/,$(OBJS))
+    rm "build/user/$ARG"
+    return "$RET"
+}
 
-all image: $(OBJS)
-clean:
-	@printf '%s\n' "  RM      build/user"
-	@rm -rf $(BUILD)
+cd ..
+. export.sh
 
-$(BUILD)/%.o: $(ORG)/%.c
-	@mkdir -p $(dir $@)
-	@printf '%s\n' "  CC      user/$(@:$(BUILD)/%=%)"
-	@$(CC) $(CFLAGS) -I"$(ORG)" $< -o $@
+cd test
+vmake defconfig > /dev/null || exit 1
+
+failure=0
+
+clear
+for x in *.c; do
+    echo "[core/${x%.c}.h]"
+    result="$(run_test $x 2>&1)"
+    if [[ "$?" != 0 ]]; then
+        asserts="$(echo "$result" | grep "$(pwd)/$x")"
+        if [[ -n "$asserts" ]]; then
+            echo "$asserts"
+        else
+            echo "$result" | cat -v
+        fi
+        failure=1
+    fi
+done
+
+exit "$failure"

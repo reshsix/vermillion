@@ -50,12 +50,8 @@ vmake debug
 
 For testing
 ```sh
-. export.sh
-
 cd test
-vmake defconfig
-OBJS='libk.o' vmake all
-vmake debug
+./test.sh
 ```
 
 ## Missing features before first release

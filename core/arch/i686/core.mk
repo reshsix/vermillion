@@ -20,6 +20,10 @@ debug: $(BUILD)/vermillion.img scripts/debug.gdb
 	@printf '%s\n' "  QEMU    $(<:$(BUILD)/%=%)"
 	@qemu-system-i386 -s -S -cdrom $< &
 	@gdb-multiarch --command=scripts/debug.gdb
+test: $(BUILD)/vermillion.img
+	@printf '%s\n' "  TEST    $(<:$(BUILD)/%=%)"
+	@chronic sh -c "qemu-system-i386 -device isa-debug-exit -cdrom $< \
+                    -nographic || [ \$$? = 255 ]"
 
 # Specific recipes
 $(BUILD)/boot.o: arch/$(ARCH)/boot.S deps/.$(TARGET)-gcc | $(BUILD)
