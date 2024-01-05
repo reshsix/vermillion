@@ -84,7 +84,7 @@ defconfig: config/$(BOARD)_defconfig
 	@rm -rf $(BUILD) .config.old
 
 # Folder creation
-FOLDERS := $(BUILD) $(BUILD)/arch $(BUILD)/mount
+FOLDERS := $(BUILD) $(BUILD)/arch $(BUILD)/mount $(BUILD)/src
 FOLDERS += $(BUILD)/drivers $(BUILD)/drivers/audio
 FOLDERS += $(BUILD)/drivers/video $(BUILD)/drivers/fs
 FOLDERS += $(BUILD)/drivers/generic $(BUILD)/drivers/protocols
@@ -94,7 +94,7 @@ $(FOLDERS):
 	@mkdir -p $@
 
 # Generic recipes
-$(BUILD)/%.o: src/%.c deps/.$(TARGET)-gcc | $(FOLDERS)
+$(BUILD)/%.o: %.c deps/.$(TARGET)-gcc | $(FOLDERS)
 	@printf '%s\n' "  CC      core/$(@:$(BUILD)/%=%)"
 	@$(CC) $(CFLAGS) -c $< -o $@
 $(BUILD)/%.a: deps/.$(TARGET)-binutils
@@ -112,9 +112,10 @@ $(BUILD)/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 
 # --------------------------------- Objects  --------------------------------- #
 
-OBJS := assert.o block.o channel.o critical.o exit.o fork.o generator.o \
-        init.o log.o mem.o mutex.o semaphore.o state.o str.o stream.o \
-        thread.o  utils.o
+OBJS := src/assert.o src/block.o src/channel.o src/critical.o src/exit.o \
+        src/fork.o src/generator.o src/init.o src/log.o src/mem.o src/mutex.o \
+        src/semaphore.o src/state.o src/str.o src/stream.o src/thread.o \
+        src/utils.o
 
 OBJS += devtree.o
 
