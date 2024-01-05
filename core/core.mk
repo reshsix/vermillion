@@ -112,10 +112,11 @@ $(BUILD)/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 
 # --------------------------------- Objects  --------------------------------- #
 
-OBJS :=
+OBJS := assert.o block.o channel.o critical.o exit.o fork.o generator.o \
+        init.o log.o mem.o mutex.o semaphore.o state.o str.o stream.o \
+        thread.o  utils.o
 
 OBJS += devtree.o
-OBJS += libk.o
 
 PREFIX = drivers/arm
 ifdef CONFIG_ARM_GIC

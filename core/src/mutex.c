@@ -14,31 +14,23 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef CORE_GENERATOR_H
-#define CORE_GENERATOR_H
-
 #include <core/types.h>
 
-#include <core/fork.h>
-#include <core/state.h>
+#include <core/mutex.h>
+#include <core/thread.h>
 
-struct _generator
+extern void
+mutex_lock(void **m, void *param)
 {
-    bool active, finished;
+    while (*m != NULL)
+        thread_yield();
 
-    void *arg;
-    fork *fk;
+    *m = ((param) ? param : _threads.cur);
+}
 
-    state *caller, *callee;
-};
-typedef struct _generator generator;
-
-generator *generator_new(void (*f)(generator *), void *arg);
-generator *generator_del(generator *g);
-bool generator_next(generator *g);
-void generator_rewind(generator *g);
-void *generator_arg(generator *g);
-void generator_yield(generator *g);
-noreturn generator_finish(generator *g);
-
-#endif
+extern void
+mutex_unlock(void **m, void *param)
+{
+    if (*m == ((param) ? param : _threads.cur))
+        *m = NULL;
+}

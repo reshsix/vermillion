@@ -22,7 +22,18 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #define thread_task(id) \
     noreturn id(__attribute__((unused)) generator *___)
+
+struct _thread
+{
+    size_t step;
+    bool persistent;
+    generator *gen;
+    u8 counter, priority;
+
+    struct _thread *prev, *next;
+};
 typedef struct _thread thread;
+
 thread *thread_new(thread_task(f), void *arg, bool persistent, u8 priority);
 thread *thread_del(thread *t);
 size_t thread_sync(thread *t, size_t step);
@@ -33,5 +44,12 @@ void thread_block(bool state);
 void thread_yield(void);
 noreturn thread_loop(void);
 noreturn thread_finish(void);
+
+struct _threads
+{
+    thread *head, *cur, *tail;
+    bool blocked;
+};
+extern struct _threads _threads;
 
 #endif

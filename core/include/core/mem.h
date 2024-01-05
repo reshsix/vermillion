@@ -28,4 +28,7 @@ void *mem_find(const void *mem, u8 c, size_t length);
 void mem_init(void *mem, u8 c, size_t length);
 void mem_copy(void *dest, const void *src, size_t length);
 
+void _mem_init(void);
+void _mem_clean(void);
+
 #endif

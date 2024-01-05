@@ -14,31 +14,26 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef CORE_GENERATOR_H
-#define CORE_GENERATOR_H
-
 #include <core/types.h>
 
-#include <core/fork.h>
-#include <core/state.h>
+#include <core/dev.h>
 
-struct _generator
+#include <core/stream.h>
+
+extern bool
+stream_stat(dev_stream *ds, u32 idx, u32 *width)
 {
-    bool active, finished;
+    return ds->driver->stat(ds->context, idx, width);
+}
 
-    void *arg;
-    fork *fk;
+extern bool
+stream_read(dev_stream *ds, u32 idx, void *data)
+{
+    return ds->driver->read(ds->context, idx, data);
+}
 
-    state *caller, *callee;
-};
-typedef struct _generator generator;
-
-generator *generator_new(void (*f)(generator *), void *arg);
-generator *generator_del(generator *g);
-bool generator_next(generator *g);
-void generator_rewind(generator *g);
-void *generator_arg(generator *g);
-void generator_yield(generator *g);
-noreturn generator_finish(generator *g);
-
-#endif
+extern bool
+stream_write(dev_stream *ds, u32 idx, void *data)
+{
+    return ds->driver->write(ds->context, idx, data);
+}

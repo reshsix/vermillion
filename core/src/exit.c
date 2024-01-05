@@ -14,31 +14,30 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef CORE_GENERATOR_H
-#define CORE_GENERATOR_H
-
 #include <core/types.h>
 
-#include <core/fork.h>
-#include <core/state.h>
+#include <debug/exit.h>
 
-struct _generator
-{
-    bool active, finished;
-
-    void *arg;
-    fork *fk;
-
-    state *caller, *callee;
-};
-typedef struct _generator generator;
-
-generator *generator_new(void (*f)(generator *), void *arg);
-generator *generator_del(generator *g);
-bool generator_next(generator *g);
-void generator_rewind(generator *g);
-void *generator_arg(generator *g);
-void generator_yield(generator *g);
-noreturn generator_finish(generator *g);
-
+#if defined(CONFIG_ARCH_I686)
+#include <i686/env.h>
 #endif
+
+extern noreturn
+exit_qemu(bool failure)
+{
+    #if defined(CONFIG_ARCH_ARM)
+
+    register int r0 asm("r0") = 0x18;
+    register int r1 asm("r1") = (failure) ? 0x20024 : 0x20026;
+    (void)r0, (void)r1;
+
+    asm volatile ("svc #0x00123456");
+
+    #elif defined(CONFIG_ARCH_I686)
+
+    out8(0x501, (failure) ? 1 : (255 - 1) / 2);
+
+    #endif
+
+    while (true);
+}

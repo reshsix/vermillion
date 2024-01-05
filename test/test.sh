@@ -37,7 +37,7 @@ for x in *.c; do
     echo "[core/${x%.c}.h]"
     result="$(run_test $x 2>&1)"
     if [[ "$?" != 0 ]]; then
-        asserts="$(echo "$result" | grep "$(pwd)/$x")"
+        asserts="$(echo "$result" | grep "^$(pwd)/$x")"
         if [[ -n "$asserts" ]]; then
             echo "$asserts"
         else

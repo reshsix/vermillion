@@ -14,31 +14,25 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef CORE_GENERATOR_H
-#define CORE_GENERATOR_H
-
 #include <core/types.h>
 
-#include <core/fork.h>
-#include <core/state.h>
+#include <core/log.h>
 
-struct _generator
+#include <debug/assert.h>
+
+bool assert_failed = false;
+
+extern void
+assert_fail(const char *file, int line, const char *func, const char *text)
 {
-    bool active, finished;
-
-    void *arg;
-    fork *fk;
-
-    state *caller, *callee;
-};
-typedef struct _generator generator;
-
-generator *generator_new(void (*f)(generator *), void *arg);
-generator *generator_del(generator *g);
-bool generator_next(generator *g);
-void generator_rewind(generator *g);
-void *generator_arg(generator *g);
-void generator_yield(generator *g);
-noreturn generator_finish(generator *g);
-
-#endif
+    assert_failed = true;
+    log (file);
+    log (":");
+    log (line);
+    log (": ");
+    log (func);
+    log (": ");
+    log ("Assertion '");
+    log (text);
+    log ("' failed\n");
+}
