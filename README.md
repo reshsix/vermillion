@@ -1,9 +1,9 @@
 # Vermillion
 A library operating system for unikernels
 
-## Supported boards
-Currently focused on Orange Pi One (armv7), supports i686
-for arch dependency tests
+## Development status
+Alpha, some core features are still not implemented.
+Will support Orange Pi One (armv7) and x86-32 pcs (i686) at first.
 
 ## Dependencies
 You may need the following packages, which are necessary to build the
@@ -54,46 +54,37 @@ cd test
 ./test.sh
 ```
 
-## Missing features before first release
-- core/libk.o
-    - Software interrupt handling
-- libs (Generic device libraries)
-    - Sound (audio drivers)
-    - Storage (fs drivers)
-- libs (Wrappers libraries)
-    - Libc wrapper
-
 ## Topology
 ```mermaid
 sequenceDiagram
     participant Hardware
     participant core/arch
-    participant core/libk.o
+    participant core/src
     participant core/devtree
     participant core/drivers
     participant libs
     participant user
     Hardware->>core/arch: Boot up
-    core/arch->>core/libk.o: Call __init()
-    activate core/libk.o
-    core/libk.o->>core/devtree: Call _devtree_init()
+    core/arch->>core/src: Call __init()
+    activate core/src
+    core/src->>core/devtree: Call _devtree_init()
     core/devtree->>core/drivers: Initialize devices
-    core/libk.o->>user: Call main()
-    deactivate core/libk.o
+    core/src->>user: Call main()
+    deactivate core/src
     activate user
     user-->>user: Call own functions
     user-->>core/drivers: Initialize extra devices
     user-->>core/devtree: Interact with devices
-    user-->>core/libk.o: Call arch-independent functions
+    user-->>core/src: Call arch-independent functions
     user-->>core/arch: Call arch-dependent functions
     user-->>libs: Call generic device libraries
     user-->>libs: Call wrapper libraries
     user-->>libs: Call useful abstractions
-    user->>core/libk.o: Return from main()
+    user->>core/src: Return from main()
     deactivate user
-    activate core/libk.o
-    core/libk.o->>core/devtree: Call _devtree_clean()
+    activate core/src
+    core/src->>core/devtree: Call _devtree_clean()
     core/devtree->>core/drivers: Clean devices
-    core/libk.o->>core/libk.o: Halts forever
-    deactivate core/libk.o
+    core/src->>core/src: Halts forever
+    deactivate core/src
 ```
