@@ -51,12 +51,7 @@ init(void **ctx, dev_gpio *gpio, u16 pin, dev_timer *timer)
         ret->config.audio.freq = 48000;
         ret->config.audio.format = DRIVER_AUDIO_FORMAT_PCM8;
 
-        union config config = {0};
-        bool ok = ret->gpio->driver->config.get(ret->gpio->context, &config);
-        ok = ok && config.gpio.pin(ret->gpio->context, ret->pin,
-                                   DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
-
-        if (ok)
+        if (gpio_config(ret->gpio, ret->pin, GPIO_OUT, GPIO_PULLOFF))
             *ctx = ret;
         else
             mem_del(ret);
@@ -67,12 +62,7 @@ static void
 clean(void *ctx)
 {
     struct buzzer *bz = ctx;
-
-    union config config = {0};
-    bz->gpio->driver->config.get(bz->gpio->context, &config);
-    config.gpio.pin(bz->gpio->context, bz->pin, DRIVER_GPIO_OFF,
-                    DRIVER_GPIO_PULLOFF);
-
+    gpio_config(bz->gpio, bz->pin, GPIO_OFF, GPIO_PULLOFF);
     mem_del(bz);
 }
 
@@ -92,7 +82,7 @@ write(void *ctx, u32 idx, void *data)
     if (idx == 0)
     {
         struct buzzer *bz = ctx;
-        ret = pin_set(bz->gpio, bz->pin, *((u8*)data) >= UINT8_MAX / 2);
+        ret = gpio_set(bz->gpio, bz->pin, *((u8*)data) >= UINT8_MAX / 2);
         usleep(bz->timer, 1000000000 / 48000);
     }
     else

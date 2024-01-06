@@ -46,9 +46,9 @@ init(void **ctx, dev_gpio *gpio, u16 data, u16 clock, u16 latch, bool lsbfirst)
         ret->latch = latch;
         ret->lsbfirst = lsbfirst;
 
-        pin_cfg(gpio, data, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
-        pin_cfg(gpio, clock, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
-        pin_cfg(gpio, latch, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
+        gpio_config(gpio, data, GPIO_OUT, GPIO_PULLOFF);
+        gpio_config(gpio, clock, GPIO_OUT, GPIO_PULLOFF);
+        gpio_config(gpio, latch, GPIO_OUT, GPIO_PULLOFF);
 
         *ctx = ret;
     }
@@ -60,9 +60,9 @@ clean(void *ctx)
     if (ctx)
     {
         struct sipo *s = ctx;
-        pin_cfg(s->gpio, s->data, DRIVER_GPIO_OFF, DRIVER_GPIO_PULLOFF);
-        pin_cfg(s->gpio, s->clock, DRIVER_GPIO_OFF, DRIVER_GPIO_PULLOFF);
-        pin_cfg(s->gpio, s->latch, DRIVER_GPIO_OFF, DRIVER_GPIO_PULLOFF);
+        gpio_config(s->gpio, s->data, GPIO_OFF, GPIO_PULLOFF);
+        gpio_config(s->gpio, s->clock, GPIO_OFF, GPIO_PULLOFF);
+        gpio_config(s->gpio, s->latch, GPIO_OFF, GPIO_PULLOFF);
     }
 
     mem_del(ctx);
@@ -76,20 +76,20 @@ write(void *ctx, u32 idx, void *data)
     if (ret)
     {
         struct sipo *s = ctx;
-        pin_set(s->gpio, s->latch, false);
-        pin_set(s->gpio, s->data, false);
+        gpio_set(s->gpio, s->latch, false);
+        gpio_set(s->gpio, s->data, false);
 
         for (u8 i = 0; i < 8; i++)
         {
-            pin_set(s->gpio, s->clock, false);
+            gpio_set(s->gpio, s->clock, false);
             if (s->lsbfirst)
-                pin_set(s->gpio, s->data, *((u8*)data) & (1 << (7 - i)));
+                gpio_set(s->gpio, s->data, *((u8*)data) & (1 << (7 - i)));
             else
-                pin_set(s->gpio, s->data, *((u8*)data) & (1 << i));
-            pin_set(s->gpio, s->clock, true);
+                gpio_set(s->gpio, s->data, *((u8*)data) & (1 << i));
+            gpio_set(s->gpio, s->clock, true);
         }
 
-        pin_set(s->gpio, s->latch, true);
+        gpio_set(s->gpio, s->latch, true);
     }
 
     return ret;

@@ -57,37 +57,37 @@ ili9488_command(struct ili9488 *ili, u8 c, ...)
     for (u8 i = 0; i < c; i++)
         buf[i] = va_arg(args, int);
 
-    pin_set(ili->gpio, ili->dcrs, false);
+    gpio_set(ili->gpio, ili->dcrs, false);
     stream_write(ili->stream, 0, &(buf[0]));
 
-    pin_set(ili->gpio, ili->dcrs, true);
+    gpio_set(ili->gpio, ili->dcrs, true);
     for (u8 i = 1; i < c; i++)
         stream_write(ili->stream, 0, &(buf[i]));
-    pin_set(ili->gpio, ili->dcrs, false);
+    gpio_set(ili->gpio, ili->dcrs, false);
 }
 
 static void
 ili9488_command2(struct ili9488 *ili, u8 n, u8 *buf, size_t length)
 {
-    pin_set(ili->gpio, ili->dcrs, false);
+    gpio_set(ili->gpio, ili->dcrs, false);
     stream_write(ili->stream, 0, &n);
 
-    pin_set(ili->gpio, ili->dcrs, true);
+    gpio_set(ili->gpio, ili->dcrs, true);
     for (size_t i = 0; i < length; i++)
         stream_write(ili->stream, 0, &(buf[i]));
-    pin_set(ili->gpio, ili->dcrs, false);
+    gpio_set(ili->gpio, ili->dcrs, false);
 }
 
 static void
 ili9488_command3(struct ili9488 *ili, u8 n, u8 c, size_t length)
 {
-    pin_set(ili->gpio, ili->dcrs, false);
+    gpio_set(ili->gpio, ili->dcrs, false);
     stream_write(ili->stream, 0, &n);
 
-    pin_set(ili->gpio, ili->dcrs, true);
+    gpio_set(ili->gpio, ili->dcrs, true);
     for (size_t i = 0; i < length; i++)
         stream_write(ili->stream, 0, &c);
-    pin_set(ili->gpio, ili->dcrs, false);
+    gpio_set(ili->gpio, ili->dcrs, false);
 }
 
 static void
@@ -118,15 +118,10 @@ ili9488_clear(struct ili9488 *ili)
 static void
 ili9488_start(struct ili9488 *ili)
 {
-    union config config = {0};
-    ili->gpio->driver->config.get(ili->gpio->context, &config);
-
-    config.gpio.pin(ili->gpio->context, ili->dcrs, DRIVER_GPIO_OUT,
-                    DRIVER_GPIO_PULLOFF);
-    pin_set(ili->gpio, ili->leds, true);
-    config.gpio.pin(ili->gpio->context, ili->leds, DRIVER_GPIO_OUT,
-                    DRIVER_GPIO_PULLOFF);
-    pin_set(ili->gpio, ili->leds, true);
+    gpio_config(ili->gpio, ili->dcrs, GPIO_OUT, GPIO_PULLOFF);
+    gpio_set(ili->gpio, ili->leds, true);
+    gpio_config(ili->gpio, ili->leds, GPIO_OUT, GPIO_PULLOFF);
+    gpio_set(ili->gpio, ili->leds, true);
 
     ili9488_command(ili, 1, 0x00, 0);
     ili9488_command(ili, 1, 0x01, 0);
@@ -143,7 +138,7 @@ ili9488_start(struct ili9488 *ili)
     ili9488_command(ili, 1, 0x29);
     msleep(ili->timer, 10);
 
-    pin_set(ili->gpio, ili->leds, false);
+    gpio_set(ili->gpio, ili->leds, false);
 }
 
 static void
@@ -159,12 +154,8 @@ init(void **ctx, dev_gpio *gpio, u16 dcrs, u16 leds,
     {
         ret->gpio = gpio;
 
-        union config config = {0};
-        ret->gpio->driver->config.get(ret->gpio->context, &config);
-        config.gpio.pin(ret->gpio->context, dcrs, DRIVER_GPIO_OUT,
-                        DRIVER_GPIO_PULLOFF);
-        config.gpio.pin(ret->gpio->context, leds, DRIVER_GPIO_OUT,
-                        DRIVER_GPIO_PULLOFF);
+        gpio_config(ret->gpio, dcrs, GPIO_OUT, GPIO_PULLOFF);
+        gpio_config(ret->gpio, leds, GPIO_OUT, GPIO_PULLOFF);
 
         ret->dcrs = dcrs;
         ret->leds = leds;
@@ -183,12 +174,8 @@ clean(void *ctx)
 {
     struct ili9488 *ili = ctx;
 
-    union config config = {0};
-    ili->gpio->driver->config.get(ili->gpio->context, &config);
-    config.gpio.pin(ili->gpio->context, ili->dcrs, DRIVER_GPIO_OFF,
-                    DRIVER_GPIO_PULLOFF);
-    config.gpio.pin(ili->gpio->context, ili->leds, DRIVER_GPIO_OFF,
-                    DRIVER_GPIO_PULLOFF);
+    gpio_config(ili->gpio, ili->dcrs, GPIO_OFF, GPIO_PULLOFF);
+    gpio_config(ili->gpio, ili->leds, GPIO_OFF, GPIO_PULLOFF);
 
     mem_del(ili);
 }

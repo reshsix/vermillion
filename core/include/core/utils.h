@@ -21,7 +21,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/dev.h>
 
-#include <core/gpio.h>
 #include <core/timer.h>
 
 u32 clock(dev_timer *tmr);
@@ -29,9 +28,5 @@ void csleep(dev_timer *tmr, const u32 n);
 void usleep(dev_timer *tmr, const u32 n);
 void msleep(dev_timer *tmr, const u32 n);
 void sleep(dev_timer *tmr, const u32 n);
-
-bool pin_cfg(dev_gpio *gpio, u16 pin, u8 role, u8 pull);
-bool pin_set(dev_gpio *gpio, u16 pin, bool data);
-bool pin_get(dev_gpio *gpio, u16 pin, bool *data);
 
 #endif

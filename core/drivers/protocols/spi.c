@@ -63,29 +63,29 @@ spi_transfer(struct spi *spi, u8 x)
 {
     u8 ret = 0;
 
-    pin_set(spi->gpio, spi->ss, false);
-    pin_set(spi->gpio, spi->sck, (spi->cpha) ? true : false);
+    gpio_set(spi->gpio, spi->ss, false);
+    gpio_set(spi->gpio, spi->sck, (spi->cpha) ? true : false);
     for (u8 i = 0; i < 8; i++)
     {
         if (spi->lsb) ret >>= 1;
         else          ret <<= 1;
 
         bool state = false;
-        pin_get(spi->gpio, spi->miso, &state);
+        gpio_get(spi->gpio, spi->miso, &state);
         ret |= state << ((spi->lsb) ? 7 : 0);
 
         bool bit = (spi->lsb) ? x & 0x01 : x & 0x80;
-        pin_set(spi->gpio, spi->mosi, (spi->cpol) ? !bit : bit);
+        gpio_set(spi->gpio, spi->mosi, (spi->cpol) ? !bit : bit);
         spi->sleep(spi->timer->context, spi->delay);
 
-        pin_set(spi->gpio, spi->sck, (spi->cpha) ? false : true);
+        gpio_set(spi->gpio, spi->sck, (spi->cpha) ? false : true);
         spi->sleep(spi->timer->context, spi->delay);
-        pin_set(spi->gpio, spi->sck, (spi->cpha) ? true : false);
+        gpio_set(spi->gpio, spi->sck, (spi->cpha) ? true : false);
 
         if (spi->lsb) x >>= 1;
         else          x <<= 1;
     }
-    pin_set(spi->gpio, spi->ss, true);
+    gpio_set(spi->gpio, spi->ss, true);
 
     return (spi->cpol) ? ~ret : ret;
 }
@@ -112,16 +112,10 @@ init(void **ctx, dev_gpio *gpio, u16 ss, u16 sck, u16 mosi, u16 miso,
         ret->gpio = gpio;
         ret->timer = timer;
 
-        union config config = {0};
-        ret->gpio->driver->config.get(ret->gpio->context, &config);
-        config.gpio.pin(ret->gpio->context, ret->ss, DRIVER_GPIO_OUT,
-                        DRIVER_GPIO_PULLOFF);
-        config.gpio.pin(ret->gpio->context, ret->sck, DRIVER_GPIO_OUT,
-                        DRIVER_GPIO_PULLOFF);
-        config.gpio.pin(ret->gpio->context, ret->mosi, DRIVER_GPIO_OUT,
-                        DRIVER_GPIO_PULLOFF);
-        config.gpio.pin(ret->gpio->context, ret->miso, DRIVER_GPIO_IN,
-                        DRIVER_GPIO_PULLOFF);
+        gpio_config(ret->gpio, ret->ss, GPIO_OUT, GPIO_PULLOFF);
+        gpio_config(ret->gpio, ret->sck, GPIO_OUT, GPIO_PULLOFF);
+        gpio_config(ret->gpio, ret->mosi, GPIO_OUT, GPIO_PULLOFF);
+        gpio_config(ret->gpio, ret->miso, GPIO_IN, GPIO_PULLOFF);
 
         *ctx = ret;
     }
@@ -132,16 +126,10 @@ clean(void *ctx)
 {
     struct spi *spi = ctx;
 
-    union config config = {0};
-    spi->gpio->driver->config.get(spi->gpio->context, &config);
-    config.gpio.pin(spi->gpio->context, spi->ss, DRIVER_GPIO_OFF,
-                    DRIVER_GPIO_PULLOFF);
-    config.gpio.pin(spi->gpio->context, spi->sck, DRIVER_GPIO_OFF,
-                    DRIVER_GPIO_PULLOFF);
-    config.gpio.pin(spi->gpio->context, spi->mosi, DRIVER_GPIO_OFF,
-                    DRIVER_GPIO_PULLOFF);
-    config.gpio.pin(spi->gpio->context, spi->miso, DRIVER_GPIO_OFF,
-                    DRIVER_GPIO_PULLOFF);
+    gpio_config(spi->gpio, spi->ss, GPIO_OFF, GPIO_PULLOFF);
+    gpio_config(spi->gpio, spi->sck, GPIO_OFF, GPIO_PULLOFF);
+    gpio_config(spi->gpio, spi->mosi, GPIO_OFF, GPIO_PULLOFF);
+    gpio_config(spi->gpio, spi->miso, GPIO_OFF, GPIO_PULLOFF);
 
     mem_del(ctx);
 }

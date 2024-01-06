@@ -22,53 +22,33 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/gpio.h>
 
-#define PN_CFG(c, n, i) *(volatile u32*)(c + (n * 0x24) + (0x4 * i))
-#define PN_DAT(c, n)    *(volatile u32*)(c + (n * 0x24) + 0x10)
-#define PN_PUL(c, n, i) *(volatile u32*)(c + (n * 0x24) + 0x1C + (0x4 * i))
+#define PN_CFG(c, n, i) *(volatile u32 *)(c + (n * 0x24) + (0x4 * i))
+#define PN_DAT(c, n)    *(volatile u32 *)(c + (n * 0x24) + 0x10)
+#define PN_PUL(c, n, i) *(volatile u32 *)(c + (n * 0x24) + 0x1C + (0x4 * i))
 
-#define EINT_CFG(c, n, i) *(volatile u32*)(c + 0x200 + (n * 0x20) + (0x4 * i))
-#define EINT_CTL(c, n)    *(volatile u32*)(c + 0x200 + (n * 0x20) + 0x10)
-#define EINT_STA(c, n)    *(volatile u32*)(c + 0x200 + (n * 0x20) + 0x14)
+#define EINT_CFG(c, n, i) *(volatile u32 *)(c + 0x200 + (n * 0x20) + (0x4 * i))
+#define EINT_CTL(c, n)    *(volatile u32 *)(c + 0x200 + (n * 0x20) + 0x10)
+#define EINT_STA(c, n)    *(volatile u32 *)(c + 0x200 + (n * 0x20) + 0x14)
 
-enum pin_config
-{
-    PIN_CFG_IN = 0,
-    PIN_CFG_OUT,
-    PIN_CFG_EX0,
-    PIN_CFG_EX1,
-    PIN_CFG_EX2,
-    PIN_CFG_EX3,
-    PIN_CFG_EX4,
-    PIN_CFG_OFF
-};
+static enum gpio_role readable_role[8] =
+    {GPIO_IN, GPIO_OUT, GPIO_CUSTOM + 0, GPIO_CUSTOM + 1, GPIO_CUSTOM + 2,
+     GPIO_CUSTOM + 3, GPIO_CUSTOM + 4, GPIO_OFF};
+static enum gpio_pull readable_pull[4] =
+    {GPIO_PULLOFF, GPIO_PULLUP, GPIO_PULLDOWN, GPIO_PULLOFF};
+static enum gpio_level readable_level[8] =
+    {GPIO_EDGE_H, GPIO_EDGE_L, GPIO_LEVEL_H, GPIO_LEVEL_L,
+     GPIO_DOUBLE, GPIO_EDGE_H, GPIO_EDGE_H, GPIO_EDGE_H};
 
-enum pin_pull
-{
-    PIN_PULLOFF = 0,
-    PIN_PULLUP,
-    PIN_PULLDOWN
-};
-
-enum eint_config
-{
-    EINT_EDGE_H,
-    EINT_EDGE_L,
-    EINT_LEVEL_H,
-    EINT_LEVEL_L,
-    EINT_DOUBLE
-};
+static u8 writable_role[8] = {7, 0, 1, 2, 3, 4, 5, 6};
+static u8 writable_pull[3] = {0, 1, 2};
+static u8 writable_level[5] = {0, 1, 2, 3, 4};
 
 struct gpio
 {
     u32 base;
     u8 io_ports;
     u8 int_ports;
-    union config config;
 };
-
-static bool gpio_pin(void *ctx, u16 pin, u8 role, u8 pull);
-static bool gpio_intr(void *ctx, u16 intr, bool enable, u8 level);
-static bool gpio_ack(void *ctx, u16 intr);
 
 static void
 init(void **ctx, u32 base, u8 io_ports, u8 int_ports)
@@ -81,10 +61,6 @@ init(void **ctx, u32 base, u8 io_ports, u8 int_ports)
         ret->io_ports = io_ports;
         ret->int_ports = int_ports;
 
-        ret->config.gpio.pin = gpio_pin;
-        ret->config.gpio.intr = gpio_intr;
-        ret->config.gpio.ack = gpio_ack;
-
         *ctx = ret;
     }
 }
@@ -96,26 +72,108 @@ clean(void *ctx)
 }
 
 static bool
-config_get(void *ctx, union config *cfg)
+stat(void *ctx, u32 idx, u32 *width, u32 *length)
 {
+    bool ret = true;
+
     struct gpio *gpio = ctx;
-    mem_copy(cfg, &(gpio->config), sizeof(union config));
-    return true;
+    switch (idx)
+    {
+        case 0:
+            *width = sizeof(u32);
+            *length = gpio->io_ports;
+            break;
+        case 1:
+            *width = sizeof(bool);
+            *length = gpio->io_ports * 32;
+            break;
+        case 2:
+            *width = sizeof(struct gpio_pin);
+            *length = gpio->io_ports * 32;
+            break;
+        case 3:
+            *width = sizeof(struct gpio_intr);
+            *length = gpio->int_ports * 32;
+            break;
+        case 4:
+            *width = 0;
+            *length = gpio->int_ports * 32;
+            break;
+        default:
+            ret = false;
+            break;
+    }
+
+    return ret;
 }
 
 static bool
 read(void *ctx, u32 idx, void *buffer, u32 block)
 {
-    bool ret = true;
+    bool ret = false;
 
     struct gpio *gpio = ctx;
-    if (idx == 0 && block < gpio->io_ports)
+    switch (idx)
     {
-        u32 data = PN_DAT(gpio->base, block);
-        mem_copy(buffer, &data, sizeof(u32));
+        case 0:
+            ret = (block < gpio->io_ports);
+
+            if (ret)
+            {
+                u32 data = PN_DAT(gpio->base, block);
+                mem_copy(buffer, &data, sizeof(u32));
+            }
+            break;
+
+        case 1:
+            ret = ((block / 32) < gpio->io_ports);
+
+            if (ret)
+            {
+                u8 port = block / 32, slot = block % 32;
+                bool data = PN_DAT(gpio->base, port) & (1 << slot);
+                mem_copy(buffer, &data, sizeof(bool));
+            }
+            break;
+
+        case 2:
+            ret = ((block / 32) < gpio->io_ports);
+
+            if (ret)
+            {
+                struct gpio_pin pin = {0};
+                u8 port = block / 32, slot = block % 32;
+
+                u8 reg = slot / 8, pos = slot % 8;
+                pin.role = PN_CFG(gpio->base, port, reg) >> (pos * 4);
+                pin.role = readable_role[pin.role % 8];
+
+                reg = slot / 16, pos = slot % 16;
+                pin.pull = PN_PUL(gpio->base, port, reg) >> (pos * 2);
+                pin.pull = readable_pull[pin.pull % 4];
+
+                mem_copy(buffer, &pin, sizeof(struct gpio_pin));
+            }
+            break;
+
+        case 3:
+            ret = ((block / 32) < gpio->int_ports);
+
+            if (ret)
+            {
+                struct gpio_intr intr = {0};
+                u8 port = block / 32, slot = block % 32;
+
+                intr.enabled = EINT_CTL(gpio->base, port) & (1 << slot);
+
+                u8 reg = slot / 8, pos = slot % 8;
+                intr.level = EINT_CFG(gpio->base, port, reg) >> (pos * 4);
+                intr.level = readable_level[intr.level % 8];
+
+                mem_copy(buffer, &intr, sizeof(struct gpio_intr));
+            }
+            break;
     }
-    else
-        ret = false;
 
     return ret;
 }
@@ -123,161 +181,105 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
 static bool
 write(void *ctx, u32 idx, void *buffer, u32 block)
 {
-    bool ret = true;
-
-    struct gpio *gpio = ctx;
-    if (idx == 0 && block < gpio->io_ports)
-    {
-        u32 data = 0;
-        mem_copy(&data, buffer, sizeof(u32));
-        PN_DAT(gpio->base, block) = data;
-    }
-    else
-        ret = false;
-
-    return ret;
-}
-
-static bool
-gpio_pin(void *ctx, u16 pin, u8 role, u8 pull)
-{
     bool ret = false;
 
     struct gpio *gpio = ctx;
-
-    u8 port = pin / 32, slot = pin % 32;
-    if (port < gpio->io_ports)
-        ret = true;
-
-    enum pin_config c = PIN_CFG_OFF;
-    enum pin_pull pl = PIN_PULLOFF;
-    if (ret)
+    switch (idx)
     {
-        switch (role)
-        {
-            case DRIVER_GPIO_OFF:
-                break;
-            case DRIVER_GPIO_IN:
-                c = PIN_CFG_IN;
-                break;
-            case DRIVER_GPIO_OUT:
-                c = PIN_CFG_OUT;
-                break;
-            default:
-                c = role - DRIVER_GPIO_EXTRA;
-                break;
-        }
+        case 0:
+            ret = (block < gpio->io_ports);
 
-        switch (pull)
-        {
-            case DRIVER_GPIO_PULLOFF:
-                break;
-            case DRIVER_GPIO_PULLUP:
-                pl = PIN_PULLUP;
-                break;
-            case DRIVER_GPIO_PULLDOWN:
-                pl = PIN_PULLDOWN;
-                break;
-            default:
-                ret = false;
-                break;
-        }
+            if (ret)
+            {
+                u32 data = 0;
+                mem_copy(&data, buffer, sizeof(u32));
+                PN_DAT(gpio->base, block) = data;
+            }
+            break;
+
+        case 1:
+            ret = ((block / 32) < gpio->io_ports);
+
+            if (ret)
+            {
+                u8 port = block / 32, slot = block % 32;
+
+                bool data = false;
+                mem_copy(&data, buffer, sizeof(bool));
+
+                if (data)
+                    PN_DAT(gpio->base, port) |= (1 << slot);
+                else
+                    PN_DAT(gpio->base, port) &= ~(1 << slot);
+            }
+            break;
+
+        case 2:
+            ret = ((block / 32) < gpio->io_ports);
+
+            struct gpio_pin pin = {0};
+            if (ret)
+            {
+                mem_copy(&pin, buffer, sizeof(struct gpio_pin));
+                ret = pin.role < sizeof(writable_role) &&
+                      pin.pull < sizeof(writable_pull);
+            }
+
+            if (ret)
+            {
+                u8 port = block / 32, slot = block % 32;
+
+                u8 reg = slot / 8, pos = slot % 8;
+                u32 data = writable_role[pin.role] << (pos * 4);
+                u32 mask = 0xf << (pos * 4);
+                PN_CFG(gpio->base, port, reg) &= ~mask;
+                PN_CFG(gpio->base, port, reg) |= (data & mask);
+
+                reg = slot / 16, pos = slot % 16;
+                data = writable_pull[pin.pull] << (pos * 2);
+                mask = 0x3 << (pos * 2);
+                PN_PUL(gpio->base, port, reg) &= ~mask;
+                PN_PUL(gpio->base, port, reg) |= (data & mask);
+            }
+            break;
+
+        case 3:
+            ret = ((block / 32) < gpio->int_ports);
+
+            struct gpio_intr intr = {0};
+            if (ret)
+            {
+                mem_copy(&intr, buffer, sizeof(struct gpio_intr));
+                ret = intr.level < sizeof(writable_level);
+            }
+
+            if (ret)
+            {
+                u8 port = block / 32, slot = block % 32;
+
+                if (intr.enabled)
+                    EINT_CTL(gpio->base, port) |= (1 << slot);
+                else
+                    EINT_CTL(gpio->base, port) &= ~(1 << slot);
+
+                u8 reg = slot / 8, pos = slot % 8;
+                u32 data = writable_level[intr.level] << (pos * 4);
+                u32 mask = 0xf << (pos * 4);
+                EINT_CFG(gpio->base, port, reg) &= ~mask;
+                EINT_CFG(gpio->base, port, reg) |= (data & mask);
+            }
+            break;
+
+        case 4:
+            ret = ((block / 32) < gpio->int_ports);
+
+            if (ret)
+            {
+                u8 port = block / 32, slot = block % 32;
+                EINT_STA(gpio->base, port) |= 0x1 << slot;
+            }
+            break;
     }
-
-    if (ret)
-    {
-        u8 reg, pos;
-        u32 data, mask;
-
-        reg = slot / 8;
-        pos = slot % 8;
-        data = c << (pos * 4);
-        mask = 0xf << (pos * 4);
-
-        PN_CFG(gpio->base, port, reg) &= ~mask;
-        PN_CFG(gpio->base, port, reg) |= (data & mask);
-
-        reg = slot / 16;
-        pos = slot % 16;
-        data = pl << (pos * 2);
-        mask = 0x3 << (pos * 2);
-
-        PN_PUL(gpio->base, port, reg) &= ~mask;
-        PN_PUL(gpio->base, port, reg) |= (data & mask);
-    }
-
-    return ret;
-}
-
-static bool
-gpio_intr(void *ctx, u16 intr, bool enable, u8 level)
-{
-    bool ret = false;
-
-    struct gpio *gpio = ctx;
-
-    u8 port = intr / 32, slot = intr % 32;
-    if (port < gpio->int_ports)
-        ret = true;
-
-    enum eint_config c = EINT_EDGE_H;
-    if (ret)
-    {
-        switch (level)
-        {
-            case DRIVER_GPIO_EDGE_H:
-                break;
-            case DRIVER_GPIO_EDGE_L:
-                c = EINT_EDGE_L;
-                break;
-            case DRIVER_GPIO_LEVEL_H:
-                c = EINT_LEVEL_H;
-                break;
-            case DRIVER_GPIO_LEVEL_L:
-                c = EINT_LEVEL_L;
-                break;
-            case DRIVER_GPIO_DOUBLE:
-                c = EINT_DOUBLE;
-                break;
-            default:
-                ret = false;
-                break;
-        }
-    }
-
-    if (ret)
-    {
-        if (enable)
-            EINT_CTL(gpio->base, port) |= 0x1 << slot;
-        else
-            EINT_CTL(gpio->base, port) &= ~(0x1 << slot);
-
-        u8 reg = slot / 8;
-        u8 pos = slot % 8;
-
-        u32 data = c << (pos * 4);
-        u32 mask = 0xf << (pos * 4);
-
-        EINT_CFG(gpio->base, port, reg) &= ~mask;
-        EINT_CFG(gpio->base, port, reg) |= (data & mask);
-    }
-
-    return ret;
-}
-
-static bool
-gpio_ack(void *ctx, u16 intr)
-{
-    bool ret = true;
-
-    u8 port = intr / 32;
-    u8 slot = intr % 32;
-
-    struct gpio *gpio = ctx;
-    if (port < gpio->int_ports)
-        EINT_STA(gpio->base, port) |= 0x1 << slot;
-    else
-        ret = false;
 
     return ret;
 }
@@ -285,6 +287,5 @@ gpio_ack(void *ctx, u16 intr)
 drv_decl (gpio, sunxi_gpio)
 {
     .init = init, .clean = clean,
-    .config.get = config_get,
-    .read = read, .write = write
+    .stat = stat, .read = read, .write = write
 };

@@ -113,9 +113,9 @@ $(BUILD)/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 # --------------------------------- Objects  --------------------------------- #
 
 OBJS := src/assert.o src/block.o src/channel.o src/critical.o src/exit.o \
-        src/fork.o src/generator.o src/init.o src/log.o src/mem.o src/mutex.o \
-        src/semaphore.o src/state.o src/str.o src/stream.o src/thread.o \
-        src/utils.o
+        src/fork.o src/generator.o src/gpio.o src/init.o src/log.o src/mem.o \
+        src/mutex.o src/semaphore.o src/state.o src/str.o src/stream.o \
+        src/thread.o src/utils.o
 
 OBJS += devtree.o
 

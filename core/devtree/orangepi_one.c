@@ -90,8 +90,8 @@ _devtree_init(void)
 
     dev_init (root, &dev(mmcblk0p1));
 
-    pin_cfg(&dev(gpio1), 10, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
-    pin_set(&dev(gpio1), 10, true);
+    gpio_config(&dev(gpio1), 10, GPIO_OUT, GPIO_PULLOFF);
+    gpio_set(&dev(gpio1), 10, true);
 }
 
 extern void
@@ -102,11 +102,11 @@ _devtree_clean(void)
     dev_clean (tty3)
     dev_clean (tty4)
 
-    pin_set(&dev(gpio1), 10, false);
-    pin_cfg(&dev(gpio1), 10, DRIVER_GPIO_OFF, DRIVER_GPIO_PULLOFF);
+    gpio_set(&dev(gpio1), 10, false);
+    gpio_config(&dev(gpio1), 10, GPIO_OFF, GPIO_PULLOFF);
 
-    pin_cfg(&dev(gpio0), 15, DRIVER_GPIO_OUT, DRIVER_GPIO_PULLOFF);
-    pin_set(&dev(gpio0), 15, true);
+    gpio_config(&dev(gpio0), 15, GPIO_OUT, GPIO_PULLOFF);
+    gpio_set(&dev(gpio0), 15, true);
 
     dev_clean (gpio0)
     dev_clean (gpio1)

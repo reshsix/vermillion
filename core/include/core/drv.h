@@ -89,13 +89,6 @@ union __attribute__((packed)) config
 
     struct __attribute__((packed))
     {
-        bool (*pin)  (void *ctx, u16 pin, u8 role, u8 pull);
-        bool (*intr) (void *ctx, u16 intr, bool enable, u8 level);
-        bool (*ack)  (void *ctx, u16 intr);
-    } gpio;
-
-    struct __attribute__((packed))
-    {
         bool (*config)(void *ctx, u16 n, void (*f)(void),
                                   bool enable, u8 priority,
                                   bool edge, bool high);
@@ -109,22 +102,6 @@ union __attribute__((packed)) config
         void (*info) (void *ctx, u32 idx, size_t *size, s32 *files);
         u32  (*index)(void *ctx, u32 idx, u32 sub);
     } fs;
-};
-
-enum
-{
-    DRIVER_GPIO_OFF, DRIVER_GPIO_IN, DRIVER_GPIO_OUT, DRIVER_GPIO_EXTRA
-};
-
-enum
-{
-    DRIVER_GPIO_PULLOFF, DRIVER_GPIO_PULLUP, DRIVER_GPIO_PULLDOWN
-};
-
-enum
-{
-    DRIVER_GPIO_EDGE_H,  DRIVER_GPIO_EDGE_L,
-    DRIVER_GPIO_LEVEL_H, DRIVER_GPIO_LEVEL_L, DRIVER_GPIO_DOUBLE
 };
 
 #define DRIVER_SPI_MAX 0
