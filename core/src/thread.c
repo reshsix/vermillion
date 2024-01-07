@@ -84,7 +84,9 @@ thread_sync(thread *t, size_t step)
 {
     size_t ret = 0;
 
-    _threads.cur->step++;
+    if (_threads.stepping)
+        _threads.cur->step++;
+
     if (!_threads.blocked && _threads.cur != t && (u32)t > 0x1 && t->persistent)
     {
         while (t->step < step && !(t->gen->finished))
@@ -101,7 +103,9 @@ thread_wait(thread *t)
 {
     size_t ret = 0;
 
-    _threads.cur->step++;
+    if (_threads.stepping)
+        _threads.cur->step++;
+
     if (!_threads.blocked && _threads.cur != t && (u32)t > 0x1 && t->persistent)
     {
         while (!(t->gen->finished))
@@ -141,9 +145,16 @@ thread_block(bool state)
 }
 
 extern void
+thread_steps(bool state)
+{
+    _threads.stepping = state;
+}
+
+extern void
 thread_yield(void)
 {
-    _threads.cur->step++;
+    if (_threads.stepping)
+        _threads.cur->step++;
     if (!_threads.blocked)
         generator_yield(_threads.cur->gen);
 }
@@ -151,7 +162,8 @@ thread_yield(void)
 extern noreturn
 thread_loop(void)
 {
-    _threads.cur->step = 0;
+    if (_threads.stepping)
+        _threads.cur->step = 0;
     generator_rewind(_threads.cur->gen);
 
     _threads.blocked = false;
@@ -161,7 +173,8 @@ thread_loop(void)
 extern noreturn
 thread_finish(void)
 {
-    _threads.cur->step++;
+    if (_threads.stepping)
+        _threads.cur->step++;
     _threads.blocked = false;
     generator_finish(_threads.cur->gen);
 }

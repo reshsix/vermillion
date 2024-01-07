@@ -41,6 +41,7 @@ size_t thread_wait(thread *t);
 bool thread_rewind(thread *t);
 void *thread_arg(void);
 void thread_block(bool state);
+void thread_steps(bool state);
 void thread_yield(void);
 noreturn thread_loop(void);
 noreturn thread_finish(void);
@@ -48,7 +49,7 @@ noreturn thread_finish(void);
 struct _threads
 {
     thread *head, *cur, *tail;
-    bool blocked;
+    bool blocked, stepping;
 };
 extern struct _threads _threads;
 

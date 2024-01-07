@@ -19,6 +19,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/mem.h>
 #include <core/thread.h>
 #include <core/channel.h>
+#include <core/implicit.h>
 #include <core/generator.h>
 
 struct _channel
@@ -58,13 +59,13 @@ extern void
 channel_read(channel *ch, void *data)
 {
     _threads.cur->step++;
-    if (!(_threads.blocked))
+    implicit if (!(_threads.blocked))
     {
         while (ch->count == 0)
-            generator_yield(_threads.cur->gen);
+            thread_yield();
 
         mem_copy(data, &(ch->buffer[--(ch->count)]), ch->type);
-        generator_yield(_threads.cur->gen);
+        thread_yield();
     }
 }
 
@@ -72,10 +73,10 @@ extern void
 channel_write(channel *ch, void *data)
 {
     _threads.cur->step++;
-    if (!(_threads.blocked))
+    implicit if (!(_threads.blocked))
     {
         while (ch->count >= ch->size)
-            generator_yield(_threads.cur->gen);
+            thread_yield();
 
         mem_copy(&(ch->buffer[ch->count++]), data, ch->type);
         while (ch->count >= ch->size)
