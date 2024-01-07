@@ -80,6 +80,9 @@ log_unsigned(const u64 n)
                 log_char(x - 10 + 'A');
         }
     }
+
+    if (!started)
+        log_char('0');
 }
 
 extern void

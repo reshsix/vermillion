@@ -23,8 +23,8 @@ ARCH = $(shell echo $(CONFIG_ARCH))
 TARGET = $(shell echo $(CONFIG_TARGET))
 
 # Dependency versions
-BINUTILS = binutils-2.39
-GCC = gcc-12.2.0
+BINUTILS = binutils-2.41
+GCC = gcc-13.2.0
 
 # Dependency parameters
 HOST = $(shell printf '%s\n' "$$MACHTYPE" | sed 's/-[^-]*/-cross/')

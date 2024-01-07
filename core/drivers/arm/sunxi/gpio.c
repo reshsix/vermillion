@@ -173,6 +173,16 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
                 mem_copy(buffer, &intr, sizeof(struct gpio_intr));
             }
             break;
+
+        case 4:
+            ret = ((block / 32) < gpio->int_ports);
+
+            if (ret)
+            {
+                u8 port = block / 32, slot = block % 32;
+                EINT_STA(gpio->base, port) |= 0x1 << slot;
+            }
+            break;
     }
 
     return ret;
