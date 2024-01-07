@@ -5,6 +5,8 @@ core/deps
 test/build
 
 # Config anywhere
+.config
+.config.old
 */.config
 */.config.old
 
