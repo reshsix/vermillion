@@ -195,8 +195,11 @@ gic_intr_sensitivity(u32 dist, u16 n, bool edge, bool high)
 
 struct gic
 {
+    bool enabled;
     u32 cpu, dist;
-    void (*irqs[256])(void);
+    struct pic_irq irqs[256];
+    struct pic_swi swis[256];
+    u8 irq_stack[CONFIG_STACK_SIZE];
 };
 static struct gic *gic = NULL;
 
@@ -211,10 +214,14 @@ handler_undef(void)
 static interrupt(swi)
 handler_swi(void)
 {
-    // TODO add a handler for software interrupts
-    log("Unhandled Supervisor Call");
-    for (;;)
-        arm_wait_interrupts();
+    if (gic)
+    {
+        u8 n = *((u32*)(__builtin_return_address(0) - 4)) % 256;
+
+        struct pic_swi *swi = &(gic->swis[n]);
+        if (gic->enabled && swi->enabled && swi->handler)
+            swi->handler(swi->arg);
+    }
 }
 
 static interrupt(abort)
@@ -241,8 +248,9 @@ handler_irq(void)
         enum intr_core c = 0;
         u16 n = intr_info(gic->cpu, &c);
 
-        if (gic->irqs[n])
-            gic->irqs[n]();
+        struct pic_irq *irq = &(gic->irqs[n]);
+        if (irq->enabled && irq->handler)
+            irq->handler(irq->arg);
 
         intr_ack(gic->cpu, c, n);
     }
@@ -260,51 +268,15 @@ handler_fiq(void)
     }
 }
 
-extern bool
-pic_config(void *ctx, u16 n, void (*f)(void), bool enable, u8 priority,
-           bool edge, bool high)
+static void __attribute__((naked))
+stack_irq(void *addr)
 {
-    bool ret = false;
+    (void)addr;
 
-    if (ctx && ctx == gic)
-    {
-        arm_disable_irq();
+    asm volatile ("msr CPSR_c, #0b11010010");
+    asm volatile ("mov sp, r0");
 
-        gic_disable_dist(gic->dist);
-        gic_disable(gic->cpu);
-        gic_priority(gic->cpu, 0xFF);
-
-        gic_intr_target(gic->dist, n, INTR_CORE_NONE);
-        gic_intr_activity(gic->dist, n, false);
-        gic_intr_priority(gic->dist, n, priority);
-        gic_intr_sensitivity(gic->dist, n, edge, high);
-
-        if (enable)
-        {
-            gic->irqs[n] = f;
-
-            gic_intr_activity(gic->dist, n, true);
-            gic_intr_target(gic->dist, n, INTR_CORE0);
-        }
-        else
-            gic->irqs[n] = NULL;
-
-        gic_enable(gic->cpu);
-        gic_enable_dist(gic->dist);
-
-        arm_enable_irq();
-
-        ret = true;
-    }
-
-    return ret;
-}
-
-extern void
-pic_wait(void *ctx)
-{
-    if (ctx && ctx == gic)
-        arm_wait_interrupts();
+    asm volatile ("msr CPSR_c, #0b11010011");
 }
 
 static void
@@ -325,6 +297,10 @@ init(void **ctx, u32 cpu, u32 dist)
             __ivt[IVT_DATA]     = handler_data;
             __ivt[IVT_IRQ]      = handler_irq;
             __ivt[IVT_FIQ]      = handler_fiq;
+
+            stack_irq((void*)((u32)gic->irq_stack + CONFIG_STACK_SIZE));
+            gic_priority(gic->cpu, 0xFF);
+
         }
     }
 }
@@ -338,21 +314,213 @@ clean(void *ctx)
         gic_disable_dist(gic->dist);
         gic_disable(gic->cpu);
 
+        __ivt[IVT_UNDEF]    = NULL;
+        __ivt[IVT_SWI]      = NULL;
+        __ivt[IVT_PREFETCH] = NULL;
+        __ivt[IVT_DATA]     = NULL;
+        __ivt[IVT_IRQ]      = NULL;
+        __ivt[IVT_FIQ]      = NULL;
+
         gic = mem_del(gic);
     }
 }
 
 static bool
-config_get(void *ctx, union config *cfg)
+stat(void *ctx, u32 idx, u32 *width, u32 *length)
+{
+    bool ret = true;
+
+    if (ctx && ctx == gic)
+    {
+        switch (idx)
+        {
+            case 0:
+                *width = sizeof(bool);
+                *length = 1;
+                break;
+
+            case 1:
+                *width = sizeof(struct pic_irq);
+                *length = 256;
+                break;
+
+            case 2:
+                *width = sizeof(struct pic_swi);
+                *length = 256;
+                break;
+
+            case 3:
+                *width = 0;
+                *length = 1;
+                break;
+
+            default:
+                ret = false;
+                break;
+        }
+    }
+    else
+        ret = false;
+
+    return ret;
+}
+
+static bool
+read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
     if (ctx && ctx == gic)
     {
-        cfg->pic.config = pic_config;
-        cfg->pic.wait = pic_wait;
+        switch (idx)
+        {
+            case 0:
+                ret = (block == 0);
 
-        ret = true;
+                if (ret)
+                    mem_copy(buffer, &(gic->enabled), sizeof(bool));
+                break;
+
+            case 1:
+                ret = (block < 256);
+
+                if (ret)
+                    mem_copy(buffer, &(gic->irqs[block]),
+                             sizeof(struct pic_irq));
+                break;
+
+            case 2:
+                ret = (block < 256);
+
+                if (ret)
+                    mem_copy(buffer, &(gic->swis[block]),
+                             sizeof(struct pic_swi));
+                break;
+
+            case 3:
+                ret = (block == 0);
+
+                if (ret)
+                    arm_wait_interrupts();
+                break;
+        }
+    }
+
+    return ret;
+}
+
+static bool
+write(void *ctx, u32 idx, void *buffer, u32 block)
+{
+    bool ret = false;
+
+    if (ctx && ctx == gic)
+    {
+        switch (idx)
+        {
+            case 0:
+                ret = (block == 0);
+
+                if (ret)
+                {
+                    mem_copy(&(gic->enabled), buffer, sizeof(bool));
+                    if (gic->enabled)
+                    {
+                        gic_enable(gic->cpu);
+                        gic_enable_dist(gic->dist);
+                        arm_enable_irq();
+                    }
+                    else
+                    {
+                        arm_disable_irq();
+                        gic_disable_dist(gic->dist);
+                        gic_disable(gic->cpu);
+                    }
+                }
+                break;
+
+            case 1:
+                ret = (block < 256);
+
+                if (ret)
+                {
+                    struct pic_irq irq = {0};
+                    mem_copy(&irq, buffer, sizeof(struct pic_irq));
+
+                    if (gic->enabled)
+                    {
+                        arm_disable_irq();
+                        gic_disable_dist(gic->dist);
+                        gic_disable(gic->cpu);
+                    }
+
+                    gic_intr_target(gic->dist, block, INTR_CORE_NONE);
+                    gic_intr_activity(gic->dist, block, false);
+                    gic_intr_priority(gic->dist, block, 0);
+
+                    switch (irq.level)
+                    {
+                        case PIC_LEVEL_L:
+                            gic_intr_sensitivity(gic->dist, block,
+                                                 false, false);
+                            break;
+
+                        case PIC_LEVEL_H:
+                            gic_intr_sensitivity(gic->dist, block,
+                                                 false, true);
+                            break;
+
+                        case PIC_EDGE_L:
+                            gic_intr_sensitivity(gic->dist, block,
+                                                 true, false);
+                            break;
+
+                        case PIC_EDGE_H:
+                            gic_intr_sensitivity(gic->dist, block,
+                                                 true, true);
+                            break;
+
+                        default:
+                            ret = false;
+                            break;
+                    }
+
+                    if (ret)
+                    {
+                        mem_copy(&(gic->irqs[block]), &irq,
+                                 sizeof(struct pic_irq));
+
+                        if (irq.enabled)
+                        {
+                            gic_intr_activity(gic->dist, block, true);
+                            gic_intr_target(gic->dist, block, gic->cpu);
+                        }
+                    }
+
+                    if (gic->enabled)
+                    {
+                        gic_enable(gic->cpu);
+                        gic_enable_dist(gic->dist);
+                        arm_enable_irq();
+                    }
+                }
+                break;
+
+            case 2:
+                ret = (block < 256);
+
+                if (ret)
+                    mem_copy(&(gic->swis[block]), buffer,
+                             sizeof(struct pic_swi));
+                break;
+
+            case 3:
+                ret = (block == 0);
+
+                if (ret)
+                    arm_wait_interrupts();
+                break;
+        }
     }
 
     return ret;
@@ -361,5 +529,5 @@ config_get(void *ctx, union config *cfg)
 drv_decl (pic, arm_gic)
 {
     .init = init, .clean = clean,
-    .config.get = config_get
+    .stat = stat, .read = read, .write = write
 };

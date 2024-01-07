@@ -40,34 +40,20 @@ struct timer
     union config config;
 };
 
-static struct timer timers[8] = {0};
-static void ack(u32 base, u8 id){ TMR_IRQ_STA(base) |= 1 << id; }
-static void ack0(void){ ack(timers[0].base, timers[0].id); }
-static void ack1(void){ ack(timers[1].base, timers[1].id); }
-static void ack2(void){ ack(timers[2].base, timers[2].id); }
-static void ack3(void){ ack(timers[3].base, timers[3].id); }
-static void ack4(void){ ack(timers[4].base, timers[4].id); }
-static void ack5(void){ ack(timers[5].base, timers[5].id); }
-static void ack6(void){ ack(timers[6].base, timers[6].id); }
-static void ack7(void){ ack(timers[7].base, timers[7].id); }
-static void (*acks[8]) = {ack0, ack1, ack2, ack3, ack4, ack5, ack6, ack7};
+static void
+handler(void *arg)
+{
+    struct timer *t = arg;
+    TMR_IRQ_STA(t->base) |= 1 << t->id;
+}
 
 static void
 init(void **ctx, u32 base, u8 id, dev_pic *pic, u16 irq)
 {
-    struct timer *ret = NULL;
+    struct timer *ret = mem_new(sizeof(struct timer));
 
-    int found = -1;
-    for (u8 i = 0; i < sizeof(timers) / sizeof(struct timer); i++)
+    if (ret)
     {
-        if (timers[i].base == 0)
-            found = i;
-    }
-
-    if (found >= 0)
-    {
-        ret = &(timers[found]);
-
         ret->base = base;
         ret->id = id;
         ret->pic = pic;
@@ -75,10 +61,12 @@ init(void **ctx, u32 base, u8 id, dev_pic *pic, u16 irq)
 
         ret->config.timer.clock = 24000000;
 
-        union config cfg = {0};
-        pic->driver->config.get(pic->context, &cfg);
-        cfg.pic.config(pic->context, ret->irq, acks[found], true, 0,
-                       true, false);
+        TMR_INTV(base, id) = 0xFFFFFFFF;
+        TMR_CTRL(base, id) = 1 << 2 | 1 << 7;
+        TMR_IRQ_STA(base) |= 1 << id;
+        TMR_IRQ_EN(base) |= 1 << id;
+
+        pic_config(pic, ret->irq, true, handler, ret, PIC_EDGE_L);
 
         *ctx = ret;
     }
@@ -88,11 +76,7 @@ static void
 clean(void *ctx)
 {
     struct timer *tmr = ctx;
-
-    union config cfg = {0};
-    tmr->pic->driver->config.get(tmr->pic->context, &cfg);
-    cfg.pic.config(tmr->pic->context, tmr->irq, NULL, false, 0, false, false);
-
+    pic_config(tmr->pic, tmr->irq, false, NULL, NULL, PIC_EDGE_L);
     tmr->base = 0;
 }
 
@@ -113,32 +97,19 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
     {
         struct timer *tmr = ctx;
 
-        union config cfg = {0};
-        tmr->pic->driver->config.get(tmr->pic->context, &cfg);
-
         u32 data = 0;
         mem_copy(&data, buffer, sizeof(u32));
 
-        TMR_IRQ_EN(tmr->base) |= 1 << tmr->id;
-        TMR_CTRL(tmr->base, tmr->id) &= ~0x1;
-
         TMR_INTV(tmr->base, tmr->id) = data;
-        TMR_CTRL(tmr->base, tmr->id) = (1 << 7) | (1 << 2);
-
-        TMR_CTRL(tmr->base, tmr->id) |= 0x2;
-        while (TMR_CTRL(tmr->base, tmr->id) & 0x2);
-
-        TMR_CTRL(tmr->base, tmr->id) |= 0x1;
+        TMR_CTRL(tmr->base, tmr->id) |= 1 << 1 | 1 << 0;
         while (1)
         {
-            cfg.pic.wait(tmr->pic->context);
+            pic_wait(tmr->pic);
             u32 x = TMR_CUR(tmr->base, tmr->id);
             if (x == 0 || x > data)
                 break;
         }
-
-        TMR_CTRL(tmr->base, tmr->id) &= ~0x1;
-        TMR_IRQ_EN(tmr->base) &= ~(1 << tmr->id);
+        TMR_CTRL(tmr->base, tmr->id) &= ~(1 << 0);
     }
 
     return ret;
