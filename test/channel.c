@@ -75,5 +75,23 @@ main(void)
     channel_read(ch, &test);
     assert (test == 0xFA);
 
+    channel_del(ch);
+    ch = channel_new(sizeof(u32), 5);
+    assert (ch != NULL);
+
+    assert (channel_empty(ch));
+    channel_write(ch, &test);
+    assert (channel_stat(ch) == 4);
+    channel_write(ch, &test);
+    assert (channel_stat(ch) == 3);
+    channel_write(ch, &test);
+    assert (channel_stat(ch) == 2);
+    channel_write(ch, &test);
+    assert (channel_stat(ch) == 1);
+    channel_write(ch, &test);
+    assert (channel_stat(ch) == 0);
+    assert (channel_full(ch));
+    channel_del(ch);
+
     exit_qemu(assert_failed);
 }

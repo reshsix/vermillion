@@ -55,13 +55,31 @@ channel_del(channel *ch)
     return mem_del(ch);
 }
 
+extern bool
+channel_empty(channel *ch)
+{
+    return ch->count == 0;
+}
+
+extern bool
+channel_full(channel *ch)
+{
+    return ch->count >= ch->size - 1;
+}
+
+extern size_t
+channel_stat(channel *ch)
+{
+    return ch->size - ch->count - 1;
+}
+
 extern void
 channel_read(channel *ch, void *data)
 {
     _threads.cur->step++;
     implicit if (!(_threads.blocked))
     {
-        while (ch->count == 0)
+        while (channel_empty(ch))
             thread_yield();
 
         mem_copy(data, &(ch->buffer[--(ch->count)]), ch->type);

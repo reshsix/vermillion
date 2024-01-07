@@ -22,6 +22,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 typedef struct _channel channel;
 channel *channel_new(size_t type, size_t size);
 channel *channel_del(channel *ch);
+bool channel_empty(channel *ch);
+bool channel_full(channel *ch);
+size_t channel_stat(channel *ch);
 void channel_read(channel *ch, void *data);
 void channel_write(channel *ch, void *data);
 
