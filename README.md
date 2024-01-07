@@ -19,22 +19,22 @@ qemu-system-arm qemu-system-i386 gdb-multiarch
 ## Example
 ~/my\_project/main.c:
 ```c
-#include <easy/io.h>
-
 #include <core/types.h>
 #include <core/utils.h>
 
 #include <core/dev.h>
+#include <core/log.h>
+
+#include <core/gpio.h>
 dev_incl (gpio, gpio0)
 
 extern void
 main(void)
 {
-    log_s("Hello World!\r\n");
+    log("Hello World!\r\n");
 
-    io_chip(&dev(gpio0));
-    io_config(13, OUTPUT);
-    io_write(13, HIGH);
+    gpio_config(&dev(gpio0), 13, GPIO_OUT, GPIO_PULLOFF);
+    gpio_set(&dev(gpio0), 13, true);
 }
 ```
 
@@ -44,7 +44,7 @@ The image will be created in build/
 
 cd ~/my_project
 vmake defconfig
-OBJS='main.o' LIBS='easy' vmake all
+OBJS='main.o' vmake all
 vmake debug
 ```
 
