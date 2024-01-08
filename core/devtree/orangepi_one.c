@@ -76,10 +76,11 @@ _devtree_init(void)
     dev_init (tty3, 0x01c28c00);
     dev_init (tty4, 0x01f02800);
 
-    dev_init (gpio0, 0x01c20800, 6, 2);
-    dev_init (gpio1, 0x01f02c00, 1, 0);
-
     dev_init (pic,    0x01c82000, 0x01c81000);
+
+    dev_init (gpio0, 0x01c20800, 6, 2, &dev(pic), (u16[]){43, 49});
+    dev_init (gpio1, 0x01f02c00, 1, 1, &dev(pic), (u16[]){77});
+
     dev_init (timer0, 0x01c20c00, 0, &dev(pic), 50);
     dev_init (timer1, 0x01c20c00, 1, &dev(pic), 51);
 

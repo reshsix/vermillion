@@ -75,7 +75,8 @@ gpio_config(dev_gpio *dg, u16 id, enum gpio_role role, enum gpio_pull pull)
 }
 
 extern bool
-gpio_check(dev_gpio *dg, u16 id, bool *enabled, enum gpio_level *level)
+gpio_check(dev_gpio *dg, u16 id, bool *enabled,
+           void (**handler)(void *), void **arg, enum gpio_level *level)
 {
     struct gpio_intr intr = {0};
 
@@ -85,6 +86,10 @@ gpio_check(dev_gpio *dg, u16 id, bool *enabled, enum gpio_level *level)
     {
         if (enabled)
             *enabled = intr.enabled;
+        if (handler)
+            *handler = intr.handler;
+        if (arg)
+            *arg = intr.arg;
         if (level)
             *level = intr.level;
     }
@@ -93,8 +98,10 @@ gpio_check(dev_gpio *dg, u16 id, bool *enabled, enum gpio_level *level)
 }
 
 extern bool
-gpio_setup(dev_gpio *dg, u16 id, bool enabled, enum gpio_level level)
+gpio_setup(dev_gpio *dg, u16 id, bool enabled,
+           void (*handler)(void *), void *arg, enum gpio_level level)
 {
-    struct gpio_intr intr = {.enabled = enabled, .level = level};
+    struct gpio_intr intr = {.enabled = enabled, .handler = handler,
+                             .arg = arg, .level = level};
     return dg->driver->write(dg->context, 3, &intr, id);
 }

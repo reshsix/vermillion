@@ -20,6 +20,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/mem.h>
 
+#include <core/pic.h>
 #include <core/gpio.h>
 
 #define PN_CFG(c, n, i) *(volatile u32 *)(c + (n * 0x24) + (0x4 * i))
@@ -32,14 +33,14 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 static enum gpio_role readable_role[8] =
     {GPIO_IN, GPIO_OUT, GPIO_CUSTOM + 0, GPIO_CUSTOM + 1, GPIO_CUSTOM + 2,
-     GPIO_CUSTOM + 3, GPIO_CUSTOM + 4, GPIO_OFF};
+     GPIO_CUSTOM + 3, GPIO_EINT, GPIO_OFF};
 static enum gpio_pull readable_pull[4] =
     {GPIO_PULLOFF, GPIO_PULLUP, GPIO_PULLDOWN, GPIO_PULLOFF};
 static enum gpio_level readable_level[8] =
     {GPIO_EDGE_H, GPIO_EDGE_L, GPIO_LEVEL_H, GPIO_LEVEL_L,
      GPIO_DOUBLE, GPIO_EDGE_H, GPIO_EDGE_H, GPIO_EDGE_H};
 
-static u8 writable_role[8] = {7, 0, 1, 2, 3, 4, 5, 6};
+static u8 writable_role[8] = {7, 0, 1, 6, 2, 3, 4, 5};
 static u8 writable_pull[3] = {0, 1, 2};
 static u8 writable_level[5] = {0, 1, 2, 3, 4};
 
@@ -48,18 +49,60 @@ struct gpio
     u32 base;
     u8 io_ports;
     u8 int_ports;
+
+    dev_pic *pic;
+    u16 *irqs;
+    void (**handlers)(void *), **args;
 };
 
 static void
-init(void **ctx, u32 base, u8 io_ports, u8 int_ports)
+handler(void *arg)
+{
+    struct gpio *gpio = arg;
+
+    for (u8 i = 0; i < gpio->int_ports; i++)
+    {
+        for (u8 j = 0; j < 32; j++)
+        {
+            if (EINT_STA(gpio->base, i) & (1 << j))
+            {
+                u16 idx = (i * 32) + j;
+                if (gpio->handlers[idx])
+                    gpio->handlers[idx](gpio->args[idx]);
+
+                EINT_STA(gpio->base, i) |= (1 << j);
+            }
+        }
+    }
+}
+
+static void
+init(void **ctx, u32 base, u8 io_ports, u8 int_ports, dev_pic *pic, u16 *irqs)
 {
     struct gpio *ret = mem_new(sizeof(struct gpio));
+
+    if (ret && int_ports)
+    {
+        ret->handlers = mem_new(int_ports * 32 * sizeof(void (*)(void *)));
+        ret->args = mem_new(int_ports * 32 * sizeof(void *));
+        if (!ret->handlers || !ret->args)
+        {
+            mem_del(ret->handlers);
+            mem_del(ret->args);
+            ret = mem_del(ret);
+        }
+    }
 
     if (ret)
     {
         ret->base = base;
         ret->io_ports = io_ports;
         ret->int_ports = int_ports;
+
+        ret->pic = pic;
+        ret->irqs = irqs;
+        for (int i = 0; i < int_ports; i++)
+            pic_config(pic, irqs[i], true, handler, ret, PIC_EDGE_L);
 
         *ctx = ret;
     }
@@ -68,6 +111,16 @@ init(void **ctx, u32 base, u8 io_ports, u8 int_ports)
 static void
 clean(void *ctx)
 {
+    if (ctx)
+    {
+        struct gpio *gpio = ctx;
+        for (u8 i = 0; i < gpio->int_ports; i++)
+            pic_config(gpio->pic, gpio->irqs[i], false,
+                       NULL, NULL, PIC_EDGE_L);
+
+        mem_del(gpio->handlers);
+        mem_del(gpio->args);
+    }
     mem_del(ctx);
 }
 
@@ -93,10 +146,6 @@ stat(void *ctx, u32 idx, u32 *width, u32 *length)
             break;
         case 3:
             *width = sizeof(struct gpio_intr);
-            *length = gpio->int_ports * 32;
-            break;
-        case 4:
-            *width = 0;
             *length = gpio->int_ports * 32;
             break;
         default:
@@ -170,17 +219,10 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
                 intr.level = EINT_CFG(gpio->base, port, reg) >> (pos * 4);
                 intr.level = readable_level[intr.level % 8];
 
+                intr.handler = gpio->handlers[block];
+                intr.arg = gpio->args[block];
+
                 mem_copy(buffer, &intr, sizeof(struct gpio_intr));
-            }
-            break;
-
-        case 4:
-            ret = ((block / 32) < gpio->int_ports);
-
-            if (ret)
-            {
-                u8 port = block / 32, slot = block % 32;
-                EINT_STA(gpio->base, port) |= 0x1 << slot;
             }
             break;
     }
@@ -267,6 +309,9 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
             {
                 u8 port = block / 32, slot = block % 32;
 
+                gpio->handlers[block] = intr.handler;
+                gpio->args[block] = intr.arg;
+
                 if (intr.enabled)
                     EINT_CTL(gpio->base, port) |= (1 << slot);
                 else
@@ -277,16 +322,6 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
                 u32 mask = 0xf << (pos * 4);
                 EINT_CFG(gpio->base, port, reg) &= ~mask;
                 EINT_CFG(gpio->base, port, reg) |= (data & mask);
-            }
-            break;
-
-        case 4:
-            ret = ((block / 32) < gpio->int_ports);
-
-            if (ret)
-            {
-                u8 port = block / 32, slot = block % 32;
-                EINT_STA(gpio->base, port) |= 0x1 << slot;
             }
             break;
     }

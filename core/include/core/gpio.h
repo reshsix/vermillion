@@ -25,7 +25,7 @@ dev_typedef (gpio);
 
 enum gpio_role
 {
-    GPIO_OFF, GPIO_IN, GPIO_OUT, GPIO_CUSTOM
+    GPIO_OFF, GPIO_IN, GPIO_OUT, GPIO_EINT, GPIO_CUSTOM
 };
 
 enum gpio_pull
@@ -47,6 +47,7 @@ struct [[packed]] gpio_pin
 struct [[packed]] gpio_intr
 {
     bool enabled;
+    void (*handler)(void *), *arg;
     enum gpio_level level;
 };
 
@@ -61,7 +62,9 @@ bool gpio_info(dev_gpio *dg, u16 id,
                enum gpio_role *role, enum gpio_pull *pull);
 bool gpio_config(dev_gpio *dg, u16 id,
                  enum gpio_role role, enum gpio_pull pull);
-bool gpio_check(dev_gpio *dg, u16 id, bool *enabled, enum gpio_level *level);
-bool gpio_setup(dev_gpio *dg, u16 id, bool enabled, enum gpio_level level);
+bool gpio_check(dev_gpio *dg, u16 id, bool *enabled,
+                void (**handler)(void *), void **arg, enum gpio_level *level);
+bool gpio_setup(dev_gpio *dg, u16 id, bool enabled,
+                void (*handler)(void *), void *arg, enum gpio_level level);
 
 #endif
