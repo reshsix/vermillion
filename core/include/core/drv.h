@@ -84,19 +84,6 @@ union __attribute__((packed)) config
 
     struct __attribute__((packed))
     {
-        u32 clock;
-    } timer;
-
-    struct __attribute__((packed))
-    {
-        bool (*config)(void *ctx, u16 n, void (*f)(void),
-                                  bool enable, u8 priority,
-                                  bool edge, bool high);
-        void (*wait)  (void *ctx);
-    } pic;
-
-    struct __attribute__((packed))
-    {
         u32  (*open) (void *ctx, char *path);
         u32  (*close)(void *ctx, u32 idx);
         void (*info) (void *ctx, u32 idx, size_t *size, s32 *files);

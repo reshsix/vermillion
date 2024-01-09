@@ -20,7 +20,6 @@ qemu-system-arm qemu-system-i386 gdb-multiarch
 ~/my\_project/main.c:
 ```c
 #include <core/types.h>
-#include <core/utils.h>
 
 #include <core/dev.h>
 #include <core/log.h>

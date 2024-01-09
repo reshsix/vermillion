@@ -14,19 +14,30 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef CORE_UTILS_H
-#define CORE_UTILS_H
+#ifndef CORE_WHEEL_H
+#define CORE_WHEEL_H
 
 #include <core/types.h>
-
-#include <core/dev.h>
-
 #include <core/timer.h>
 
-u32 clock(dev_timer *tmr);
-void csleep(dev_timer *tmr, const u32 n);
-void usleep(dev_timer *tmr, const u32 n);
-void msleep(dev_timer *tmr, const u32 n);
-void sleep(dev_timer *tmr, const u32 n);
+#define WHEEL_OUTER_US 10000
+#define WHEEL_INNER_US 10
+
+enum wheel_depth
+{
+    WHEEL_INNER, WHEEL_OUTER
+};
+
+struct wheel_slot
+{
+    void (*handler)(void *), *arg;
+    struct wheel_slot *next;
+};
+
+dev_timer *wheel_timer(dev_timer *timer);
+struct wheel_slot *wheel_events(enum wheel_depth d, u8 jiffies);
+bool wheel_schedule(enum wheel_depth d, void (*handler)(void *),
+                    void *arg, u8 jiffies);
+void wheel_sleep(enum wheel_depth d, u8 jiffies);
 
 #endif

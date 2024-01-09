@@ -15,19 +15,17 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <core/types.h>
-#include <core/utils.h>
 
 #include <core/dev.h>
 #include <core/drv.h>
 #include <core/mem.h>
+#include <core/wheel.h>
 
 #include <core/gpio.h>
 #include <core/audio.h>
-#include <core/timer.h>
 
 struct buzzer
 {
-    dev_timer *timer;
     dev_gpio *gpio;
     u16 pin;
 
@@ -35,16 +33,15 @@ struct buzzer
 };
 
 static void
-init(void **ctx, dev_gpio *gpio, u16 pin, dev_timer *timer)
+init(void **ctx, dev_gpio *gpio, u16 pin)
 {
     struct buzzer *ret = NULL;
 
-    if (timer && gpio)
+    if (gpio)
         ret = mem_new(sizeof(struct buzzer));
 
     if (ret)
     {
-        ret->timer = timer;
         ret->gpio = gpio;
         ret->pin = pin;
 
@@ -83,7 +80,7 @@ write(void *ctx, u32 idx, void *data)
     {
         struct buzzer *bz = ctx;
         ret = gpio_set(bz->gpio, bz->pin, *((u8*)data) >= UINT8_MAX / 2);
-        usleep(bz->timer, 1000000000 / 48000);
+        wheel_sleep(WHEEL_INNER, WHEEL_INNER_US / 48000);
     }
     else
         ret = false;

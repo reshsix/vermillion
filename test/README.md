@@ -3,7 +3,6 @@
 ## Coverage
 
 - [x] core/types.h
-- [x] core/utils.h
 - [ ] core/macros.h
 
 - [ ] core/dev.h

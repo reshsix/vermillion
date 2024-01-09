@@ -15,7 +15,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <core/types.h>
-#include <core/utils.h>
 
 #include <core/dev.h>
 #include <core/drv.h>

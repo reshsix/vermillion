@@ -23,4 +23,17 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 drv_typedef (block, timer);
 dev_typedef (timer);
 
+struct [[packed]] timer_cb
+{
+    bool enabled;
+    void (*handler)(void *), *arg;
+    u32 delay;
+};
+
+bool timer_check(dev_timer *dg, bool *enabled,
+                 void (**handler)(void *), void **arg, u32 *delay);
+bool timer_setup(dev_timer *dg, bool enabled,
+                 void (*handler)(void *), void *arg, u32 delay);
+bool timer_wait(dev_timer *dg);
+
 #endif

@@ -22,6 +22,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/pic.h>
 #include <core/timer.h>
+#include <core/thread.h>
+#include <core/implicit.h>
 
 #define TMR_IRQ_EN(x)  *(volatile u32*)(x + 0x0)
 #define TMR_IRQ_STA(x) *(volatile u32*)(x + 0x4)
@@ -37,14 +39,16 @@ struct timer
     dev_pic *pic;
     u16 irq;
 
-    union config config;
+    struct timer_cb cb;
 };
 
 static void
 handler(void *arg)
 {
-    struct timer *t = arg;
-    TMR_IRQ_STA(t->base) |= 1 << t->id;
+    struct timer *tmr = arg;
+    TMR_IRQ_STA(tmr->base) |= 1 << tmr->id;
+
+    tmr->cb.handler(tmr->cb.arg);
 }
 
 static void
@@ -59,10 +63,8 @@ init(void **ctx, u32 base, u8 id, dev_pic *pic, u16 irq)
         ret->pic = pic;
         ret->irq = irq;
 
-        ret->config.timer.clock = 24000000;
-
         TMR_INTV(base, id) = 0xFFFFFFFF;
-        TMR_CTRL(base, id) = 1 << 2 | 1 << 7;
+        TMR_CTRL(base, id) = 1 << 2;
         TMR_IRQ_STA(base) |= 1 << id;
         TMR_IRQ_EN(base) |= 1 << id;
 
@@ -81,35 +83,96 @@ clean(void *ctx)
 }
 
 static bool
-config_get(void *ctx, union config *cfg)
+stat(void *ctx, u32 idx, u32 *width, u32 *length)
 {
-    struct timer *t = ctx;
-    mem_copy(cfg, &(t->config), sizeof(union config));
-    return true;
+    bool ret = true;
+
+    if (ctx)
+    {
+        switch (idx)
+        {
+            case 0:
+                *width = sizeof(struct timer_cb);
+                *length = 1;
+                break;
+            case 1:
+                *width = 0;
+                *length = 1;
+                break;
+            default:
+                ret = false;
+                break;
+        }
+    }
+    else
+        ret = false;
+
+    return ret;
+}
+
+static bool
+read(void *ctx, u32 idx, void *buffer, u32 block)
+{
+    bool ret = true;
+
+    struct timer *tmr = ctx;
+    if (ctx)
+    {
+        switch (idx)
+        {
+            case 0:
+                ret = (block == 0);
+
+                if (ret)
+                    mem_copy(buffer, &(tmr->cb), sizeof(struct timer_cb));
+                break;
+
+            case 1:
+                ret = (block == 0);
+
+                if (ret)
+                    pic_wait(tmr->pic);
+                break;
+        }
+    }
+
+    return ret;
 }
 
 static bool
 write(void *ctx, u32 idx, void *buffer, u32 block)
 {
-    bool ret = (idx == 0 && block == 0);
+    bool ret = true;
 
-    if (ret)
+    struct timer *tmr = ctx;
+    if (ctx)
     {
-        struct timer *tmr = ctx;
-
-        u32 data = 0;
-        mem_copy(&data, buffer, sizeof(u32));
-
-        TMR_INTV(tmr->base, tmr->id) = data;
-        TMR_CTRL(tmr->base, tmr->id) |= 1 << 1 | 1 << 0;
-        while (1)
+        switch (idx)
         {
-            pic_wait(tmr->pic);
-            u32 x = TMR_CUR(tmr->base, tmr->id);
-            if (x == 0 || x > data)
+            case 0:
+                ret = (block == 0);
+
+                if (ret)
+                {
+                    mem_copy(&(tmr->cb), buffer, sizeof(struct timer_cb));
+
+                    if (tmr->cb.enabled)
+                    {
+                        TMR_INTV(tmr->base, tmr->id) = 24 * tmr->cb.delay;
+                        TMR_CTRL(tmr->base, tmr->id) |= 1 << 1 | 1 << 0;
+                    }
+                    else
+                        TMR_CTRL(tmr->base, tmr->id) &= ~(1 << 0);
+                }
+                break;
+
+            case 1:
+                ret = (block == 0);
+
+                if (ret)
+                    pic_wait(tmr->pic);
                 break;
         }
-        TMR_CTRL(tmr->base, tmr->id) &= ~(1 << 0);
     }
 
     return ret;
@@ -118,6 +181,5 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
 drv_decl (timer, sunxi_timer)
 {
     .init = init, .clean = clean,
-    .config.get = config_get,
-    .write = write
+    .stat = stat, .read = read, .write = write
 };

@@ -15,20 +15,18 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <core/types.h>
-#include <core/utils.h>
 
 #include <core/dev.h>
 #include <core/drv.h>
 #include <core/mem.h>
+#include <core/wheel.h>
 
 #include <core/spi.h>
 #include <core/gpio.h>
-#include <core/timer.h>
 
 struct spi
 {
     dev_gpio *gpio;
-    dev_timer *timer;
 
     u16 ss;
     u16 sck;
@@ -40,22 +38,34 @@ struct spi
     bool cpha;
 
     u32 delay;
-    void (*sleep)(dev_timer *, u32);
+    void (*sleep)(u32);
 };
 
 static void
-empty(dev_timer *tmr, u32 x)
+empty(u32 x)
 {
-    (void)(tmr), (void)(x);
+    (void)(x);
     return;
 }
 
 static void
-hsleep(dev_timer *tmr, u32 n)
+hsleep(u32 n)
 {
-    (void)(tmr);
     for (register u32 i = 0; i < (n / 4); i++)
         asm volatile ("nop");
+}
+
+static void
+csleep(u32 n)
+{
+    if (n > 256)
+    {
+        for (u32 i = 0; i < n / 255; i++)
+            wheel_sleep(WHEEL_INNER, 255);
+        wheel_sleep(WHEEL_INNER, n % 255);
+    }
+    else
+        wheel_sleep(WHEEL_INNER, n);
 }
 
 static u8
@@ -76,10 +86,10 @@ spi_transfer(struct spi *spi, u8 x)
 
         bool bit = (spi->lsb) ? x & 0x01 : x & 0x80;
         gpio_set(spi->gpio, spi->mosi, (spi->cpol) ? !bit : bit);
-        spi->sleep(spi->timer->context, spi->delay);
+        spi->sleep(spi->delay);
 
         gpio_set(spi->gpio, spi->sck, (spi->cpha) ? false : true);
-        spi->sleep(spi->timer->context, spi->delay);
+        spi->sleep(spi->delay);
         gpio_set(spi->gpio, spi->sck, (spi->cpha) ? true : false);
 
         if (spi->lsb) x >>= 1;
@@ -91,12 +101,11 @@ spi_transfer(struct spi *spi, u8 x)
 }
 
 static void
-init(void **ctx, dev_gpio *gpio, u16 ss, u16 sck, u16 mosi, u16 miso,
-     dev_timer *timer)
+init(void **ctx, dev_gpio *gpio, u16 ss, u16 sck, u16 mosi, u16 miso)
 {
     struct spi *ret = NULL;
 
-    if (gpio && timer)
+    if (gpio)
         ret = mem_new(sizeof(struct spi));
 
     if (ret)
@@ -110,7 +119,6 @@ init(void **ctx, dev_gpio *gpio, u16 ss, u16 sck, u16 mosi, u16 miso,
         ret->sleep = empty;
 
         ret->gpio = gpio;
-        ret->timer = timer;
 
         gpio_config(ret->gpio, ret->ss, GPIO_OUT, GPIO_PULLOFF);
         gpio_config(ret->gpio, ret->sck, GPIO_OUT, GPIO_PULLOFF);
@@ -146,7 +154,7 @@ config_get(void *ctx, union config *cfg)
     else if (spi->sleep == hsleep)
         cfg->spi.freq = 480000000 / (spi->delay * 2);
     else
-        cfg->spi.freq = clock(spi->timer) / (spi->delay * 2);
+        cfg->spi.freq = (1000000 / WHEEL_INNER_US) / (spi->delay * 2);
 
     return true;
 }
@@ -156,14 +164,14 @@ config_set(void *ctx, union config *cfg)
 {
     bool ret = false;
 
-    if (cfg->spi.freq > 240000000)
+    if (cfg->spi.freq < 240000000)
     {
         struct spi *spi = ctx;
         spi->cpha = (cfg->spi.mode & 0x1);
         spi->cpol = (cfg->spi.mode & 0x2);
         spi->lsb = cfg->spi.lsb;
 
-        u32 clk = clock(spi->timer);
+        u32 clk = 1000000 / WHEEL_INNER_US;
         if (cfg->spi.freq == 0)
             spi->sleep = empty;
         else if (cfg->spi.freq <= clk / 2)

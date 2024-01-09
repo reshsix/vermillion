@@ -15,14 +15,13 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <core/types.h>
-#include <core/utils.h>
 
 #include <core/dev.h>
 #include <core/drv.h>
 #include <core/mem.h>
+#include <core/wheel.h>
 
 #include <core/gpio.h>
-#include <core/timer.h>
 #include <core/video.h>
 #include <core/stream.h>
 
@@ -36,8 +35,6 @@ struct ili9488
 
     u8 buffer24[480 * 3];
     u8 *buffer32[480 * 320 * 4];
-
-    dev_timer *timer;
 };
 
 /* Led pin is negated, so with a transistor in NOT configuration,
@@ -125,10 +122,10 @@ ili9488_start(struct ili9488 *ili)
 
     ili9488_command(ili, 1, 0x00, 0);
     ili9488_command(ili, 1, 0x01, 0);
-    msleep(ili->timer, 10);
+    wheel_sleep(WHEEL_OUTER, 1);
 
     ili9488_command(ili, 1, 0x11);
-    msleep(ili->timer, 5);
+    wheel_sleep(WHEEL_OUTER, 1);
 
     ili9488_command(ili, 2, 0x36, 0xE8);
     ili9488_command(ili, 2, 0x3A, 0x06);
@@ -136,14 +133,13 @@ ili9488_start(struct ili9488 *ili)
 
     ili9488_command(ili, 1, 0x13);
     ili9488_command(ili, 1, 0x29);
-    msleep(ili->timer, 10);
+    wheel_sleep(WHEEL_OUTER, 1);
 
     gpio_set(ili->gpio, ili->leds, false);
 }
 
 static void
-init(void **ctx, dev_gpio *gpio, u16 dcrs, u16 leds,
-     dev_stream *stream, dev_timer *timer)
+init(void **ctx, dev_gpio *gpio, u16 dcrs, u16 leds, dev_stream *stream)
 {
     struct ili9488 *ret = NULL;
 
@@ -161,7 +157,6 @@ init(void **ctx, dev_gpio *gpio, u16 dcrs, u16 leds,
         ret->leds = leds;
 
         ret->stream = stream;
-        ret->timer = timer;
 
         ili9488_start(ret);
 
