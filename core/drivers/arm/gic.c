@@ -247,12 +247,11 @@ handler_irq(void)
     {
         enum intr_core c = 0;
         u16 n = intr_info(gic->cpu, &c);
+        intr_ack(gic->cpu, c, n);
 
         struct pic_irq *irq = &(gic->irqs[n]);
         if (irq->enabled && irq->handler)
             irq->handler(irq->arg);
-
-        intr_ack(gic->cpu, c, n);
     }
 }
 

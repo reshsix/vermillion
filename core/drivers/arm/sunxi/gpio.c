@@ -67,10 +67,10 @@ handler(void *arg)
             if (EINT_STA(gpio->base, i) & (1 << j))
             {
                 u16 idx = (i * 32) + j;
+                EINT_STA(gpio->base, i) |= (1 << j);
+
                 if (gpio->handlers[idx])
                     gpio->handlers[idx](gpio->args[idx]);
-
-                EINT_STA(gpio->base, i) |= (1 << j);
             }
         }
     }
