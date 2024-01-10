@@ -20,6 +20,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/log.h>
 #include <core/mem.h>
+#include <core/critical.h>
 
 #include <core/pic.h>
 
@@ -214,7 +215,7 @@ handler_undef(void)
 static interrupt(swi)
 handler_swi(void)
 {
-    if (gic)
+    critical if (gic)
     {
         u8 n = *((u32*)(__builtin_return_address(0) - 4)) % 256;
 
@@ -243,7 +244,7 @@ handler_data(void)
 static interrupt(irq)
 handler_irq(void)
 {
-    if (gic)
+    critical if (gic)
     {
         enum intr_core c = 0;
         u16 n = intr_info(gic->cpu, &c);
@@ -258,7 +259,7 @@ handler_irq(void)
 static interrupt(fiq)
 handler_fiq(void)
 {
-    if (gic)
+    critical if (gic)
     {
         enum intr_core c = 0;
         u16 n = intr_info(gic->cpu, &c);
