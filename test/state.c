@@ -24,22 +24,13 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 extern void
 main(void)
 {
-    state *st = state_new();
-    state *pst = st;
-    assert (st != NULL);
-
-    st = state_del(st);
-    assert (st == NULL);
-
-    st = state_new();
-    assert (st != NULL);
-    assert (st == pst);
+    state st = {0};
 
     bool flag0 = false, flag1 = false;
     volatile void *test = (void*)987654321;
     register volatile void *test2 = (void*)0xAABBCC;
 
-    void *x = state_save(st);
+    void *x = state_save(&st);
     if (x == NULL)
     {
         flag0 = true;

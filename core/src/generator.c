@@ -34,14 +34,6 @@ generator_new(void (*f)(generator *), void *arg)
             ret = generator_del(ret);
     }
 
-    if (ret)
-    {
-        ret->caller = state_new();
-        ret->callee = state_new();
-        if (!(ret->caller && ret->callee))
-            ret = generator_del(ret);
-    }
-
     return ret;
 }
 
@@ -49,11 +41,7 @@ extern generator *
 generator_del(generator *g)
 {
     if (g)
-    {
         fork_del(g->fk);
-        state_del(g->caller);
-        state_del(g->callee);
-    }
 
     return mem_del(g);
 }
@@ -63,10 +51,10 @@ generator_next(generator *g)
 {
     if (!(g->finished))
     {
-        if (state_save(g->caller) == NULL)
+        if (state_save(&(g->caller)) == NULL)
         {
             if (g->active)
-                state_load(g->callee, (void*)0x1);
+                state_load(&(g->callee), (void*)0x1);
             else
             {
                 g->active = true;
@@ -94,8 +82,8 @@ generator_arg(generator *g)
 extern void
 generator_yield(generator *g)
 {
-    if (state_save(g->callee) == NULL)
-        state_load(g->caller, (void*)0x1);
+    if (state_save(&(g->callee)) == NULL)
+        state_load(&(g->caller), (void*)0x1);
 }
 
 extern noreturn

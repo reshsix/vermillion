@@ -29,7 +29,7 @@ struct _generator
     void *arg;
     fork *fk;
 
-    state *caller, *callee;
+    state caller, callee;
 };
 typedef struct _generator generator;
 

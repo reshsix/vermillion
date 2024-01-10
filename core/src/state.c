@@ -19,28 +19,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/mem.h>
 #include <core/state.h>
 
-struct __attribute__((packed)) _state
-{
-    #if defined(CONFIG_ARCH_ARM)
-    void *gpr[12];
-    #elif defined(CONFIG_ARCH_I686)
-    void *gpr[6], *retaddr;
-    #endif
-};
-
-extern state *
-state_new(void)
-{
-    state *ret = mem_new(sizeof(state));
-    return ret;
-}
-
-extern state *
-state_del(state *st)
-{
-    return mem_del(st);
-}
-
 extern void * __attribute__((naked))
 state_save(state *st)
 {
@@ -60,9 +38,14 @@ state_save(state *st)
     /* Restoring low registers */
     asm volatile ("sub r0, r0, #44");
     asm volatile ("ldmia r0!, {r4-r7}");
-    /* Setting r1 to st->gpr[11] */
+    /* Setting r1 to st->gpr[12] */
     asm volatile ("mov r1, r0");
-    asm volatile ("add r1, r1, #28");
+    asm volatile ("add r1, r1, #32");
+    /* Saving cpsr in st->gpr[12] */
+    asm volatile ("mrs r2, cpsr");
+    asm volatile ("str r2, [r1]");
+    /* Setting r1 to st->gpr[11] */
+    asm volatile ("sub r1, r1, #4");
     /* Setting r0 to NULL for first return */
     asm volatile ("mov r0, $0");
     /* Saving program counter in st->gpr[11] */
@@ -111,8 +94,12 @@ state_load(state *st, void *ret)
 
     /* Call parameters: st -> r0, ret -> r1 */
 
+    /* Loading cpsr */
+    asm volatile ("add r0, r0, #48");
+    asm volatile ("ldr r2, [r0]");
+    asm volatile ("msr cpsr, r2");
     /* Loading high callee-saved registers */
-    asm volatile ("add r0, r0, #16");
+    asm volatile ("sub r0, r0, #32");
     asm volatile ("ldmia r0!, {r2-r7}");
     asm volatile ("mov r8,  r2\n" "mov r9,  r3\n" "mov r10, r4\n" \
                   "mov r11, r5\n" "mov r12, r6\n" "mov r13, r7\n");
