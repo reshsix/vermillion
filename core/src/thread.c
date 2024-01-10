@@ -29,6 +29,7 @@ thread_new(thread_task(f), void *arg, bool persistent, u8 priority)
 
     if (ret)
     {
+        ret->stepping = true;
         ret->priority = priority;
         ret->persistent = persistent;
         ret->gen = generator_new(f, arg);
@@ -84,7 +85,7 @@ thread_sync(thread *t, size_t step)
 {
     size_t ret = 0;
 
-    if (_threads.stepping)
+    if (_threads.cur->stepping)
         _threads.cur->step++;
 
     if (!_threads.blocked && _threads.cur != t && (u32)t > 0x1 && t->persistent)
@@ -103,7 +104,7 @@ thread_wait(thread *t)
 {
     size_t ret = 0;
 
-    if (_threads.stepping)
+    if (_threads.cur->stepping)
         _threads.cur->step++;
 
     if (!_threads.blocked && _threads.cur != t && (u32)t > 0x1 && t->persistent)
@@ -147,13 +148,13 @@ thread_block(bool state)
 extern void
 thread_steps(bool state)
 {
-    _threads.stepping = state;
+    _threads.cur->stepping = state;
 }
 
 extern void
 thread_yield(void)
 {
-    if (_threads.stepping)
+    if (_threads.cur->stepping)
         _threads.cur->step++;
     if (!_threads.blocked)
         generator_yield(_threads.cur->gen);
@@ -162,7 +163,7 @@ thread_yield(void)
 extern noreturn
 thread_loop(void)
 {
-    if (_threads.stepping)
+    if (_threads.cur->stepping)
         _threads.cur->step = 0;
     generator_rewind(_threads.cur->gen);
 
@@ -173,8 +174,52 @@ thread_loop(void)
 extern noreturn
 thread_finish(void)
 {
-    if (_threads.stepping)
+    if (_threads.cur->stepping)
         _threads.cur->step++;
     _threads.blocked = false;
     generator_finish(_threads.cur->gen);
+}
+
+extern void _devtree_init(void);
+extern void _devtree_clean(void);
+
+extern void main(void);
+static thread_task(_main)
+{
+    main();
+    thread_finish();
+}
+
+extern noreturn
+thread_scheduler(void)
+{
+    _mem_init();
+    _devtree_init();
+
+    thread_new(_main, NULL, false, 255);
+    while (_threads.cur)
+    {
+        thread *cur = _threads.cur;
+
+        if (!((cur->counter * cur->priority) % 255))
+        {
+            if (generator_next(cur->gen))
+                _threads.cur = (cur->next) ? cur->next : _threads.head;
+            else
+            {
+                if (cur->persistent)
+                    _threads.cur = (cur->next) ? cur->next : _threads.head;
+                else
+                    cur = thread_del(cur);
+            }
+        }
+
+        if (cur)
+            cur->counter++;
+    }
+
+    _devtree_clean();
+    _mem_clean();
+
+    while (true);
 }

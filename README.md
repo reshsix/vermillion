@@ -64,7 +64,7 @@ sequenceDiagram
     participant libs
     participant user
     Hardware->>core/arch: Boot up
-    core/arch->>core/src: Call __init()
+    core/arch->>core/src: Call thread_scheduler()
     activate core/src
     core/src->>core/devtree: Call _devtree_init()
     core/devtree->>core/drivers: Initialize devices

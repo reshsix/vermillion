@@ -39,7 +39,7 @@ _start:
 
     // Set stack and jump to C code
     movl $__stack, %esp
-    call __init
+    call thread_scheduler
 1:
     hlt
     jmp 1b

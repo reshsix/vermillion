@@ -65,7 +65,7 @@ __ivt:
 
     // Set stack and jump to C code
     ldr sp, =_start
-    bl __init
+    bl thread_scheduler
 
 1:
     wfe

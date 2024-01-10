@@ -26,7 +26,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 struct _thread
 {
     size_t step;
-    bool persistent;
+    bool persistent, stepping;
     generator *gen;
     u8 counter, priority;
 
@@ -52,5 +52,7 @@ struct _threads
     bool blocked, stepping;
 };
 extern struct _threads _threads;
+
+noreturn thread_scheduler(void);
 
 #endif
