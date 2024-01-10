@@ -39,5 +39,6 @@ struct wheel_slot *wheel_events(enum wheel_depth d, u8 jiffies);
 bool wheel_schedule(enum wheel_depth d, void (*handler)(void *),
                     void *arg, u8 jiffies);
 void wheel_sleep(enum wheel_depth d, u8 jiffies);
+u64 wheel_clock(enum wheel_depth d);
 
 #endif

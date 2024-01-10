@@ -25,7 +25,7 @@ static dev_timer *tmrdev = NULL;
 
 static struct wheel_slot *outer[256] = {0};
 static struct wheel_slot *inner[256] = {0};
-static u32 current = 0;
+static u64 current = 0;
 
 static struct wheel_slot **
 wheel_slots(enum wheel_depth d)
@@ -71,7 +71,7 @@ handler(void *arg)
 {
     (void)arg;
 
-    u8 depth = 1 + ((current % 1000) == 0);
+    u8 depth = 1 + ((current % (WHEEL_OUTER_US / WHEEL_INNER_US)) == 0);
     for (u8 i = 0; i < depth; i++)
     {
         struct wheel_slot **slots = wheel_slots(i);
@@ -169,4 +169,22 @@ wheel_sleep(enum wheel_depth d, u8 jiffies)
 
     while (!flag)
         timer_wait(tmrdev);
+}
+
+extern u64
+wheel_clock(enum wheel_depth d)
+{
+    u64 ret = 0;
+
+    switch (d)
+    {
+        case WHEEL_INNER:
+            ret = current;
+            break;
+        case WHEEL_OUTER:
+            ret = current / (WHEEL_OUTER_US / WHEEL_INNER_US);
+            break;
+    }
+
+    return ret;
 }
