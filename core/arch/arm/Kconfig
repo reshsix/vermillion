@@ -23,6 +23,7 @@ endchoice
 
 config ARM_GIC
     bool "GIC driver"
+    depends on ARCH_ARM
 
 config DISK_SIZE
     int "Disk size"
