@@ -12,10 +12,6 @@
 # You should have received a copy of the GNU General Public License
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
-CONFIG_ARCH_I686=y
-CONFIG_I686_PIC=y
-
-CONFIG_RAM_ADDRESS=0x100000
-CONFIG_RAM_SIZE=0x20000000
-
-CONFIG_DEVICE_TREE="devtree/i686.c"
+config I686_PIC
+    bool "8259 PIC driver"
+    depends on ARCH_I686

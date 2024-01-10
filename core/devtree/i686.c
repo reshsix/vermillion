@@ -20,6 +20,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/log.h>
 
+#include <core/pic.h>
 #include <core/stream.h>
 #include <core/serial.h>
 
@@ -28,6 +29,9 @@ dev_decl (serial, i686_com, tty0)
 dev_decl (serial, i686_com, tty1)
 dev_decl (serial, i686_com, tty2)
 dev_decl (serial, i686_com, tty3)
+
+drv_incl (pic, i686_pic)
+dev_decl (pic, i686_pic, pic)
 
 extern void
 _devtree_init(void)
@@ -42,6 +46,10 @@ _devtree_init(void)
     dev_init (tty1, 0x2F8)
     dev_init (tty2, 0x3E8)
     dev_init (tty3, 0x2E8)
+
+    dev_init (pic)
+
+    pic_state(&dev(pic), true);
 }
 
 extern void

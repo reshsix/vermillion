@@ -181,6 +181,10 @@ endif
 
 PREFIX = drivers/i686
 
+ifdef CONFIG_I686_PIC
+OBJS += $(PREFIX)/pic.o
+endif
+
 ifdef CONFIG_SERIAL_I686
 OBJS += $(PREFIX)/serial.o
 endif

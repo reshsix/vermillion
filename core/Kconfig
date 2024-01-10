@@ -26,6 +26,7 @@ endchoice
 
 menu "Architecture options"
 source arch/arm/Kconfig
+source arch/i686/Kconfig
 endmenu
 
 menu "Compilation"
