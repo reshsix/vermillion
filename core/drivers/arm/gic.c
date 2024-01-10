@@ -198,9 +198,13 @@ struct gic
 {
     bool enabled;
     u32 cpu, dist;
+
     struct pic_irq irqs[256];
     struct pic_swi swis[256];
+
     u8 irq_stack[CONFIG_STACK_SIZE];
+    u8 swi_id;
+    void *swi_data;
 };
 static struct gic *gic = NULL;
 
@@ -218,10 +222,14 @@ handler_swi(void)
     critical if (gic)
     {
         u8 n = *((u32*)(__builtin_return_address(0) - 4)) % 256;
-
-        struct pic_swi *swi = &(gic->swis[n]);
-        if (gic->enabled && swi->enabled && swi->handler)
-            swi->handler(swi->arg);
+        if (n == 0x0)
+        {
+            struct pic_swi *swi = &(gic->swis[gic->swi_id]);
+            if (gic->enabled && swi->enabled && swi->handler)
+                swi->handler(swi->arg, gic->swi_data);
+        }
+        else
+            log("Unhandled supervisor call");
     }
 }
 
@@ -352,6 +360,11 @@ stat(void *ctx, u32 idx, u32 *width, u32 *length)
             case 3:
                 *width = 0;
                 *length = 1;
+                break;
+
+            case 4:
+                *width = sizeof(void *);
+                *length = 256;
                 break;
 
             default:
@@ -520,6 +533,16 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
                 if (ret)
                     arm_wait_interrupts();
                 break;
+
+            case 4:
+                ret = (block < 256);
+
+                if (ret)
+                {
+                    gic->swi_id = block;
+                    mem_copy(&(gic->swi_data), buffer, sizeof(void *));
+                    asm volatile ("svc #0x0");
+                }
         }
     }
 

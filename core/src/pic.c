@@ -59,7 +59,7 @@ pic_config(dev_pic *dp, u16 n, bool enabled, void (*handler)(void *),
 
 extern bool
 pic_check(dev_pic *dp, u16 n, bool *enabled,
-          void (**handler)(void *), void **arg)
+          void (**handler)(void *, void *), void **arg)
 {
     struct pic_swi swi = {0};
 
@@ -80,7 +80,7 @@ pic_check(dev_pic *dp, u16 n, bool *enabled,
 
 extern bool
 pic_setup(dev_pic *dp, u16 n, bool enabled,
-          void (*handler)(void *), void *arg)
+          void (*handler)(void *, void *), void *arg)
 {
     struct pic_swi swi = {.enabled = enabled, .handler = handler, .arg = arg};
     return dp->driver->write(dp->context, 2, &swi, n);
@@ -90,4 +90,10 @@ extern bool
 pic_wait(dev_pic *dp)
 {
     return dp->driver->write(dp->context, 3, NULL, 0);
+}
+
+extern bool
+pic_syscall(dev_pic *dp, u8 id, void *data)
+{
+    return dp->driver->write(dp->context, 4, (void *)&data, id);
 }

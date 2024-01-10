@@ -38,7 +38,7 @@ struct pic_irq
 struct pic_swi
 {
     bool enabled;
-    void (*handler)(void *), *arg;
+    void (*handler)(void *, void *), *arg;
 };
 
 bool pic_state(dev_pic *dp, bool enabled);
@@ -47,9 +47,10 @@ bool pic_info(dev_pic *dp, u16 n, bool *enabled, void (**handler)(void *),
 bool pic_config(dev_pic *dp, u16 n, bool enabled, void (*handler)(void *),
                 void *arg, enum pic_level level);
 bool pic_check(dev_pic *dp, u16 n, bool *enabled,
-               void (**handler)(void *), void **arg);
+               void (**handler)(void *, void *), void **arg);
 bool pic_setup(dev_pic *dp, u16 n, bool enabled,
-               void (*handler)(void *), void *arg);
+               void (*handler)(void *, void *), void *arg);
 bool pic_wait(dev_pic *dp);
+bool pic_syscall(dev_pic *dp, u8 id, void *data);
 
 #endif
