@@ -19,6 +19,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/dev.h>
 #include <core/drv.h>
 #include <core/log.h>
+#include <core/wheel.h>
 
 #include <core/fs.h>
 #include <core/pic.h>
@@ -92,6 +93,10 @@ _devtree_init(void)
 
     gpio_config(&dev(gpio1), 10, GPIO_OUT, GPIO_PULLOFF);
     gpio_set(&dev(gpio1), 10, true);
+
+    pic_state(&dev(pic), true);
+    wheel_timer(&dev(timer0));
+
 }
 
 extern void
