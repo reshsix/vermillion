@@ -19,6 +19,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/dev.h>
 #include <core/drv.h>
 #include <core/log.h>
+#include <core/mem.h>
 #include <core/wheel.h>
 
 #include <core/pic.h>
@@ -38,9 +39,17 @@ dev_decl (pic, i686_pic, pic)
 drv_incl (timer, i686_timer)
 dev_decl (timer, i686_timer, timer0);
 
+extern u32 *multiboot_addr;
+static void *multiboot_info = NULL;
+
 extern void
 _devtree_init(void)
 {
+    if (multiboot_addr)
+        multiboot_info = mem_new(multiboot_addr[0]);
+    if (multiboot_info)
+        mem_copy(multiboot_info, multiboot_addr, multiboot_addr[0]);
+
     dev_init (tty0, 0x3F8)
     dev_config (tty0, .serial.baud   = 115200,
                       .serial.bits   = DRIVER_SERIAL_CHAR_8B,

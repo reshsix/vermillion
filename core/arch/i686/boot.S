@@ -14,17 +14,36 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
+.set MAGIC, 0xE85250D6
+.set ARCH,  0x0
+
 .section ".text.boot"
-.set MAGIC,    0x1BADB002
-.set FLAGS,    0x1
-.set CHECKSUM, -(MAGIC + FLAGS)
 
-.long MAGIC
-.long FLAGS
-.long CHECKSUM
+.align 8
+header:
+.long MAGIC                                   // MAGIC
+.long ARCH                                    // ARCH
+.long header_end - header                     // LENGTH
+.long -(MAGIC + ARCH + (header_end - header)) // CHECKSUM
 
+.word 5  // TYPE
+.word 0  // FLAGS
+.word 20 // SIZE
+.long 0  // WIDTH
+.long 0  // HEIGHT
+.long 32 // DEPTH
+header_end:
+
+.global multiboot_addr
+multiboot_addr:
+.long 0
+
+.section ".text"
 .global _start
 _start:
+    // Saving multiboot2 info address
+    movl %ebx, multiboot_addr
+
     // Clearing bss with zeros
     movl $__bss_s, %eax
     movl $__bss_e, %ebx
