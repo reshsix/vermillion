@@ -19,8 +19,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/dev.h>
 #include <core/drv.h>
 #include <core/log.h>
+#include <core/wheel.h>
 
 #include <core/pic.h>
+#include <core/timer.h>
 #include <core/stream.h>
 #include <core/serial.h>
 
@@ -32,6 +34,9 @@ dev_decl (serial, i686_com, tty3)
 
 drv_incl (pic, i686_pic)
 dev_decl (pic, i686_pic, pic)
+
+drv_incl (timer, i686_timer)
+dev_decl (timer, i686_timer, timer0);
 
 extern void
 _devtree_init(void)
@@ -48,8 +53,10 @@ _devtree_init(void)
     dev_init (tty3, 0x2E8)
 
     dev_init (pic)
+    dev_init (timer0, &dev(pic), 0);
 
     pic_state(&dev(pic), true);
+    wheel_timer(&dev(timer0));
 }
 
 extern void
