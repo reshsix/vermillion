@@ -23,7 +23,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/pic.h>
 #include <core/timer.h>
 #include <core/thread.h>
-#include <core/implicit.h>
 
 #define TMR_IRQ_EN(x)  *(volatile u32*)(x + 0x0)
 #define TMR_IRQ_STA(x) *(volatile u32*)(x + 0x4)
@@ -80,6 +79,7 @@ clean(void *ctx)
     struct timer *tmr = ctx;
     pic_config(tmr->pic, tmr->irq, false, NULL, NULL, PIC_EDGE_L);
     tmr->base = 0;
+    mem_del(ctx);
 }
 
 static bool
