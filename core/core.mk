@@ -116,7 +116,7 @@ OBJS := src/assert.o src/block.o src/channel.o src/critical.o src/exit.o \
         src/fork.o src/generator.o src/gpio.o src/implicit.o \
         src/log.o src/mem.o src/mutex.o src/pic.o src/profile.o \
         src/semaphore.o src/state.o src/str.o src/stream.o src/thread.o \
-        src/timer.o src/wheel.o
+        src/timer.o src/video.o src/wheel.o
 
 OBJS += devtree.o
 
@@ -187,6 +187,10 @@ endif
 
 ifdef CONFIG_TIMER_I686_TIMER
 OBJS += $(PREFIX)/timer.o
+endif
+
+ifdef CONFIG_VIDEO_I686_FB
+OBJS += $(PREFIX)/framebuffer.o
 endif
 
 ifdef CONFIG_SERIAL_I686

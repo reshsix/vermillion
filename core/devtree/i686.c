@@ -24,6 +24,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/pic.h>
 #include <core/timer.h>
+#include <core/video.h>
 #include <core/stream.h>
 #include <core/serial.h>
 
@@ -37,7 +38,10 @@ drv_incl (pic, i686_pic)
 dev_decl (pic, i686_pic, pic)
 
 drv_incl (timer, i686_timer)
-dev_decl (timer, i686_timer, timer0);
+dev_decl (timer, i686_timer, timer0)
+
+drv_incl (video, i686_fb)
+dev_decl (video, i686_fb, video0)
 
 extern u32 *multiboot_addr;
 static void *multiboot_info = NULL;
@@ -63,6 +67,8 @@ _devtree_init(void)
 
     dev_init (pic)
     dev_init (timer0, &dev(pic), 0);
+
+    dev_init (video0, multiboot_info);
 
     pic_state(&dev(pic), true);
     wheel_timer(&dev(timer0));

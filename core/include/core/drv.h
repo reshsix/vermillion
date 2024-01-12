@@ -25,20 +25,6 @@ union __attribute__((packed)) config
 {
     struct __attribute__((packed))
     {
-        u16 width;
-        u16 height;
-        enum
-        {
-            DRIVER_VIDEO_FORMAT_GRAY,
-            DRIVER_VIDEO_FORMAT_RGBX32, DRIVER_VIDEO_FORMAT_BGRX32,
-            DRIVER_VIDEO_FORMAT_RGBA32, DRIVER_VIDEO_FORMAT_BGRA32,
-            DRIVER_VIDEO_FORMAT_XRGB32, DRIVER_VIDEO_FORMAT_XBGR32,
-            DRIVER_VIDEO_FORMAT_ARGB32, DRIVER_VIDEO_FORMAT_ABGR32,
-        } format;
-    } video;
-
-    struct __attribute__((packed))
-    {
         u32 freq;
         enum
         {

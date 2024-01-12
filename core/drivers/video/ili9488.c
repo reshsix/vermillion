@@ -35,6 +35,8 @@ struct ili9488
 
     u8 buffer24[480 * 3];
     u8 *buffer32[480 * 320 * 4];
+
+    struct video_fb fb;
 };
 
 /* Led pin is negated, so with a transistor in NOT configuration,
@@ -176,26 +178,58 @@ clean(void *ctx)
 }
 
 static bool
-config_get(void *ctx, union config *data)
+stat(void *ctx, u32 idx, u32 *width, u32 *depth)
 {
-    (void)(ctx);
+    bool ret = true;
 
-    data->video.width = 480;
-    data->video.height = 320;
-    data->video.format = DRIVER_VIDEO_FORMAT_RGBX32;
+    if (ctx)
+    {
+        switch (idx)
+        {
+            case 0:
+                *width = sizeof(struct video_fb);
+                *depth = 1;
+                break;
+            case 1:
+                *width = 480 * 4;
+                *depth = 320;
+                break;
+            default:
+                ret = false;
+                break;
+        }
+    }
+    else
+        ret = false;
 
-    return true;
+    return ret;
 }
 
 static bool
 read(void *ctx, u32 idx, void *buffer, u32 block)
 {
-    bool ret = (idx == 0 && block < 320);
+    bool ret = false;
 
-    if (ret)
+    if (ctx)
     {
         struct ili9488 *ili = ctx;
-        mem_copy(buffer, &(ili->buffer32[block * 480 * 4]), 480 * 4);
+        switch (idx)
+        {
+            case 0:
+                ret = (block == 0);
+
+                if (ret)
+                    mem_copy(buffer, &(ili->fb), sizeof(struct video_fb));
+                break;
+
+            case 1:
+                ret = (block < 320);
+
+                if (ret)
+                    mem_copy(buffer, &(ili->buffer32[block * 480 * 4]),
+                             480 * 4);
+                break;
+        }
     }
 
     return ret;
@@ -204,34 +238,47 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
 static bool
 write(void *ctx, u32 idx, void *buffer, u32 block)
 {
-    bool ret = (idx == 0 && block < 320);
+    bool ret = false;
 
-    if (ret)
+    if (ctx)
     {
         struct ili9488 *ili = ctx;
-        u8 *buffer8 = buffer;
-
-        bool diff = false;
-        for (u16 i = 0; !diff && i < 480; i++)
-            diff = mem_comp(&(ili->buffer32[i * 4]), &(buffer8[i * 4]), 3);
-
-        if (diff)
+        switch (idx)
         {
-            mem_copy(&(ili->buffer32[block * 480 * 4]), buffer, 480 * 4);
+            case 1:
+                ret = (block < 320);
 
-            u32 index = block * 480;
-            for (u16 i = 0; i < 480; i++)
-                mem_copy(&(ili->buffer24[i * 3]), &(buffer8[i * 4]), 3);
+                if (ret)
+                {
+                    u8 *buffer8 = buffer;
 
-            u32 x = index % 480;
-            u32 y = index / 480;
-            u32 w = (x + 480 < 480) ? 480 : 480 - x;
-            u32 h = 1;
+                    bool diff = false;
+                    for (u16 i = 0; !diff && i < 480; i++)
+                        diff = mem_comp(&(ili->buffer32[i * 4]),
+                                        &(buffer8[i * 4]), 3);
 
-            ili9488_update(ili, ili->buffer24, x, y, w, h);
-            if (w < 480)
-                ili9488_update(ili, &(ili->buffer24[w * 3]), 0, y + 1,
-                               480 - w, h);
+                    if (diff)
+                    {
+                        mem_copy(&(ili->buffer32[block * 480 * 4]),
+                                 buffer, 480 * 4);
+
+                        u32 index = block * 480;
+                        for (u16 i = 0; i < 480; i++)
+                            mem_copy(&(ili->buffer24[i * 3]),
+                                     &(buffer8[i * 4]), 3);
+
+                        u32 x = index % 480;
+                        u32 y = index / 480;
+                        u32 w = (x + 480 < 480) ? 480 : 480 - x;
+                        u32 h = 1;
+
+                        ili9488_update(ili, ili->buffer24, x, y, w, h);
+                        if (w < 480)
+                            ili9488_update(ili, &(ili->buffer24[w * 3]),
+                                           0, y + 1, 480 - w, h);
+                    }
+                }
+                break;
         }
     }
 
@@ -241,6 +288,5 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
 drv_decl (video, ili9488)
 {
     .init = init, .clean = clean,
-    .config.get = config_get,
-    .read = read, .write = write
+    .stat = stat, .read = read, .write = write
 };

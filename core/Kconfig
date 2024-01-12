@@ -71,6 +71,9 @@ config VIDEO_ILI9488
     bool "Ili9488"
 config VIDEO_VIRTUAL
     bool "Virtual Framebuffer"
+config VIDEO_I686_FB
+    bool "i686 VESA Framebuffer"
+    depends on ARCH_I686
 endmenu
 
 # Audio configuration

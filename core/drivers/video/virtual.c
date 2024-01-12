@@ -25,15 +25,14 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 struct virtual
 {
-    u16 width, height;
-    dev_video *video;
+    struct video_fb fb;
+    u8 depth;
     u8 *buffer;
 
+    dev_video *video;
     u16 width2, height2;
     u8 *buffer2;
 };
-
-/* TODO other formats and conversion support */
 
 static void
 init(void **ctx, u16 width, u16 height, dev_video *video)
@@ -45,26 +44,31 @@ init(void **ctx, u16 width, u16 height, dev_video *video)
 
     if (ret)
     {
-        ret->width = width;
-        ret->height = height;
-        ret->video = video;
-
-        ret->buffer = mem_new(width * height * 4);
-        if (!(ret->buffer))
+        if (!(block_read((dev_block *)video, 0, &(ret->fb), 0)))
             ret = mem_del(ret);
-    }
 
-    if (ret)
-    {
-        union config cfg = {0};
-        video->driver->config.get(video->context, &cfg);
-        ret->width2 = cfg.video.width;
-        ret->height2 = cfg.video.height;
+        if (ret)
+        {
+            ret->depth = ret->fb.bpp / 8;
 
-        u16 w = ret->width, w2 = cfg.video.width;
-        ret->buffer2 = mem_new(w2 * ((w < w2) ? w2 / w : 1) * 4);
-        if (!(ret->buffer2))
-            ret = mem_del(ret);
+            ret->buffer = mem_new(width * height * ret->depth);
+            if (!(ret->buffer))
+                ret = mem_del(ret);
+        }
+
+        if (ret)
+        {
+            ret->video = video;
+            ret->width2 = ret->fb.width;
+            ret->height2 = ret->fb.height;
+            ret->fb.width = width;
+            ret->fb.height = height;
+
+            u16 w = ret->fb.width, w2 = ret->width2;
+            ret->buffer2 = mem_new(w2 * ((w < w2) ? w2 / w : 1) * ret->depth);
+            if (!(ret->buffer2))
+                ret = mem_del(ret);
+        }
     }
 
     if (ret)
@@ -81,60 +85,14 @@ clean(void *ctx)
 }
 
 static bool
-config_get(void *ctx, union config *data)
-{
-    struct virtual *v = ctx;
-
-    data->video.width = v->width;
-    data->video.height = v->height;
-    data->video.format = DRIVER_VIDEO_FORMAT_RGBX32;
-
-    return true;
-}
-
-static bool
-read(void *ctx, u32 idx, void *buffer, u32 block)
+stat(void *ctx, u32 idx, u32 *width, u32 *depth)
 {
     bool ret = true;
 
-    struct virtual *v = ctx;
-    if (idx == 0 && block < v->height)
-        mem_copy(buffer, &(v->buffer[block * v->width * 4]), v->width * 4);
-    else
-        ret = false;
-
-    return ret;
-}
-
-static bool
-write(void *ctx, u32 idx, void *buffer, u32 block)
-{
-    bool ret = true;
-
-    struct virtual *v = ctx;
-    if (idx == 0 && block < v->height)
+    if (ctx)
     {
-        mem_copy(&(v->buffer[block * v->width * 4]), buffer, v->width * 4);
-
-        u16 js = (block * v->height2) / v->height;
-        u16 je = js + v->height2 / v->height;
-        for (u16 j = js; ret && j < je + 1; j++)
-        {
-            for (u16 i = 0; i < v->width2; i++)
-            {
-                u16 i0 = (i * v->width) / v->width2;
-                u16 j0 = (j * v->height) / v->height2;
-
-                if (j0 > block)
-                    break;
-
-                u8 *src = &(v->buffer[((j0 * v->width) + i0) * 4]);
-                u8 *dest = &(v->buffer2[(((j - js) * v->width2) + i) * 4]);
-
-                mem_copy(dest, src, 4);
-            }
-            ret = block_write((dev_block *)v->video, 0, v->buffer2, j);
-        }
+        struct virtual *v = ctx;
+        ret = v->video->driver->stat(v->video->context, idx, width, depth);
     }
     else
         ret = false;
@@ -142,9 +100,89 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
     return ret;
 }
 
+static bool
+read(void *ctx, u32 idx, void *buffer, u32 block)
+{
+    bool ret = false;
+
+    if (ctx)
+    {
+        struct virtual *v = ctx;
+        switch (idx)
+        {
+            case 0:
+                ret = (block == 0);
+
+                if (ret)
+                    mem_copy(buffer, &(v->fb), sizeof(struct video_fb));
+                break;
+
+            case 1:
+                ret = (block < v->fb.height);
+
+                if (ret)
+                    mem_copy(buffer,
+                             &(v->buffer[block * v->fb.width * v->depth]),
+                             v->fb.width * v->depth);
+                break;
+        }
+    }
+
+    return ret;
+}
+
+static bool
+write(void *ctx, u32 idx, void *buffer, u32 block)
+{
+    bool ret = false;
+
+    if (ctx)
+    {
+        struct virtual *v = ctx;
+        switch (idx)
+        {
+            case 1:
+                ret = (block < v->fb.height);
+
+                if (ret)
+                {
+                    mem_copy(&(v->buffer[block * v->fb.width * v->depth]),
+                             buffer, v->fb.width * v->depth);
+
+                    u16 js = (block * v->height2) / v->fb.height;
+                    u16 je = js + v->height2 / v->fb.height;
+                    for (u16 j = js; ret && j < je + 1; j++)
+                    {
+                        for (u16 i = 0; i < v->width2; i++)
+                        {
+                            u16 i0 = (i * v->fb.width) / v->width2;
+                            u16 j0 = (j * v->fb.height) / v->height2;
+
+                            if (j0 > block)
+                                break;
+
+                            size_t k1 = ((j0 * v->fb.width) + i0) * v->depth;
+                            size_t k2 = (((j - js) * v->width2) + i) * v->depth;
+
+                            u8 *src = &(v->buffer[k1]);
+                            u8 *dest = &(v->buffer2[k2]);
+
+                            mem_copy(dest, src, v->depth);
+                        }
+
+                        ret = block_write((dev_block *)v->video, 1,
+                                          v->buffer2, j);
+                    }
+                }
+                break;
+        }
+    }
+
+    return ret;
+}
+
 drv_decl (video, virtual_fb)
 {
     .init = init, .clean = clean,
-    .config.get = config_get,
-    .read = read, .write = write
+    .stat = stat, .read = read, .write = write
 };
