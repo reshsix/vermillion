@@ -25,8 +25,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/pic.h>
 #include <core/gpio.h>
 #include <core/uart.h>
+#include <core/block.h>
 #include <core/timer.h>
-#include <core/storage.h>
 
 #define R_PRCM 0x01F01400
 #define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)
@@ -48,13 +48,13 @@ drv_incl (timer, sunxi_timer)
 dev_decl (timer, sunxi_timer, timer0)
 dev_decl (timer, sunxi_timer, timer1)
 
-drv_incl (storage, sunxi_mmc)
-dev_decl (storage, sunxi_mmc, mmcblk0)
-drv_incl (storage, mbr)
-dev_decl (storage, mbr, mmcblk0p1)
+drv_incl (block, sunxi_mmc)
+dev_decl (block, sunxi_mmc, mmcblk0)
+drv_incl (block, mbr)
+dev_decl (block, mbr, mmcblk0p1)
 
-drv_incl (storage, memory)
-dev_decl (storage, memory, mem)
+drv_incl (block, memory)
+dev_decl (block, memory, mem)
 
 drv_incl (fs, fat32)
 dev_decl (fs, fat32, root)
@@ -84,7 +84,7 @@ _devtree_init(void)
     dev_init (mmcblk0,   0x01c0f000);
     dev_init (mmcblk0p1, &dev(mmcblk0), 1);
 
-    dev_init (mem);
+    dev_init (mem, 0x0, 0x200, CONFIG_RAM_SIZE / 0x200);
 
     dev_init (root, &dev(mmcblk0p1));
 

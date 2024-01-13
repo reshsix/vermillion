@@ -21,29 +21,41 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/mem.h>
 
 #include <core/block.h>
-#include <core/storage.h>
-
-static u8 mbr_buf[0x200] __attribute__((aligned(32)));
 
 struct mbr
 {
-    dev_storage *storage;
+    dev_block *storage;
     u32 lba;
+
+    u32 width, depth;
 };
 
 static void
-init(void **ctx, dev_storage *storage, u8 partition)
+init(void **ctx, dev_block *storage, u8 partition)
 {
     struct mbr *ret = NULL;
 
     if (storage && partition > 0 && partition < 5)
         ret = mem_new(sizeof(struct mbr));
 
-    if (ret && block_read((dev_block *)storage, 0, mbr_buf, 0))
+    if (ret && !block_stat(storage, 0, &(ret->width), &(ret->depth)))
+        ret = mem_del(ret);
+
+    if (ret)
     {
-        ret->storage = storage;
-        ret->lba = ((u32*)&(mbr_buf[0x1BE + ((partition - 1) * 16)]))[2];
-        *ctx = ret;
+        u8 *buffer = mem_new(ret->width);
+        if (buffer && block_read(storage, 0, buffer, 0))
+        {
+            u8 *info = &(buffer[0x1BE + ((partition - 1) * 16)]);
+            mem_copy(&(ret->lba),   &(info[sizeof(u32) * 2]), sizeof(u32));
+            mem_copy(&(ret->depth), &(info[sizeof(u32) * 3]), sizeof(u32));
+            mem_del(buffer);
+
+            ret->storage = storage;
+            *ctx = ret;
+        }
+        else
+            ret = mem_del(ret);
     }
 }
 
@@ -54,14 +66,49 @@ clean(void *ctx)
 }
 
 static bool
+stat(void *ctx, u32 idx, u32 *width, u32 *depth)
+{
+    bool ret = true;
+
+    if (ctx)
+    {
+        struct mbr *mbr = ctx;
+        switch (idx)
+        {
+            case 0:
+                *width = mbr->width;
+                *depth = mbr->depth;
+                break;
+            default:
+                ret = false;
+                break;
+        }
+    }
+    else
+        ret = false;
+
+    return ret;
+}
+
+static bool
 read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    struct mbr *mbr = ctx;
-    if (idx == 0 && (UINT32_MAX) - mbr->lba > block)
-        ret = block_read((dev_block *)mbr->storage, 0,
-                         buffer, block + mbr->lba);
+    if (ctx)
+    {
+        struct mbr *mbr = ctx;
+        switch (idx)
+        {
+            case 0:
+                ret = (block < mbr->depth);
+
+                if (ret)
+                    ret = block_read(mbr->storage, 0,
+                                     buffer, block + mbr->lba);
+            break;
+        }
+    }
 
     return ret;
 }
@@ -71,16 +118,26 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    struct mbr *mbr = ctx;
-    if (idx == 0 && (UINT32_MAX) - mbr->lba > block)
-        ret = block_write((dev_block *)mbr->storage, 0,
-                          buffer, block + mbr->lba);
+    if (ctx)
+    {
+        struct mbr *mbr = ctx;
+        switch (idx)
+        {
+            case 0:
+                ret = (block < mbr->depth);
+
+                if (ret)
+                    ret = block_write(mbr->storage, 0,
+                                      buffer, block + mbr->lba);
+            break;
+        }
+    }
 
     return ret;
 }
 
-drv_decl (storage, mbr)
+drv_decl (block, mbr)
 {
     .init = init, .clean = clean,
-    .read = read, .write = write
+    .stat = stat, .read = read, .write = write
 };

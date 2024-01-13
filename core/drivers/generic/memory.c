@@ -20,16 +20,78 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/mem.h>
 
-#include <core/storage.h>
+#include <core/block.h>
+
+struct memory
+{
+    u32 base, width, depth;
+};
+
+static void
+init(void **ctx, u32 base, u32 width, u32 depth)
+{
+    struct memory *ret = mem_new(sizeof(struct memory));
+
+    if (ret)
+    {
+        ret->base = base;
+        ret->width = width;
+        ret->depth = depth;
+
+        *ctx = ret;
+    }
+}
+
+static void
+clean(void *ctx)
+{
+    mem_del(ctx);
+}
+
+static bool
+stat(void *ctx, u32 idx, u32 *width, u32 *depth)
+{
+    bool ret = true;
+
+    if (ctx)
+    {
+        struct memory *mem = ctx;
+        switch (idx)
+        {
+            case 0:
+                *width = mem->width;
+                *depth = mem->depth;
+                break;
+            default:
+                ret = false;
+                break;
+        }
+    }
+    else
+        ret = false;
+
+    return ret;
+}
 
 static bool
 read(void *ctx, u32 idx, void *buffer, u32 block)
 {
-    bool ret = (idx == 0);
+    bool ret = false;
 
-    (void)(ctx);
-    if (ret)
-        mem_copy(buffer, (void*)(block * 0x200), 0x200);
+    if (ctx)
+    {
+        struct memory *mem = ctx;
+        switch (idx)
+        {
+            case 0:
+                ret = (block < mem->depth);
+
+                if (ret)
+                    mem_copy(buffer, (void*)(mem->base + (block * mem->width)),
+                             mem->width);
+                break;
+        }
+    }
 
     return ret;
 }
@@ -37,16 +99,28 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
 static bool
 write(void *ctx, u32 idx, void *buffer, u32 block)
 {
-    bool ret = (idx == 0);
+    bool ret = false;
 
-    (void)(ctx);
-    if (ret)
-        mem_copy((void*)(block * 0x200), buffer, 0x200);
+    if (ctx)
+    {
+        struct memory *mem = ctx;
+        switch (idx)
+        {
+            case 0:
+                ret = (block < mem->depth);
+
+                if (ret)
+                    mem_copy((void*)(mem->base + (block * mem->width)), buffer,
+                             mem->width);
+                break;
+        }
+    }
 
     return ret;
 }
 
-drv_decl (storage, memory)
+drv_decl (block, memory)
 {
-    .read = read, .write = write
+    .init = init, .clean = clean,
+    .stat = stat, .read = read, .write = write
 };
