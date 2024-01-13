@@ -23,7 +23,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/stream.h>
 
-void log_set_dev(dev_stream *logger);
+void log_set_dev(dev_stream *logger, u32 idx);
 dev_stream *log_get_dev(void);
 
 void log_char(const char c);

@@ -20,128 +20,34 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/mem.h>
 
-#include <core/serial.h>
+#include <core/uart.h>
 
-#define UART_BUF(p) *(volatile u32*)(p + 0x00)
-#define UART_DLL(p) *(volatile u32*)(p + 0x00)
-#define UART_DLH(p) *(volatile u32*)(p + 0x04)
-#define UART_IER(p) *(volatile u32*)(p + 0x04)
-#define UART_IIR(p) *(volatile u32*)(p + 0x08)
-#define UART_FCR(p) *(volatile u32*)(p + 0x08)
-#define UART_LCR(p) *(volatile u32*)(p + 0x0C)
-#define UART_MCR(p) *(volatile u32*)(p + 0x10)
-#define UART_LSR(p) *(volatile u32*)(p + 0x14)
-#define UART_MSR(p) *(volatile u32*)(p + 0x18)
-#define UART_SCH(p) *(volatile u32*)(p + 0x1C)
-#define UART_USR(p) *(volatile u32*)(p + 0x7C)
-#define UART_TFL(p) *(volatile u32*)(p + 0x80)
-#define UART_RFL(p) *(volatile u32*)(p + 0x84)
-#define UART_HLT(p) *(volatile u32*)(p + 0xA4)
+#define IO_BUF(p) *(volatile u32*)(p + 0x00)
+#define IO_DLL(p) *(volatile u32*)(p + 0x00)
+#define IO_DLH(p) *(volatile u32*)(p + 0x04)
+#define IO_IER(p) *(volatile u32*)(p + 0x04)
+#define IO_IIR(p) *(volatile u32*)(p + 0x08)
+#define IO_FCR(p) *(volatile u32*)(p + 0x08)
+#define IO_LCR(p) *(volatile u32*)(p + 0x0C)
+#define IO_MCR(p) *(volatile u32*)(p + 0x10)
+#define IO_LSR(p) *(volatile u32*)(p + 0x14)
+#define IO_MSR(p) *(volatile u32*)(p + 0x18)
+#define IO_SCH(p) *(volatile u32*)(p + 0x1C)
+#define IO_USR(p) *(volatile u32*)(p + 0x7C)
+#define IO_TFL(p) *(volatile u32*)(p + 0x80)
+#define IO_RFL(p) *(volatile u32*)(p + 0x84)
+#define IO_HLT(p) *(volatile u32*)(p + 0xA4)
 
-static inline char
-uart_read(u32 p)
-{
-    while (!(UART_LSR(p) & (1 << 0)));
-    return UART_BUF(p);
-}
-
-static inline void
-uart_write(u32 p, char c)
-{
-    while (!(UART_LSR(p) & (1 << 5)));
-    UART_BUF(p) = c;
-}
-
-enum uart_char
-{
-    UART_CHAR_5B,
-    UART_CHAR_6B,
-    UART_CHAR_7B,
-    UART_CHAR_8B
-};
-
-enum uart_parity
-{
-    UART_PARITY_NONE,
-    UART_PARITY_ODD,
-    UART_PARITY_EVEN,
-};
-
-enum uart_stop
-{
-    UART_STOP_1B,
-    UART_STOP_1HB,
-    UART_STOP_2B
-};
-
-enum uart_flags
-{
-    UART_FLAG_NONE,
-    UART_FLAG_AFC,
-    UART_FLAG_LOOP
-};
-
-static inline void
-uart_config(u32 p, u16 divider, enum uart_char c,
-            enum uart_parity i, enum uart_stop s, enum uart_flags f)
-{
-    UART_LCR(p) |= (1 << 7);
-    UART_DLH(p) = (divider >> 8) & 0xff;
-    UART_DLL(p) = (divider >> 0) & 0xff;
-    UART_LCR(p) &= ~(1 << 7);
-
-    UART_LCR(p) &= ~0x3;
-    UART_LCR(p) |= c & 0x3;
-
-    switch (i)
-    {
-        case UART_PARITY_NONE:
-            UART_LCR(p) &= ~(1 << 3);
-            break;
-        case UART_PARITY_ODD:
-            UART_LCR(p) &= ~0x38;
-            UART_LCR(p) |= (1 << 3);
-            break;
-        case UART_PARITY_EVEN:
-            UART_LCR(p) &= ~0x38;
-            UART_LCR(p) |= (1 << 3) | (1 << 4);
-            break;
-        default:
-            break;
-    }
-
-    switch (s)
-    {
-        case UART_STOP_1B:
-            UART_LCR(p) &= ~(1 << 2);
-            break;
-        case UART_STOP_1HB:
-        case UART_STOP_2B:
-            UART_LCR(p) |= (1 << 2);
-            break;
-    }
-
-    if (f & UART_FLAG_AFC)
-        UART_MCR(p) |= (1 << 5);
-    else
-        UART_MCR(p) &= ~(1 << 5);
-
-    if (f & UART_FLAG_LOOP)
-        UART_MCR(p) |= (1 << 4);
-    else
-        UART_MCR(p) &= ~(1 << 4);
-}
-
-struct uart
+struct serial
 {
     u32 port;
-    union config config;
+    struct uart_cfg cfg;
 };
 
 static void
 init(void **ctx, u32 port)
 {
-    struct uart *ret = mem_new(sizeof(struct uart));
+    struct serial *ret = mem_new(sizeof(struct serial));
 
     if (ret)
     {
@@ -157,93 +63,24 @@ clean(void *ctx)
 }
 
 static bool
-config_get(void *ctx, union config *cfg)
-{
-    struct uart *u = ctx;
-    mem_copy(cfg, &(u->config), sizeof(union config));
-    return true;
-}
-
-static bool
-config_set(void *ctx, union config *cfg)
+stat(void *ctx, u32 idx, u32 *width)
 {
     bool ret = true;
 
-    if (!(cfg->serial.baud))
-        cfg->serial.baud = 1500000;
-
-    u32 divider = 0;
-    if (ret)
+    if (ctx)
     {
-        divider = 1500000 / cfg->serial.baud;
-        ret = (divider && divider <= UINT16_MAX);
-    }
-
-    enum uart_char uc = UART_CHAR_5B;
-    if (ret)
-    {
-        switch (cfg->serial.bits)
+        switch (idx)
         {
-            case DRIVER_SERIAL_CHAR_5B:
+            case 0:
+                *width = sizeof(struct uart_cfg);
                 break;
-            case DRIVER_SERIAL_CHAR_6B:
-                uc = UART_CHAR_6B;
-                break;
-            case DRIVER_SERIAL_CHAR_7B:
-                uc = UART_CHAR_7B;
-                break;
-            case DRIVER_SERIAL_CHAR_8B:
-                uc = UART_CHAR_8B;
+            case 1:
+                *width = sizeof(u8);
                 break;
             default:
                 ret = false;
                 break;
         }
-    }
-
-    enum uart_parity up = UART_PARITY_NONE;
-    if (ret)
-    {
-        switch (cfg->serial.parity)
-        {
-            case DRIVER_SERIAL_PARITY_NONE:
-                break;
-            case DRIVER_SERIAL_PARITY_ODD:
-                up = UART_PARITY_ODD;
-                break;
-            case DRIVER_SERIAL_PARITY_EVEN:
-                up = UART_PARITY_EVEN;
-                break;
-            default:
-                ret = false;
-                break;
-        }
-    }
-
-    enum uart_stop us = UART_STOP_1B;
-    if (ret)
-    {
-        switch (cfg->serial.stop)
-        {
-            case DRIVER_SERIAL_STOP_1B:
-                break;
-            case DRIVER_SERIAL_STOP_1HB:
-                us = UART_STOP_1HB;
-                break;
-            case DRIVER_SERIAL_STOP_2B:
-                us = UART_STOP_2B;
-                break;
-            default:
-                ret = false;
-                break;
-        }
-    }
-
-    if (ret)
-    {
-        struct uart *u = ctx;
-        mem_copy(&(u->config), cfg, sizeof(union config));
-        uart_config(u->port, divider, uc, up, us, UART_FLAG_NONE);
     }
 
     return ret;
@@ -252,12 +89,26 @@ config_set(void *ctx, union config *cfg)
 static bool
 read(void *ctx, u32 idx, void *data)
 {
-    bool ret = (idx == 0);
+    bool ret = false;
 
     if (ret)
     {
-        struct uart *u = ctx;
-        *((u8*)data) = uart_read(u->port);
+        struct serial *u = ctx;
+        switch (idx)
+        {
+            case 0:
+                ret = true;
+                mem_copy(data, &(u->cfg), sizeof(struct uart_cfg));
+                break;
+
+            case 1:
+                ret = true;
+                while (!(IO_LSR(u->port) & (1 << 0)));
+
+                u8 byte = IO_BUF(u->port);
+                mem_copy(data, &byte, sizeof(u8));
+                break;
+        }
     }
 
     return ret;
@@ -266,21 +117,83 @@ read(void *ctx, u32 idx, void *data)
 static bool
 write(void *ctx, u32 idx, void *data)
 {
-    bool ret = (idx == 0);
+    bool ret = false;
 
-    if (ret)
+    if (ctx)
     {
-        struct uart *u = ctx;
-        uart_write(u->port, *((u8*)data));
+        struct serial *u = ctx;
+        switch (idx)
+        {
+            case 0:;
+                struct uart_cfg cfg = {0};
+                mem_copy(&cfg, data, sizeof(struct uart_cfg));
+
+                if (cfg.baud == 0)
+                    cfg.baud = 115200;
+
+                ret = (  cfg.baud <= 1500000  && cfg.baud >= 23       &&
+                       !(cfg.stop == UART_1HS && cfg.bits != UART_5B) &&
+                       !(cfg.stop == UART_2S  && cfg.bits == UART_5B));
+
+                if (ret)
+                {
+                    mem_copy(&(u->cfg), &cfg, sizeof(struct uart_cfg));
+
+                    u16 divider = 1500000 / cfg.baud;
+                    IO_LCR(u->port) |= (1 << 7);
+                    IO_DLH(u->port) = (divider >> 8) & 0xff;
+                    IO_DLL(u->port) = (divider >> 0) & 0xff;
+                    IO_LCR(u->port) &= ~(1 << 7);
+
+                    IO_LCR(u->port) &= ~0x3;
+                    IO_LCR(u->port) |= cfg.bits & 0x3;
+
+                    switch (cfg.parity)
+                    {
+                        case UART_NOPARITY:
+                            IO_LCR(u->port) &= ~(1 << 3);
+                            break;
+                        case UART_ODD:
+                            IO_LCR(u->port) &= ~0x38;
+                            IO_LCR(u->port) |= (1 << 3);
+                            break;
+                        case UART_EVEN:
+                            IO_LCR(u->port) &= ~0x38;
+                            IO_LCR(u->port) |= (1 << 3) | (1 << 4);
+                            break;
+                        default:
+                            break;
+                    }
+
+                    switch (cfg.stop)
+                    {
+                        case UART_1S:
+                            IO_LCR(u->port) &= ~(1 << 2);
+                            break;
+                        case UART_1HS:
+                        case UART_2S:
+                            IO_LCR(u->port) |= (1 << 2);
+                            break;
+                    }
+                }
+                break;
+
+            case 1:
+                ret = true;
+                while (!(IO_LSR(u->port) & (1 << 5)));
+
+                u8 byte = IO_BUF(u->port);
+                mem_copy(&byte, data, sizeof(u8));
+                IO_BUF(u->port) = byte;
+                break;
+        }
     }
 
     return ret;
 }
 
-drv_decl (serial, sunxi_uart)
+drv_decl (uart, sunxi_uart)
 {
     .init = init, .clean = clean,
-    .config.get = config_get,
-    .config.set = config_set,
-    .read = read, .write = write
+    .stat = stat, .read = read, .write = write
 };

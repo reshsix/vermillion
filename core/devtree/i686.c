@@ -23,16 +23,16 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/wheel.h>
 
 #include <core/pic.h>
+#include <core/uart.h>
 #include <core/timer.h>
 #include <core/video.h>
 #include <core/stream.h>
-#include <core/serial.h>
 
-drv_incl (serial, i686_com)
-dev_decl (serial, i686_com, tty0)
-dev_decl (serial, i686_com, tty1)
-dev_decl (serial, i686_com, tty2)
-dev_decl (serial, i686_com, tty3)
+drv_incl (uart, i686_com)
+dev_decl (uart, i686_com, tty0)
+dev_decl (uart, i686_com, tty1)
+dev_decl (uart, i686_com, tty2)
+dev_decl (uart, i686_com, tty3)
 
 drv_incl (pic, i686_pic)
 dev_decl (pic, i686_pic, pic)
@@ -55,11 +55,8 @@ _devtree_init(void)
         mem_copy(multiboot_info, multiboot_addr, multiboot_addr[0]);
 
     dev_init (tty0, 0x3F8)
-    dev_config (tty0, .serial.baud   = 115200,
-                      .serial.bits   = DRIVER_SERIAL_CHAR_8B,
-                      .serial.parity = DRIVER_SERIAL_PARITY_NONE,
-                      .serial.stop   = DRIVER_SERIAL_STOP_1B);
-    log_set_dev((dev_stream *)&dev(tty0));
+    uart_config(&dev(tty0), 115200, UART_8B, UART_NOPARITY, UART_1S);
+    log_set_dev((dev_stream *)&dev(tty0), 1);
 
     dev_init (tty1, 0x2F8)
     dev_init (tty2, 0x3E8)
@@ -82,5 +79,5 @@ _devtree_clean(void)
     dev_clean (tty2)
 
     dev_clean (tty0)
-    log_set_dev(NULL);
+    log_set_dev(NULL, 0);
 }

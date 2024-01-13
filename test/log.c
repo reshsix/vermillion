@@ -55,7 +55,7 @@ main(void)
     dev_stream logdev = { .context = test_ctx, .driver = &logdrv };
 
     dev_stream *logger = log_get_dev();
-    log_set_dev(&logdev);
+    log_set_dev(&logdev, 0);
 
     assert (log_get_dev() == &logdev);
 
@@ -77,7 +77,7 @@ main(void)
 
     log((s64)-12345678901);
     assert (str_comp(buffer, "-12345678901", 0) == 0);
-    log_set_dev(logger);
+    log_set_dev(logger, 0);
 
     exit_qemu(assert_failed);
 }

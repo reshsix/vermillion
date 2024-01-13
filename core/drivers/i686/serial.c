@@ -22,7 +22,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/mem.h>
 
-#include <core/serial.h>
+#include <core/uart.h>
 
 #define IO_DAT(x)  (x + 0)
 #define IO_IER(x)  (x + 1)
@@ -32,10 +32,14 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define IO_DIVL(x) (x + 0)
 #define IO_DIVH(x) (x + 1)
 
+static u8 write_bits[4] = {0, 1, 2, 3};
+static u8 write_parity[5] = {0, 1, 3, 5, 7};
+static u8 write_stop[5] = {0, 1, 1};
+
 struct serial
 {
     u16 port;
-    union config config;
+    struct uart_cfg cfg;
 };
 
 static void
@@ -73,114 +77,24 @@ clean(void *ctx)
 }
 
 static bool
-config_get(void *ctx, union config *cfg)
-{
-    struct serial *com = ctx;
-    mem_copy(cfg, &(com->config), sizeof(union config));
-    return true;
-}
-
-static bool
-config_set(void *ctx, union config *cfg)
+stat(void *ctx, u32 idx, u32 *width)
 {
     bool ret = true;
 
-    if (ret)
+    if (ctx)
     {
-        if (!(cfg->serial.baud))
-            cfg->serial.baud = 115200;
-        else if (cfg->serial.baud > 115200 ||
-                 115200 % cfg->serial.baud != 0)
-            ret = false;
-    }
-
-    u8 c = 0;
-    if (ret)
-    {
-        switch (cfg->serial.bits)
+        switch (idx)
         {
-            case DRIVER_SERIAL_CHAR_5B:
+            case 0:
+                *width = sizeof(struct uart_cfg);
                 break;
-            case DRIVER_SERIAL_CHAR_6B:
-                c = 1;
-                break;
-            case DRIVER_SERIAL_CHAR_7B:
-                c = 2;
-                break;
-            case DRIVER_SERIAL_CHAR_8B:
-                c = 3;
+            case 1:
+                *width = sizeof(u8);
                 break;
             default:
                 ret = false;
                 break;
         }
-    }
-
-    u8 p = 0;
-    if (ret)
-    {
-        switch (cfg->serial.parity)
-        {
-            case DRIVER_SERIAL_PARITY_NONE:
-                break;
-            case DRIVER_SERIAL_PARITY_ODD:
-                p = 1;
-                break;
-            case DRIVER_SERIAL_PARITY_EVEN:
-                p = 3;
-                break;
-            case DRIVER_SERIAL_PARITY_MARK:
-                p = 5;
-                break;
-            case DRIVER_SERIAL_PARITY_SPACE:
-                p = 7;
-                break;
-            default:
-                ret = false;
-                break;
-        }
-    }
-
-    u8 s = 0;
-    if (ret)
-    {
-        switch (cfg->serial.stop)
-        {
-            case DRIVER_SERIAL_STOP_1B:
-                break;
-            case DRIVER_SERIAL_STOP_1HB:
-                if (cfg->serial.bits == DRIVER_SERIAL_CHAR_5B)
-                    s = 1;
-                else
-                    ret = false;
-                break;
-            case DRIVER_SERIAL_STOP_2B:
-                if (cfg->serial.bits != DRIVER_SERIAL_CHAR_5B)
-                    s = 1;
-                else
-                    ret = false;
-                break;
-            default:
-                ret = false;
-                break;
-        }
-    }
-
-    if (ret)
-    {
-        struct serial *com = ctx;
-        mem_copy(&(com->config), cfg, sizeof(union config));
-
-        u16 divisor = 115200 / cfg->serial.baud;
-        u8 LCR = in8(IO_LCR(com->port));
-        out8(IO_LCR(com->port), LCR | 0x80);
-
-        out8(IO_DIVL(com->port), divisor & 0xFF);
-        out8(IO_DIVH(com->port), divisor >> 8);
-
-        LCR |= c | p << 5 | s << 2;
-
-        out8(IO_LCR(com->port), LCR & ~0x80);
     }
 
     return ret;
@@ -189,13 +103,26 @@ config_set(void *ctx, union config *cfg)
 static bool
 read(void *ctx, u32 idx, void *data)
 {
-    bool ret = (idx == 0);
+    bool ret = false;
 
     if (ret)
     {
         struct serial *com = ctx;
-        while (!(in8(IO_LSR(com->port)) & 0x1));
-        *((u8*)data) = in8(IO_DAT(com->port));
+        switch (idx)
+        {
+            case 0:
+                ret = true;
+                mem_copy(data, &com->cfg, sizeof(u8));
+                break;
+
+            case 1:
+                ret = true;
+                while (!(in8(IO_LSR(com->port)) & 0x1));
+
+                u8 byte = in8(IO_DAT(com->port));
+                mem_copy(data, &byte, sizeof(u8));
+                break;
+        }
     }
 
     return ret;
@@ -204,22 +131,65 @@ read(void *ctx, u32 idx, void *data)
 static bool
 write(void *ctx, u32 idx, void *data)
 {
-    bool ret = (idx == 0);
+    bool ret = false;
 
-    if (ret)
+    if (ctx)
     {
         struct serial *com = ctx;
-        while (!(in8(IO_LSR(com->port)) & 0x20));
-        out8(IO_DAT(com->port), *((u8*)data));
+        switch (idx)
+        {
+            case 0:;
+                struct uart_cfg cfg = {0};
+                mem_copy(&cfg, data, sizeof(struct uart_cfg));
+
+                if (cfg.baud == 0)
+                    cfg.baud = 115200;
+
+                ret = (cfg.baud   <= 115200               &&
+                       cfg.baud   >= 2                    &&
+                       cfg.bits   <  sizeof(write_bits)   &&
+                       cfg.parity <  sizeof(write_parity) &&
+                       cfg.stop   <  sizeof(write_stop)   &&
+                       !(cfg.stop == UART_1HS && cfg.bits != UART_5B) &&
+                       !(cfg.stop == UART_2S  && cfg.bits == UART_5B));
+
+                if (ret)
+                {
+                    mem_copy(&(com->cfg), &cfg, sizeof(struct uart_cfg));
+
+                    u8 c = write_bits[cfg.bits];
+                    u8 p = write_parity[cfg.parity];
+                    u8 s = write_stop[cfg.stop];
+
+                    u16 divisor = 115200 / cfg.baud;
+                    u8 LCR = in8(IO_LCR(com->port));
+                    out8(IO_LCR(com->port), LCR | 0x80);
+
+                    out8(IO_DIVL(com->port), divisor & 0xFF);
+                    out8(IO_DIVH(com->port), divisor >> 8);
+
+                    LCR |= c | p << 5 | s << 2;
+
+                    out8(IO_LCR(com->port), LCR & ~0x80);
+                }
+                break;
+
+            case 1:
+                ret = true;
+                while (!(in8(IO_LSR(com->port)) & 0x20));
+
+                u8 byte = 0;
+                mem_copy(&byte, data, sizeof(u8));
+                out8(IO_DAT(com->port), byte);
+                break;
+        }
     }
 
     return ret;
 }
 
-drv_decl (serial, i686_com)
+drv_decl (uart, i686_com)
 {
     .init = init, .clean = clean,
-    .config.get = config_get,
-    .config.set = config_set,
-    .read = read, .write = write
+    .stat = stat, .read = read, .write = write
 };

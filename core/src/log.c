@@ -21,11 +21,13 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/stream.h>
 
 static dev_stream *logdev = NULL;
+static u32 logidx = 0;
 
 extern void
-log_set_dev(dev_stream *logger)
+log_set_dev(dev_stream *logger, u32 idx)
 {
     logdev = logger;
+    logidx = idx;
 }
 
 extern dev_stream *
@@ -38,7 +40,7 @@ extern void
 log_char(const char c)
 {
     if (logdev != NULL)
-        stream_write((dev_stream *)logdev, 0, (char *)&c);
+        stream_write((dev_stream *)logdev, logidx, (char *)&c);
 }
 
 extern void
