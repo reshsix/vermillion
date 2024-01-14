@@ -37,36 +37,8 @@ struct spi
     bool cpol;
     bool cpha;
 
-    u32 delay;
-    void (*sleep)(u32);
+    u8 delay;
 };
-
-static void
-empty(u32 x)
-{
-    (void)(x);
-    return;
-}
-
-static void
-hsleep(u32 n)
-{
-    for (register u32 i = 0; i < (n / 4); i++)
-        asm volatile ("nop");
-}
-
-static void
-csleep(u32 n)
-{
-    if (n > 256)
-    {
-        for (u32 i = 0; i < n / 255; i++)
-            wheel_sleep(WHEEL_INNER, 255);
-        wheel_sleep(WHEEL_INNER, n % 255);
-    }
-    else
-        wheel_sleep(WHEEL_INNER, n);
-}
 
 static u8
 spi_transfer(struct spi *spi, u8 x)
@@ -86,10 +58,10 @@ spi_transfer(struct spi *spi, u8 x)
 
         bool bit = (spi->lsb) ? x & 0x01 : x & 0x80;
         gpio_set(spi->gpio, spi->mosi, (spi->cpol) ? !bit : bit);
-        spi->sleep(spi->delay);
+        wheel_sleep(WHEEL_INNER, spi->delay);
 
         gpio_set(spi->gpio, spi->sck, (spi->cpha) ? false : true);
-        spi->sleep(spi->delay);
+        wheel_sleep(WHEEL_INNER, spi->delay);
         gpio_set(spi->gpio, spi->sck, (spi->cpha) ? true : false);
 
         if (spi->lsb) x >>= 1;
@@ -110,15 +82,14 @@ init(void **ctx, dev_gpio *gpio, u16 ss, u16 sck, u16 mosi, u16 miso)
 
     if (ret)
     {
+        ret->gpio = gpio;
+
         ret->ss = ss;
         ret->sck = sck;
         ret->mosi = mosi;
         ret->miso = miso;
 
-        ret->delay = 0;
-        ret->sleep = empty;
-
-        ret->gpio = gpio;
+        ret->delay = 1;
 
         gpio_config(ret->gpio, ret->ss, GPIO_OUT, GPIO_PULLOFF);
         gpio_config(ret->gpio, ret->sck, GPIO_OUT, GPIO_PULLOFF);
@@ -132,60 +103,37 @@ init(void **ctx, dev_gpio *gpio, u16 ss, u16 sck, u16 mosi, u16 miso)
 static void
 clean(void *ctx)
 {
-    struct spi *spi = ctx;
-
-    gpio_config(spi->gpio, spi->ss, GPIO_OFF, GPIO_PULLOFF);
-    gpio_config(spi->gpio, spi->sck, GPIO_OFF, GPIO_PULLOFF);
-    gpio_config(spi->gpio, spi->mosi, GPIO_OFF, GPIO_PULLOFF);
-    gpio_config(spi->gpio, spi->miso, GPIO_OFF, GPIO_PULLOFF);
+    if (ctx)
+    {
+        struct spi *spi = ctx;
+        gpio_config(spi->gpio, spi->ss, GPIO_OFF, GPIO_PULLOFF);
+        gpio_config(spi->gpio, spi->sck, GPIO_OFF, GPIO_PULLOFF);
+        gpio_config(spi->gpio, spi->mosi, GPIO_OFF, GPIO_PULLOFF);
+        gpio_config(spi->gpio, spi->miso, GPIO_OFF, GPIO_PULLOFF);
+    }
 
     mem_del(ctx);
 }
 
 static bool
-config_get(void *ctx, union config *cfg)
+stat(void *ctx, u32 idx, u32 *width)
 {
-    struct spi *spi = ctx;
-    cfg->spi.mode = spi->cpol << 1 | spi->cpha;
-    cfg->spi.lsb = spi->lsb;
+    bool ret = true;
 
-    if (spi->sleep == empty)
-        cfg->spi.freq = 0;
-    else if (spi->sleep == hsleep)
-        cfg->spi.freq = 480000000 / (spi->delay * 2);
-    else
-        cfg->spi.freq = (1000000 / WHEEL_INNER_US) / (spi->delay * 2);
-
-    return true;
-}
-
-static bool
-config_set(void *ctx, union config *cfg)
-{
-    bool ret = false;
-
-    if (cfg->spi.freq < 240000000)
+    if (ctx)
     {
-        struct spi *spi = ctx;
-        spi->cpha = (cfg->spi.mode & 0x1);
-        spi->cpol = (cfg->spi.mode & 0x2);
-        spi->lsb = cfg->spi.lsb;
-
-        u32 clk = 1000000 / WHEEL_INNER_US;
-        if (cfg->spi.freq == 0)
-            spi->sleep = empty;
-        else if (cfg->spi.freq <= clk / 2)
+        switch (idx)
         {
-            spi->sleep = csleep;
-            spi->delay = clk / cfg->spi.freq / 2;
+            case 0:
+                *width = sizeof(struct spi_cfg);
+                break;
+            case 1:
+                *width = sizeof(u8);
+                break;
+            default:
+                ret = false;
+                break;
         }
-        else
-        {
-            spi->sleep = hsleep;
-            spi->delay = 480000000 / cfg->spi.freq / 2;
-        }
-
-        ret = true;
     }
 
     return ret;
@@ -194,10 +142,31 @@ config_set(void *ctx, union config *cfg)
 static bool
 read(void *ctx, u32 idx, void *data)
 {
-    bool ret = (idx == 0);
+    bool ret = false;
 
-    if (ret)
-        *((u8*)data) = spi_transfer(ctx, 0x0);
+    if (ctx)
+    {
+        struct spi *spi = ctx;
+        switch (idx)
+        {
+            case 0:
+                ret = true;
+
+                struct spi_cfg cfg = {0};
+                cfg.mode = spi->cpol << 1 | spi->cpha;
+                cfg.lsb = spi->lsb;
+                cfg.freq = 1000000 / (WHEEL_INNER_US * spi->delay);
+                mem_copy(data, &cfg, sizeof(struct spi_cfg));
+                break;
+
+            case 1:
+                ret = true;
+
+                u8 byte = spi_transfer(ctx, 0x0);
+                mem_copy(data, &byte, sizeof(u8));
+                break;
+        }
+    }
 
     return ret;
 }
@@ -205,10 +174,37 @@ read(void *ctx, u32 idx, void *data)
 static bool
 write(void *ctx, u32 idx, void *data)
 {
-    bool ret = (idx == 0);
+    bool ret = false;
 
-    if (ret)
-        spi_transfer(ctx, *((u8*)data));
+    if (ctx)
+    {
+        struct spi *spi = ctx;
+        switch (idx)
+        {
+            case 0:;
+                struct spi_cfg cfg = {0};
+                mem_copy(&cfg, data, sizeof(struct spi_cfg));
+                ret = (cfg.freq <= 100000 && cfg.freq >= 391 && cfg.mode < 4);
+
+                if (ret)
+                {
+                    struct spi *spi = ctx;
+                    spi->cpha = (cfg.mode & 0x1);
+                    spi->cpol = (cfg.mode & 0x2);
+                    spi->lsb = cfg.lsb;
+                    spi->delay = (1000000 / (cfg.freq * WHEEL_INNER_US));
+                }
+                break;
+
+            case 1:
+                ret = true;
+
+                u8 byte = 0;
+                mem_copy(&byte, data, sizeof(u8));
+                spi_transfer(spi, byte);
+                break;
+        }
+    }
 
     return ret;
 }
@@ -216,7 +212,5 @@ write(void *ctx, u32 idx, void *data)
 drv_decl (spi, spi)
 {
     .init = init, .clean = clean,
-    .config.get = config_get,
-    .config.set = config_set,
-    .read = read, .write = write
+    .stat = stat, .read = read, .write = write
 };

@@ -23,4 +23,21 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 drv_typedef (stream, spi);
 dev_typedef (spi);
 
+enum spi_mode
+{
+    SPI_MODE0, SPI_MODE1, SPI_MODE2, SPI_MODE3
+};
+
+struct spi_cfg
+{
+    u32 freq;
+    enum spi_mode mode;
+    bool lsb;
+};
+
+bool spi_info(dev_spi *ds, u32 *freq, enum spi_mode *mode, bool *lsb);
+bool spi_config(dev_spi *ds, u32 freq, enum spi_mode mode, bool lsb);
+bool spi_read(dev_spi *ds, u8 *data);
+bool spi_write(dev_spi *ds, u8 data);
+
 #endif

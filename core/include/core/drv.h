@@ -38,38 +38,6 @@ union __attribute__((packed)) config
 
     struct __attribute__((packed))
     {
-        u32 baud;
-        enum
-        {
-            DRIVER_SERIAL_CHAR_5B, DRIVER_SERIAL_CHAR_6B,
-            DRIVER_SERIAL_CHAR_7B, DRIVER_SERIAL_CHAR_8B,
-        } bits;
-        enum
-        {
-            DRIVER_SERIAL_PARITY_NONE,
-            DRIVER_SERIAL_PARITY_ODD,  DRIVER_SERIAL_PARITY_EVEN,
-            DRIVER_SERIAL_PARITY_MARK, DRIVER_SERIAL_PARITY_SPACE
-        } parity;
-        enum
-        {
-            DRIVER_SERIAL_STOP_1B,
-            DRIVER_SERIAL_STOP_1HB, DRIVER_SERIAL_STOP_2B
-        } stop;
-    } serial;
-
-    struct __attribute__((packed))
-    {
-        u32 freq;
-        enum
-        {
-            DRIVER_SPI_MODE_0, DRIVER_SPI_MODE_1,
-            DRIVER_SPI_MODE_2, DRIVER_SPI_MODE_3
-        } mode;
-        bool lsb;
-    } spi;
-
-    struct __attribute__((packed))
-    {
         u32  (*open) (void *ctx, char *path);
         u32  (*close)(void *ctx, u32 idx);
         void (*info) (void *ctx, u32 idx, size_t *size, s32 *files);
