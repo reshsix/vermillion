@@ -56,15 +56,11 @@ init(void **ctx, dev_gpio *gpio, u16 data, u16 clock, u16 latch, bool lsbfirst)
 static void
 clean(void *ctx)
 {
-    if (ctx)
-    {
-        struct sipo *s = ctx;
-        gpio_config(s->gpio, s->data, GPIO_OFF, GPIO_PULLOFF);
-        gpio_config(s->gpio, s->clock, GPIO_OFF, GPIO_PULLOFF);
-        gpio_config(s->gpio, s->latch, GPIO_OFF, GPIO_PULLOFF);
-    }
-
-    mem_del(ctx);
+    struct sipo *s = ctx;
+    gpio_config(s->gpio, s->data, GPIO_OFF, GPIO_PULLOFF);
+    gpio_config(s->gpio, s->clock, GPIO_OFF, GPIO_PULLOFF);
+    gpio_config(s->gpio, s->latch, GPIO_OFF, GPIO_PULLOFF);
+    mem_del(s);
 }
 
 static bool

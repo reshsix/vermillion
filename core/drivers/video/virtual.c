@@ -79,7 +79,6 @@ static void
 clean(void *ctx)
 {
     struct virtual *v = ctx;
-
     mem_del(v->buffer);
     mem_del(v);
 }
@@ -89,13 +88,8 @@ stat(void *ctx, u32 idx, u32 *width, u32 *depth)
 {
     bool ret = true;
 
-    if (ctx)
-    {
-        struct virtual *v = ctx;
-        ret = v->video->driver->stat(v->video->context, idx, width, depth);
-    }
-    else
-        ret = false;
+    struct virtual *v = ctx;
+    ret = block_stat((dev_block *)v->video, idx, width, depth);
 
     return ret;
 }
@@ -105,27 +99,24 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx)
+    struct virtual *v = ctx;
+    switch (idx)
     {
-        struct virtual *v = ctx;
-        switch (idx)
-        {
-            case 0:
-                ret = (block == 0);
+        case 0:
+            ret = (block == 0);
 
-                if (ret)
-                    mem_copy(buffer, &(v->fb), sizeof(struct video_fb));
-                break;
+            if (ret)
+                mem_copy(buffer, &(v->fb), sizeof(struct video_fb));
+            break;
 
-            case 1:
-                ret = (block < v->fb.height);
+        case 1:
+            ret = (block < v->fb.height);
 
-                if (ret)
-                    mem_copy(buffer,
-                             &(v->buffer[block * v->fb.width * v->depth]),
-                             v->fb.width * v->depth);
-                break;
-        }
+            if (ret)
+                mem_copy(buffer,
+                         &(v->buffer[block * v->fb.width * v->depth]),
+                         v->fb.width * v->depth);
+            break;
     }
 
     return ret;
@@ -136,46 +127,42 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx)
+    struct virtual *v = ctx;
+    switch (idx)
     {
-        struct virtual *v = ctx;
-        switch (idx)
-        {
-            case 1:
-                ret = (block < v->fb.height);
+        case 1:
+            ret = (block < v->fb.height);
 
-                if (ret)
+            if (ret)
+            {
+                mem_copy(&(v->buffer[block * v->fb.width * v->depth]),
+                         buffer, v->fb.width * v->depth);
+
+                u16 js = (block * v->height2) / v->fb.height;
+                u16 je = js + v->height2 / v->fb.height;
+                for (u16 j = js; ret && j < je + 1; j++)
                 {
-                    mem_copy(&(v->buffer[block * v->fb.width * v->depth]),
-                             buffer, v->fb.width * v->depth);
-
-                    u16 js = (block * v->height2) / v->fb.height;
-                    u16 je = js + v->height2 / v->fb.height;
-                    for (u16 j = js; ret && j < je + 1; j++)
+                    for (u16 i = 0; i < v->width2; i++)
                     {
-                        for (u16 i = 0; i < v->width2; i++)
-                        {
-                            u16 i0 = (i * v->fb.width) / v->width2;
-                            u16 j0 = (j * v->fb.height) / v->height2;
+                        u16 i0 = (i * v->fb.width) / v->width2;
+                        u16 j0 = (j * v->fb.height) / v->height2;
 
-                            if (j0 > block)
-                                break;
+                        if (j0 > block)
+                            break;
 
-                            size_t k1 = ((j0 * v->fb.width) + i0) * v->depth;
-                            size_t k2 = (((j - js) * v->width2) + i) * v->depth;
+                        size_t k1 = ((j0 * v->fb.width) + i0) * v->depth;
+                        size_t k2 = (((j - js) * v->width2) + i) * v->depth;
 
-                            u8 *src = &(v->buffer[k1]);
-                            u8 *dest = &(v->buffer2[k2]);
+                        u8 *src = &(v->buffer[k1]);
+                        u8 *dest = &(v->buffer2[k2]);
 
-                            mem_copy(dest, src, v->depth);
-                        }
-
-                        ret = block_write((dev_block *)v->video, 1,
-                                          v->buffer2, j);
+                        mem_copy(dest, src, v->depth);
                     }
+
+                    ret = block_write((dev_block *)v->video, 1, v->buffer2, j);
                 }
-                break;
-        }
+            }
+            break;
     }
 
     return ret;

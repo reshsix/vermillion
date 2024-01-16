@@ -86,7 +86,8 @@ generator_yield(generator *g)
         state_load(&(g->caller), (void*)0x1);
 }
 
-extern noreturn
+[[noreturn]]
+extern void
 generator_finish(generator *g)
 {
     g->finished = true;

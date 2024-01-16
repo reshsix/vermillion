@@ -22,7 +22,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 extern bool
 pic_state(dev_pic *dp, bool enabled)
 {
-    return dp->driver->write(dp->context, 0, &enabled, 0);
+    return block_write((dev_block *)dp, 0, &enabled, 0);
 }
 
 extern bool
@@ -31,7 +31,7 @@ pic_info(dev_pic *dp, u16 n, bool *enabled, void (**handler)(void *),
 {
     struct pic_irq irq = {0};
 
-    bool ret = dp->driver->read(dp->context, 1, &irq, n);
+    bool ret = block_read((dev_block *)dp, 1, &irq, n);
 
     if (ret)
     {
@@ -54,7 +54,7 @@ pic_config(dev_pic *dp, u16 n, bool enabled, void (*handler)(void *),
 {
     struct pic_irq irq = {.enabled = enabled, .handler = handler,
                           .arg = arg, .level = level};
-    return dp->driver->write(dp->context, 1, &irq, n);
+    return block_write((dev_block *)dp, 1, &irq, n);
 }
 
 extern bool
@@ -63,7 +63,7 @@ pic_check(dev_pic *dp, u16 n, bool *enabled,
 {
     struct pic_swi swi = {0};
 
-    bool ret = dp->driver->read(dp->context, 2, &swi, n);
+    bool ret = block_read((dev_block *)dp, 2, &swi, n);
 
     if (ret)
     {
@@ -83,17 +83,17 @@ pic_setup(dev_pic *dp, u16 n, bool enabled,
           void (*handler)(void *, void *), void *arg)
 {
     struct pic_swi swi = {.enabled = enabled, .handler = handler, .arg = arg};
-    return dp->driver->write(dp->context, 2, &swi, n);
+    return block_write((dev_block *)dp, 2, &swi, n);
 }
 
 extern bool
 pic_wait(dev_pic *dp)
 {
-    return dp->driver->write(dp->context, 3, NULL, 0);
+    return block_write((dev_block *)dp, 3, NULL, 0);
 }
 
 extern bool
 pic_syscall(dev_pic *dp, u8 id, void *data)
 {
-    return dp->driver->write(dp->context, 4, (void *)&data, id);
+    return block_write((dev_block *)dp, 4, (void *)&data, id);
 }

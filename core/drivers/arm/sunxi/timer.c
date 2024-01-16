@@ -87,25 +87,21 @@ stat(void *ctx, u32 idx, u32 *width, u32 *length)
 {
     bool ret = true;
 
-    if (ctx)
+    (void)ctx;
+    switch (idx)
     {
-        switch (idx)
-        {
-            case 0:
-                *width = sizeof(struct timer_cb);
-                *length = 1;
-                break;
-            case 1:
-                *width = 0;
-                *length = 1;
-                break;
-            default:
-                ret = false;
-                break;
-        }
+        case 0:
+            *width = sizeof(struct timer_cb);
+            *length = 1;
+            break;
+        case 1:
+            *width = 0;
+            *length = 1;
+            break;
+        default:
+            ret = false;
+            break;
     }
-    else
-        ret = false;
 
     return ret;
 }
@@ -116,24 +112,21 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
     bool ret = true;
 
     struct timer *tmr = ctx;
-    if (ctx)
+    switch (idx)
     {
-        switch (idx)
-        {
-            case 0:
-                ret = (block == 0);
+        case 0:
+            ret = (block == 0);
 
-                if (ret)
-                    mem_copy(buffer, &(tmr->cb), sizeof(struct timer_cb));
-                break;
+            if (ret)
+                mem_copy(buffer, &(tmr->cb), sizeof(struct timer_cb));
+            break;
 
-            case 1:
-                ret = (block == 0);
+        case 1:
+            ret = (block == 0);
 
-                if (ret)
-                    pic_wait(tmr->pic);
-                break;
-        }
+            if (ret)
+                pic_wait(tmr->pic);
+            break;
     }
 
     return ret;
@@ -145,34 +138,31 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
     bool ret = true;
 
     struct timer *tmr = ctx;
-    if (ctx)
+    switch (idx)
     {
-        switch (idx)
-        {
-            case 0:
-                ret = (block == 0);
+        case 0:
+            ret = (block == 0);
 
-                if (ret)
+            if (ret)
+            {
+                mem_copy(&(tmr->cb), buffer, sizeof(struct timer_cb));
+
+                if (tmr->cb.enabled)
                 {
-                    mem_copy(&(tmr->cb), buffer, sizeof(struct timer_cb));
-
-                    if (tmr->cb.enabled)
-                    {
-                        TMR_INTV(tmr->base, tmr->id) = 24 * tmr->cb.delay;
-                        TMR_CTRL(tmr->base, tmr->id) |= 1 << 1 | 1 << 0;
-                    }
-                    else
-                        TMR_CTRL(tmr->base, tmr->id) &= ~(1 << 0);
+                    TMR_INTV(tmr->base, tmr->id) = 24 * tmr->cb.delay;
+                    TMR_CTRL(tmr->base, tmr->id) |= 1 << 1 | 1 << 0;
                 }
-                break;
+                else
+                    TMR_CTRL(tmr->base, tmr->id) &= ~(1 << 0);
+            }
+            break;
 
-            case 1:
-                ret = (block == 0);
+        case 1:
+            ret = (block == 0);
 
-                if (ret)
-                    pic_wait(tmr->pic);
-                break;
-        }
+            if (ret)
+                pic_wait(tmr->pic);
+            break;
     }
 
     return ret;

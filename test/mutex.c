@@ -25,7 +25,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 static bool flag = false, success = true;
 static bool resources[3] = {false};
 
-static thread_task (test_mutex0)
+thread_decl (static, test_mutex0)
 {
     bool *arg = thread_arg();
 
@@ -44,7 +44,7 @@ static thread_task (test_mutex0)
     thread_finish();
 }
 
-static thread_task (test_mutex1)
+thread_decl (static, test_mutex1)
 {
     u32 arg = (u32)thread_arg();
 

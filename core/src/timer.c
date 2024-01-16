@@ -16,6 +16,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/types.h>
 
+#include <core/block.h>
 #include <core/timer.h>
 
 extern bool
@@ -24,7 +25,7 @@ timer_check(dev_timer *dt, bool *enabled,
 {
     struct timer_cb cb = {0};
 
-    bool ret = dt->driver->read(dt->context, 0, &cb, 0);
+    bool ret = block_read((dev_block *)dt, 0, &cb, 0);
 
     if (ret)
     {
@@ -47,11 +48,11 @@ timer_setup(dev_timer *dt, bool enabled,
 {
     struct timer_cb cb = {.enabled = enabled, .handler = handler,
                           .arg = arg, .delay = delay};
-    return dt->driver->write(dt->context, 0, &cb, 0);
+    return block_write((dev_block *)dt, 0, &cb, 0);
 }
 
 extern bool
 timer_wait(dev_timer *dt)
 {
-    return dt->driver->read(dt->context, 1, NULL, 0);
+    return block_read((dev_block *)dt, 1, NULL, 0);
 }

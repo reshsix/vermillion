@@ -22,12 +22,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/implicit.h>
 #include <core/generator.h>
 
-struct _channel
-{
-    size_t type, size, count;
-    u8 *buffer;
-};
-
 extern channel *
 channel_new(size_t type, size_t size)
 {
@@ -76,8 +70,8 @@ channel_stat(channel *ch)
 extern void
 channel_read(channel *ch, void *data)
 {
-    _threads.cur->step++;
-    implicit if (!(_threads.blocked))
+    thread_list.current->step++;
+    implicit if (!(thread_list.blocked))
     {
         while (channel_empty(ch))
             thread_yield();
@@ -90,8 +84,8 @@ channel_read(channel *ch, void *data)
 extern void
 channel_write(channel *ch, void *data)
 {
-    _threads.cur->step++;
-    implicit if (!(_threads.blocked))
+    thread_list.current->step++;
+    implicit if (!(thread_list.blocked))
     {
         while (ch->count >= ch->size)
             thread_yield();

@@ -22,15 +22,15 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 
 #define dev_typedef(x) \
-    typedef struct __attribute__((packed)) \
+    typedef struct [[gnu::packed]] \
     { \
         const drv_##x *driver; \
         void *context; \
     } dev_##x; \
 
 #define dev(x) _device_##x
-#define dev_decl(type, drv_, x) dev_##type dev(x) = {.driver = &drv(drv_)};
-#define dev_incl(type, x) extern dev_##type dev(x);
+#define dev_decl(type, drv_, x) dev_##type dev(x) = {.driver = &drv(drv_)}
+#define dev_incl(type, x) extern dev_##type dev(x)
 
 #define dev_init(x, ...) \
 { \
@@ -38,16 +38,16 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
     if (dev(x).driver->init) \
         ((void (*)(void **, ...))dev(x).driver->init)(&_ctx,##__VA_ARGS__); \
     dev(x).context = _ctx; \
-}
+} (void)0x0
 #define dev_config(x, ...) \
 { \
     union config _cfg = {__VA_ARGS__}; \
     dev(x).driver->config.set(dev(x).context, &_cfg); \
-}
+} (void)0x0
 #define dev_clean(x) \
 { \
     if (dev(x).driver->clean) \
         dev(x).driver->clean(dev(x).context); \
-}
+} (void)0x0
 
 #endif

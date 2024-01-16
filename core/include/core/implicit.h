@@ -20,11 +20,13 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/types.h>
 #include <core/macros.h>
 
+#include <core/thread.h>
+
 #define implicit \
     bool UNIQUE(_implicit) = true; \
-    for (implicit_start(); UNIQUE(_implicit); implicit_end(), \
+    bool UNIQUE(_implicit_prev) = thread_list.current->stepping; \
+    for ((thread_list.current->stepping = false); UNIQUE(_implicit); \
+         (thread_list.current->stepping = UNIQUE(_implicit_prev)), \
          UNIQUE(_implicit) = false)
-void implicit_start(void);
-void implicit_end(void);
 
 #endif

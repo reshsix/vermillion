@@ -80,7 +80,7 @@ stat(void *ctx, u32 idx, u32 *width, u32 *length)
 {
     bool ret = true;
 
-    if (ctx)
+    if (ctx == tmr)
     {
         switch (idx)
         {
@@ -108,8 +108,7 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = true;
 
-    struct timer *tmr = ctx;
-    if (ctx)
+    if (ctx == tmr)
     {
         switch (idx)
         {
@@ -137,8 +136,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = true;
 
-    struct timer *tmr = ctx;
-    if (ctx)
+    if (ctx == tmr)
     {
         switch (idx)
         {

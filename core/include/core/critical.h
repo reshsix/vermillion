@@ -20,11 +20,13 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/types.h>
 #include <core/macros.h>
 
+#include <core/thread.h>
+
 #define critical \
     bool UNIQUE(_critical) = true; \
-    for (critical_lock(); UNIQUE(_critical); critical_unlock(), \
+    bool UNIQUE(_critical_prev) = thread_list.blocked; \
+    for ((thread_list.blocked = true); UNIQUE(_critical); \
+         (thread_list.blocked = UNIQUE(_critical_prev)), \
          UNIQUE(_critical) = false)
-void critical_lock(void);
-void critical_unlock(void);
 
 #endif

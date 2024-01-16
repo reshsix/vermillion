@@ -72,21 +72,17 @@ stat(void *ctx, u32 idx, u32 *width, u32 *depth)
 {
     bool ret = true;
 
-    if (ctx)
+    (void)ctx;
+    switch (idx)
     {
-        switch (idx)
-        {
-            case 0:
-                *width = 0x200;
-                *depth = 0x800000;
-                break;
-            default:
-                ret = false;
-                break;
-        }
+        case 0:
+            *width = 0x200;
+            *depth = 0x800000;
+            break;
+        default:
+            ret = false;
+            break;
     }
-    else
-        ret = false;
 
     return ret;
 }
@@ -96,39 +92,36 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx)
+    struct card *card = ctx;
+    switch (idx)
     {
-        struct card *card = ctx;
-        switch (idx)
-        {
-            case 0:
-                ret = true;
+        case 0:
+            ret = true;
 
-                SD_BLK(card->base) = 0x200;
-                SD_CFG(card->base) = 1 << 31;
+            SD_BLK(card->base) = 0x200;
+            SD_CFG(card->base) = 1 << 31;
 
-                while (SD_CMD(card->base) >> 31);
+            while (SD_CMD(card->base) >> 31);
 
-                SD_CNT(card->base) = 0x200;
-                if (!(card->mmc))
-                    SD_ARG(card->base) = block;
-                else
-                    SD_ARG(card->base) = block * 0x200;
+            SD_CNT(card->base) = 0x200;
+            if (!(card->mmc))
+                SD_ARG(card->base) = block;
+            else
+                SD_ARG(card->base) = block * 0x200;
 
-                SD_CMD(card->base) = 0x80002251;
-                while (SD_CMD(card->base) >> 31);
-                while (SD_STA(card->base) & (1 << 10));
+            SD_CMD(card->base) = 0x80002251;
+            while (SD_CMD(card->base) >> 31);
+            while (SD_STA(card->base) & (1 << 10));
 
-                for (u32 i = 0; i < (0x200 / 4); i++)
-                {
-                    while (SD_STA(card->base) & (1 << 2));
+            for (u32 i = 0; i < (0x200 / 4); i++)
+            {
+                while (SD_STA(card->base) & (1 << 2));
 
-                    u32 x = SD_FIFO(card->base);
-                    for (u8 j = 0; j < 4; j++)
-                        ((u8*)buffer)[(i * 4) + j] = ((u8*)&x)[j];
-                }
-                break;
-        }
+                u32 x = SD_FIFO(card->base);
+                for (u8 j = 0; j < 4; j++)
+                    ((u8*)buffer)[(i * 4) + j] = ((u8*)&x)[j];
+            }
+            break;
     }
 
     return ret;

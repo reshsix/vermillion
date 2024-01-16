@@ -170,10 +170,8 @@ static void
 clean(void *ctx)
 {
     struct ili9488 *ili = ctx;
-
     gpio_config(ili->gpio, ili->dcrs, GPIO_OFF, GPIO_PULLOFF);
     gpio_config(ili->gpio, ili->leds, GPIO_OFF, GPIO_PULLOFF);
-
     mem_del(ili);
 }
 
@@ -182,25 +180,21 @@ stat(void *ctx, u32 idx, u32 *width, u32 *depth)
 {
     bool ret = true;
 
-    if (ctx)
+    (void)ctx;
+    switch (idx)
     {
-        switch (idx)
-        {
-            case 0:
-                *width = sizeof(struct video_fb);
-                *depth = 1;
-                break;
-            case 1:
-                *width = 480 * 4;
-                *depth = 320;
-                break;
-            default:
-                ret = false;
-                break;
-        }
+        case 0:
+            *width = sizeof(struct video_fb);
+            *depth = 1;
+            break;
+        case 1:
+            *width = 480 * 4;
+            *depth = 320;
+            break;
+        default:
+            ret = false;
+            break;
     }
-    else
-        ret = false;
 
     return ret;
 }
@@ -210,26 +204,23 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx)
+    struct ili9488 *ili = ctx;
+    switch (idx)
     {
-        struct ili9488 *ili = ctx;
-        switch (idx)
-        {
-            case 0:
-                ret = (block == 0);
+        case 0:
+            ret = (block == 0);
 
-                if (ret)
-                    mem_copy(buffer, &(ili->fb), sizeof(struct video_fb));
-                break;
+            if (ret)
+                mem_copy(buffer, &(ili->fb), sizeof(struct video_fb));
+            break;
 
-            case 1:
-                ret = (block < 320);
+        case 1:
+            ret = (block < 320);
 
-                if (ret)
-                    mem_copy(buffer, &(ili->buffer32[block * 480 * 4]),
-                             480 * 4);
-                break;
-        }
+            if (ret)
+                mem_copy(buffer, &(ili->buffer32[block * 480 * 4]),
+                         480 * 4);
+            break;
     }
 
     return ret;
@@ -240,46 +231,43 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx)
+    struct ili9488 *ili = ctx;
+    switch (idx)
     {
-        struct ili9488 *ili = ctx;
-        switch (idx)
-        {
-            case 1:
-                ret = (block < 320);
+        case 1:
+            ret = (block < 320);
 
-                if (ret)
+            if (ret)
+            {
+                u8 *buffer8 = buffer;
+
+                bool diff = false;
+                for (u16 i = 0; !diff && i < 480; i++)
+                    diff = mem_comp(&(ili->buffer32[i * 4]),
+                                    &(buffer8[i * 4]), 3);
+
+                if (diff)
                 {
-                    u8 *buffer8 = buffer;
+                    mem_copy(&(ili->buffer32[block * 480 * 4]),
+                             buffer, 480 * 4);
 
-                    bool diff = false;
-                    for (u16 i = 0; !diff && i < 480; i++)
-                        diff = mem_comp(&(ili->buffer32[i * 4]),
-                                        &(buffer8[i * 4]), 3);
+                    u32 index = block * 480;
+                    for (u16 i = 0; i < 480; i++)
+                        mem_copy(&(ili->buffer24[i * 3]),
+                                 &(buffer8[i * 4]), 3);
 
-                    if (diff)
-                    {
-                        mem_copy(&(ili->buffer32[block * 480 * 4]),
-                                 buffer, 480 * 4);
+                    u32 x = index % 480;
+                    u32 y = index / 480;
+                    u32 w = (x + 480 < 480) ? 480 : 480 - x;
+                    u32 h = 1;
 
-                        u32 index = block * 480;
-                        for (u16 i = 0; i < 480; i++)
-                            mem_copy(&(ili->buffer24[i * 3]),
-                                     &(buffer8[i * 4]), 3);
-
-                        u32 x = index % 480;
-                        u32 y = index / 480;
-                        u32 w = (x + 480 < 480) ? 480 : 480 - x;
-                        u32 h = 1;
-
-                        ili9488_update(ili, ili->buffer24, x, y, w, h);
-                        if (w < 480)
-                            ili9488_update(ili, &(ili->buffer24[w * 3]),
-                                           0, y + 1, 480 - w, h);
-                    }
+                    ili9488_update(ili, ili->buffer24, x, y, w, h);
+                    if (w < 480)
+                        ili9488_update(ili, &(ili->buffer24[w * 3]),
+                                       0, y + 1, 480 - w, h);
                 }
-                break;
-        }
+            }
+            break;
     }
 
     return ret;

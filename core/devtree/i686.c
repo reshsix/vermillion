@@ -24,45 +24,51 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/pic.h>
 #include <core/uart.h>
+#include <core/block.h>
 #include <core/timer.h>
 #include <core/video.h>
 #include <core/stream.h>
 
-drv_incl (uart, i686_com)
-dev_decl (uart, i686_com, tty0)
-dev_decl (uart, i686_com, tty1)
-dev_decl (uart, i686_com, tty2)
-dev_decl (uart, i686_com, tty3)
+drv_incl (uart, i686_com);
+dev_decl (uart, i686_com, tty0);
+dev_decl (uart, i686_com, tty1);
+dev_decl (uart, i686_com, tty2);
+dev_decl (uart, i686_com, tty3);
 
-drv_incl (pic, i686_pic)
-dev_decl (pic, i686_pic, pic)
+drv_incl (pic, i686_pic);
+dev_decl (pic, i686_pic, pic);
 
-drv_incl (timer, i686_timer)
-dev_decl (timer, i686_timer, timer0)
+drv_incl (timer, i686_timer);
+dev_decl (timer, i686_timer, timer0);
 
-drv_incl (video, i686_fb)
-dev_decl (video, i686_fb, video0)
+drv_incl (video, i686_fb);
+dev_decl (video, i686_fb, video0);
+
+drv_incl (block, memory);
+dev_decl (block, memory, ram);
 
 extern u32 *multiboot_addr;
 static void *multiboot_info = NULL;
 
 extern void
-_devtree_init(void)
+devtree_init(void)
 {
     if (multiboot_addr)
         multiboot_info = mem_new(multiboot_addr[0]);
     if (multiboot_info)
         mem_copy(multiboot_info, multiboot_addr, multiboot_addr[0]);
 
-    dev_init (tty0, 0x3F8)
+    dev_init (ram, 0x0, 0x200, CONFIG_RAM_SIZE / 0x200);
+
+    dev_init (tty0, 0x3F8);
     uart_config(&dev(tty0), 115200, UART_8B, UART_NOPARITY, UART_1S);
     log_set_dev((dev_stream *)&dev(tty0), 1);
 
-    dev_init (tty1, 0x2F8)
-    dev_init (tty2, 0x3E8)
-    dev_init (tty3, 0x2E8)
+    dev_init (tty1, 0x2F8);
+    dev_init (tty2, 0x3E8);
+    dev_init (tty3, 0x2E8);
 
-    dev_init (pic)
+    dev_init (pic);
     dev_init (timer0, &dev(pic), 0);
 
     dev_init (video0, multiboot_info);
@@ -72,12 +78,12 @@ _devtree_init(void)
 }
 
 extern void
-_devtree_clean(void)
+devtree_clean(void)
 {
-    dev_clean (tty1)
-    dev_clean (tty3)
-    dev_clean (tty2)
+    dev_clean (tty1);
+    dev_clean (tty3);
+    dev_clean (tty2);
 
-    dev_clean (tty0)
+    dev_clean (tty0);
     log_set_dev(NULL, 0);
 }

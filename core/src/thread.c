@@ -20,10 +20,10 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/thread.h>
 #include <core/generator.h>
 
-struct _threads _threads = {0};
+struct thread_list thread_list = {0};
 
 extern thread *
-thread_new(thread_task(f), void *arg, bool persistent, u8 priority)
+thread_new(thread_task f, void *arg, bool persistent, u8 priority)
 {
     thread *ret = mem_new(sizeof(thread));
 
@@ -39,16 +39,16 @@ thread_new(thread_task(f), void *arg, bool persistent, u8 priority)
 
     if (ret)
     {
-        if (_threads.tail)
-            _threads.tail->next = ret;
+        if (thread_list.tail)
+            thread_list.tail->next = ret;
         else
         {
-            _threads.head = ret;
-            _threads.cur = ret;
+            thread_list.head = ret;
+            thread_list.current = ret;
         }
 
-        ret->prev = _threads.tail;
-        _threads.tail = ret;
+        ret->prev = thread_list.tail;
+        thread_list.tail = ret;
     }
 
     if (ret && !persistent)
@@ -67,12 +67,12 @@ thread_del(thread *t)
         if (t->next)
             t->next->prev = t->prev;
 
-        if (_threads.head == t)
-            _threads.head = (t->prev) ? t->prev : t->next;
-        if (_threads.cur == t)
-            _threads.cur = (t->next) ? t->next : _threads.head;
-        if (_threads.tail == t)
-            _threads.tail = (t->next) ? t->next : _threads.head;
+        if (thread_list.head == t)
+            thread_list.head = (t->prev) ? t->prev : t->next;
+        if (thread_list.current == t)
+            thread_list.current = (t->next) ? t->next : thread_list.head;
+        if (thread_list.tail == t)
+            thread_list.tail = (t->next) ? t->next : thread_list.head;
 
         mem_del(t);
     }
@@ -85,13 +85,14 @@ thread_sync(thread *t, size_t step)
 {
     size_t ret = 0;
 
-    if (_threads.cur->stepping)
-        _threads.cur->step++;
+    if (thread_list.current->stepping)
+        thread_list.current->step++;
 
-    if (!_threads.blocked && _threads.cur != t && (u32)t > 0x1 && t->persistent)
+    if (!thread_list.blocked && thread_list.current != t &&
+        (u32)t > 0x1 && t->persistent)
     {
         while (t->step < step && !(t->gen->finished))
-            generator_yield(_threads.cur->gen);
+            generator_yield(thread_list.current->gen);
 
         ret = t->step;
     }
@@ -104,13 +105,14 @@ thread_wait(thread *t)
 {
     size_t ret = 0;
 
-    if (_threads.cur->stepping)
-        _threads.cur->step++;
+    if (thread_list.current->stepping)
+        thread_list.current->step++;
 
-    if (!_threads.blocked && _threads.cur != t && (u32)t > 0x1 && t->persistent)
+    if (!thread_list.blocked && thread_list.current != t &&
+        (u32)t > 0x1 && t->persistent)
     {
         while (!(t->gen->finished))
-            generator_yield(_threads.cur->gen);
+            generator_yield(thread_list.current->gen);
 
         ret = t->step;
     }
@@ -123,7 +125,8 @@ thread_rewind(thread *t)
 {
     bool ret = false;
 
-    if (!_threads.blocked && _threads.cur != t && (u32)t > 0x1 && t->persistent)
+    if (!thread_list.blocked && thread_list.current != t &&
+        (u32)t > 0x1 && t->persistent)
     {
         t->step = 0;
         generator_rewind(t->gen);
@@ -136,79 +139,74 @@ thread_rewind(thread *t)
 extern void *
 thread_arg(void)
 {
-    return _threads.cur->gen->arg;
-}
-
-extern void
-thread_block(bool state)
-{
-    _threads.blocked = state;
-}
-
-extern void
-thread_steps(bool state)
-{
-    _threads.cur->stepping = state;
+    return thread_list.current->gen->arg;
 }
 
 extern void
 thread_yield(void)
 {
-    if (_threads.cur->stepping)
-        _threads.cur->step++;
-    if (!_threads.blocked)
-        generator_yield(_threads.cur->gen);
+    if (thread_list.current->stepping)
+        thread_list.current->step++;
+    if (!thread_list.blocked)
+        generator_yield(thread_list.current->gen);
 }
 
-extern noreturn
+[[noreturn]]
+extern void
 thread_loop(void)
 {
-    if (_threads.cur->stepping)
-        _threads.cur->step = 0;
-    generator_rewind(_threads.cur->gen);
+    if (thread_list.current->stepping)
+        thread_list.current->step = 0;
+    generator_rewind(thread_list.current->gen);
 
-    _threads.blocked = false;
-    generator_yield(_threads.cur->gen);
+    thread_list.blocked = false;
+    generator_yield(thread_list.current->gen);
+
+    while (true);
 }
 
-extern noreturn
+[[noreturn]]
+extern void
 thread_finish(void)
 {
-    if (_threads.cur->stepping)
-        _threads.cur->step++;
-    _threads.blocked = false;
-    generator_finish(_threads.cur->gen);
+    if (thread_list.current->stepping)
+        thread_list.current->step++;
+    thread_list.blocked = false;
+    generator_finish(thread_list.current->gen);
 }
 
-extern void _devtree_init(void);
-extern void _devtree_clean(void);
+extern void devtree_init(void);
+extern void devtree_clean(void);
 
 extern void main(void);
-static thread_task(_main)
+thread_decl (static, thread_main)
 {
     main();
     thread_finish();
 }
 
-extern noreturn
+[[noreturn]]
+extern void
 thread_scheduler(void)
 {
     _mem_init();
-    _devtree_init();
+    devtree_init();
 
-    thread_new(_main, NULL, false, 255);
-    while (_threads.cur)
+    thread_new(thread_main, NULL, false, 255);
+    while (thread_list.current)
     {
-        thread *cur = _threads.cur;
+        thread *cur = thread_list.current;
 
         if (!((cur->counter * cur->priority) % 255))
         {
             if (generator_next(cur->gen))
-                _threads.cur = (cur->next) ? cur->next : _threads.head;
+                thread_list.current = (cur->next) ? cur->next :
+                                      thread_list.head;
             else
             {
                 if (cur->persistent)
-                    _threads.cur = (cur->next) ? cur->next : _threads.head;
+                    thread_list.current = (cur->next) ? cur->next :
+                                          thread_list.head;
                 else
                     cur = thread_del(cur);
             }
@@ -218,7 +216,7 @@ thread_scheduler(void)
             cur->counter++;
     }
 
-    _devtree_clean();
+    devtree_clean();
     _mem_clean();
 
     while (true);

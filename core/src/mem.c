@@ -286,25 +286,29 @@ mem_copy(void *dest, const void *src, size_t length)
     }
 }
 
-extern void __attribute__((weak))
+[[gnu::weak]]
+extern void
 memcpy(void * restrict dest, const void * restrict src, size_t length)
 {
     mem_copy(dest, src, length);
 }
 
-extern void __attribute__((weak))
+[[gnu::weak]]
+extern void
 memmove(void *dest, const void *src, size_t length)
 {
     mem_copy(dest, src, length);
 }
 
-extern void __attribute__((weak))
+[[gnu::weak]]
+extern void
 memset(void *mem, int c, size_t length)
 {
     mem_init(mem, c, length);
 }
 
-extern int __attribute__((weak))
+[[gnu::weak]]
+extern int
 memcmp(const void *mem, const void *mem2, size_t length)
 {
     return mem_comp(mem, mem2, length);

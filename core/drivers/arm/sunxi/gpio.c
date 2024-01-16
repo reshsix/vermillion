@@ -111,17 +111,14 @@ init(void **ctx, u32 base, u8 io_ports, u8 int_ports, dev_pic *pic, u16 *irqs)
 static void
 clean(void *ctx)
 {
-    if (ctx)
-    {
-        struct gpio *gpio = ctx;
-        for (u8 i = 0; i < gpio->int_ports; i++)
-            pic_config(gpio->pic, gpio->irqs[i], false,
-                       NULL, NULL, PIC_EDGE_L);
+    struct gpio *gpio = ctx;
+    for (u8 i = 0; i < gpio->int_ports; i++)
+        pic_config(gpio->pic, gpio->irqs[i], false,
+                   NULL, NULL, PIC_EDGE_L);
 
-        mem_del(gpio->handlers);
-        mem_del(gpio->args);
-    }
-    mem_del(ctx);
+    mem_del(gpio->handlers);
+    mem_del(gpio->args);
+    mem_del(gpio);
 }
 
 static bool

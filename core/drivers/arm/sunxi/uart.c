@@ -67,20 +67,18 @@ stat(void *ctx, u32 idx, u32 *width)
 {
     bool ret = true;
 
-    if (ctx)
+    (void)ctx;
+    switch (idx)
     {
-        switch (idx)
-        {
-            case 0:
-                *width = sizeof(struct uart_cfg);
-                break;
-            case 1:
-                *width = sizeof(u8);
-                break;
-            default:
-                ret = false;
-                break;
-        }
+        case 0:
+            *width = sizeof(struct uart_cfg);
+            break;
+        case 1:
+            *width = sizeof(u8);
+            break;
+        default:
+            ret = false;
+            break;
     }
 
     return ret;
@@ -91,24 +89,21 @@ read(void *ctx, u32 idx, void *data)
 {
     bool ret = false;
 
-    if (ret)
+    struct serial *u = ctx;
+    switch (idx)
     {
-        struct serial *u = ctx;
-        switch (idx)
-        {
-            case 0:
-                ret = true;
-                mem_copy(data, &(u->cfg), sizeof(struct uart_cfg));
-                break;
+        case 0:
+            ret = true;
+            mem_copy(data, &(u->cfg), sizeof(struct uart_cfg));
+            break;
 
-            case 1:
-                ret = true;
-                while (!(IO_LSR(u->port) & (1 << 0)));
+        case 1:
+            ret = true;
+            while (!(IO_LSR(u->port) & (1 << 0)));
 
-                u8 byte = IO_BUF(u->port);
-                mem_copy(data, &byte, sizeof(u8));
-                break;
-        }
+            u8 byte = IO_BUF(u->port);
+            mem_copy(data, &byte, sizeof(u8));
+            break;
     }
 
     return ret;
@@ -119,74 +114,71 @@ write(void *ctx, u32 idx, void *data)
 {
     bool ret = false;
 
-    if (ctx)
+    struct serial *u = ctx;
+    switch (idx)
     {
-        struct serial *u = ctx;
-        switch (idx)
-        {
-            case 0:;
-                struct uart_cfg cfg = {0};
-                mem_copy(&cfg, data, sizeof(struct uart_cfg));
+        case 0:;
+            struct uart_cfg cfg = {0};
+            mem_copy(&cfg, data, sizeof(struct uart_cfg));
 
-                if (cfg.baud == 0)
-                    cfg.baud = 115200;
+            if (cfg.baud == 0)
+                cfg.baud = 115200;
 
-                ret = (  cfg.baud <= 1500000  && cfg.baud >= 23       &&
-                       !(cfg.stop == UART_1HS && cfg.bits != UART_5B) &&
-                       !(cfg.stop == UART_2S  && cfg.bits == UART_5B));
+            ret = (  cfg.baud <= 1500000  && cfg.baud >= 23       &&
+                   !(cfg.stop == UART_1HS && cfg.bits != UART_5B) &&
+                   !(cfg.stop == UART_2S  && cfg.bits == UART_5B));
 
-                if (ret)
+            if (ret)
+            {
+                mem_copy(&(u->cfg), &cfg, sizeof(struct uart_cfg));
+
+                u16 divider = 1500000 / cfg.baud;
+                IO_LCR(u->port) |= (1 << 7);
+                IO_DLH(u->port) = (divider >> 8) & 0xff;
+                IO_DLL(u->port) = (divider >> 0) & 0xff;
+                IO_LCR(u->port) &= ~(1 << 7);
+
+                IO_LCR(u->port) &= ~0x3;
+                IO_LCR(u->port) |= cfg.bits & 0x3;
+
+                switch (cfg.parity)
                 {
-                    mem_copy(&(u->cfg), &cfg, sizeof(struct uart_cfg));
-
-                    u16 divider = 1500000 / cfg.baud;
-                    IO_LCR(u->port) |= (1 << 7);
-                    IO_DLH(u->port) = (divider >> 8) & 0xff;
-                    IO_DLL(u->port) = (divider >> 0) & 0xff;
-                    IO_LCR(u->port) &= ~(1 << 7);
-
-                    IO_LCR(u->port) &= ~0x3;
-                    IO_LCR(u->port) |= cfg.bits & 0x3;
-
-                    switch (cfg.parity)
-                    {
-                        case UART_NOPARITY:
-                            IO_LCR(u->port) &= ~(1 << 3);
-                            break;
-                        case UART_ODD:
-                            IO_LCR(u->port) &= ~0x38;
-                            IO_LCR(u->port) |= (1 << 3);
-                            break;
-                        case UART_EVEN:
-                            IO_LCR(u->port) &= ~0x38;
-                            IO_LCR(u->port) |= (1 << 3) | (1 << 4);
-                            break;
-                        default:
-                            break;
-                    }
-
-                    switch (cfg.stop)
-                    {
-                        case UART_1S:
-                            IO_LCR(u->port) &= ~(1 << 2);
-                            break;
-                        case UART_1HS:
-                        case UART_2S:
-                            IO_LCR(u->port) |= (1 << 2);
-                            break;
-                    }
+                    case UART_NOPARITY:
+                        IO_LCR(u->port) &= ~(1 << 3);
+                        break;
+                    case UART_ODD:
+                        IO_LCR(u->port) &= ~0x38;
+                        IO_LCR(u->port) |= (1 << 3);
+                        break;
+                    case UART_EVEN:
+                        IO_LCR(u->port) &= ~0x38;
+                        IO_LCR(u->port) |= (1 << 3) | (1 << 4);
+                        break;
+                    default:
+                        break;
                 }
-                break;
 
-            case 1:
-                ret = true;
-                while (!(IO_LSR(u->port) & (1 << 5)));
+                switch (cfg.stop)
+                {
+                    case UART_1S:
+                        IO_LCR(u->port) &= ~(1 << 2);
+                        break;
+                    case UART_1HS:
+                    case UART_2S:
+                        IO_LCR(u->port) |= (1 << 2);
+                        break;
+                }
+            }
+            break;
 
-                u8 byte = IO_BUF(u->port);
-                mem_copy(&byte, data, sizeof(u8));
-                IO_BUF(u->port) = byte;
-                break;
-        }
+        case 1:
+            ret = true;
+            while (!(IO_LSR(u->port) & (1 << 5)));
+
+            u8 byte = IO_BUF(u->port);
+            mem_copy(&byte, data, sizeof(u8));
+            IO_BUF(u->port) = byte;
+            break;
     }
 
     return ret;

@@ -39,8 +39,8 @@ enum
 extern void *__ivt[8];
 
 #define interrupt(type) \
-    __attribute__((target("general-regs-only"))) \
-    __attribute__((isr(#type))) void
+    [[gnu::target("general-regs-only")]] [[gnu::isr(#type)]] \
+    static void
 
 #define ICCICR(cpu)  *(volatile u32*)(cpu + 0x0)
 #define ICCPMR(cpu)  *(volatile u32*)(cpu + 0x4)
@@ -208,16 +208,14 @@ struct gic
 };
 static struct gic *gic = NULL;
 
-static interrupt(undef)
-handler_undef(void)
+interrupt(undef) handler_undef(void)
 {
     log("Undefined Instruction");
     for (;;)
         arm_wait_interrupts();
 }
 
-static interrupt(swi)
-handler_swi(void)
+interrupt(swi) handler_swi(void)
 {
     critical if (gic)
     {
@@ -233,24 +231,21 @@ handler_swi(void)
     }
 }
 
-static interrupt(abort)
-handler_prefetch(void)
+interrupt(abort) handler_prefetch(void)
 {
     log("Prefetch Abort");
     for (;;)
         arm_wait_interrupts();
 }
 
-static interrupt(abort)
-handler_data(void)
+interrupt(abort) handler_data(void)
 {
     log("Data Abort");
     for (;;)
         arm_wait_interrupts();
 }
 
-static interrupt(irq)
-handler_irq(void)
+interrupt(irq) handler_irq(void)
 {
     critical if (gic)
     {
@@ -264,8 +259,7 @@ handler_irq(void)
     }
 }
 
-static interrupt(fiq)
-handler_fiq(void)
+interrupt(fiq) handler_fiq(void)
 {
     critical if (gic)
     {
@@ -276,7 +270,7 @@ handler_fiq(void)
     }
 }
 
-static void __attribute__((naked))
+static void [[gnu::naked]]
 stack_irq(void *addr)
 {
     (void)addr;
@@ -316,7 +310,7 @@ init(void **ctx, u32 cpu, u32 dist)
 static void
 clean(void *ctx)
 {
-    if (ctx && ctx == gic)
+    if (ctx == gic)
     {
         arm_disable_irq();
         gic_disable_dist(gic->dist);
@@ -338,7 +332,7 @@ stat(void *ctx, u32 idx, u32 *width, u32 *length)
 {
     bool ret = true;
 
-    if (ctx && ctx == gic)
+    if (ctx == gic)
     {
         switch (idx)
         {
@@ -383,7 +377,7 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx && ctx == gic)
+    if (ctx == gic)
     {
         switch (idx)
         {
@@ -427,7 +421,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx && ctx == gic)
+    if (ctx == gic)
     {
         switch (idx)
         {

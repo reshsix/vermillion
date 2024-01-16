@@ -23,7 +23,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <debug/assert.h>
 
 bool flag = false;
-static thread_task (test_implicit)
+thread_decl (static, test_implicit)
 {
     u32 arg = (u32)thread_arg();
 

@@ -22,7 +22,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/fork.h>
 #include <core/state.h>
 
-struct _generator
+typedef struct generator
 {
     bool active, finished;
 
@@ -30,8 +30,7 @@ struct _generator
     fork *fk;
 
     state caller, callee;
-};
-typedef struct _generator generator;
+} generator;
 
 generator *generator_new(void (*f)(generator *), void *arg);
 generator *generator_del(generator *g);
@@ -39,6 +38,6 @@ bool generator_next(generator *g);
 void generator_rewind(generator *g);
 void *generator_arg(generator *g);
 void generator_yield(generator *g);
-noreturn generator_finish(generator *g);
+[[noreturn]] void generator_finish(generator *g);
 
 #endif

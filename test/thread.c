@@ -24,21 +24,21 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 static bool flag0 = false, flag1 = false;
 static bool flag2 = false, flag3 = false, flag4 = false;
 static bool loop = false, finish = false;
-static thread_task (test_thread)
+thread_decl (static, test_thread)
 {
     if (!finish)
     {
         flag0 = true;
         thread_yield();
 
-        thread_block(true);
+        thread_list.blocked = true;
         thread_yield();
         thread_yield();
         thread_yield();
         thread_yield();
         thread_yield();
         flag1 = true;
-        thread_block(false);
+        thread_list.blocked = false;
 
         flag2 = true;
         thread_yield();

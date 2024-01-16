@@ -25,12 +25,12 @@ mutex_lock(void **m, void *param)
     while (*m != NULL)
         thread_yield();
 
-    *m = ((param) ? param : _threads.cur);
+    *m = ((param) ? param : thread_list.current);
 }
 
 extern void
 mutex_unlock(void **m, void *param)
 {
-    if (*m == ((param) ? param : _threads.cur))
+    if (*m == ((param) ? param : thread_list.current))
         *m = NULL;
 }

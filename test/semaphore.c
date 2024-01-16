@@ -24,7 +24,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 static u8 count = 0;
 
-static thread_task (test_semaphore)
+thread_decl (static, test_semaphore)
 {
     bool *arg = thread_arg();
 

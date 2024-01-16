@@ -21,9 +21,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 /* Definitions for specific driver types */
 
-union __attribute__((packed)) config
+union [[gnu::packed]] config
 {
-    struct __attribute__((packed))
+    struct [[gnu::packed]]
     {
         u32 freq;
         enum
@@ -36,7 +36,7 @@ union __attribute__((packed)) config
         } format;
     } audio;
 
-    struct __attribute__((packed))
+    struct [[gnu::packed]]
     {
         u32  (*open) (void *ctx, char *path);
         u32  (*close)(void *ctx, u32 idx);
@@ -50,10 +50,10 @@ union __attribute__((packed)) config
 /* Driver structures */
 
 #define _drv_typedef_block(x) \
-    typedef struct __attribute__((packed)) \
+    typedef struct [[gnu::packed]] \
     { \
         void *init, (*clean)(void *); \
-        struct __attribute__((packed)) \
+        struct [[gnu::packed]] \
         { \
             bool (*get)(void *ctx, union config *cfg); \
             bool (*set)(void *ctx, union config *cfg); \
@@ -61,13 +61,13 @@ union __attribute__((packed)) config
         bool (*stat) (void *ctx, u32 idx, u32 *width, u32 *length); \
         bool (*read) (void *ctx, u32 idx, void *buffer, u32 block); \
         bool (*write)(void *ctx, u32 idx, void *buffer, u32 block); \
-    } drv_##x; \
+    } drv_##x \
 
 #define _drv_typedef_stream(x) \
-    typedef struct __attribute__((packed)) \
+    typedef struct [[gnu::packed]] \
     { \
         void *init, (*clean)(void *); \
-        struct __attribute__((packed)) \
+        struct [[gnu::packed]] \
         { \
             bool (*get)(void *ctx, union config *cfg); \
             bool (*set)(void *ctx, union config *cfg); \
@@ -75,12 +75,12 @@ union __attribute__((packed)) config
         bool (*stat) (void *ctx, u32 idx, u32 *width); \
         bool (*read)  (void *ctx, u32 idx, void *data); \
         bool (*write) (void *ctx, u32 idx, void *data); \
-    } drv_##x; \
+    } drv_##x \
 
 #define drv_typedef(archetype, x) _drv_typedef_##archetype(x)
 
 #define drv(x) _driver_##x
 #define drv_decl(type, x) const drv_##type drv(x) =
-#define drv_incl(type, x) extern const drv_##type drv(x);
+#define drv_incl(type, x) extern const drv_##type drv(x)
 
 #endif

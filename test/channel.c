@@ -22,7 +22,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <debug/exit.h>
 #include <debug/assert.h>
 
-static thread_task (test_channel)
+thread_decl (static, test_channel)
 {
     channel *ch = thread_arg();
 

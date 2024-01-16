@@ -19,7 +19,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/mem.h>
 #include <core/state.h>
 
-extern void * __attribute__((naked))
+[[gnu::naked]]
+extern void *
 state_save(state *st)
 {
     (void)st;
@@ -85,7 +86,8 @@ state_save(state *st)
     return NULL;
 }
 
-extern void __attribute__((naked, noreturn))
+[[gnu::naked, noreturn]]
+extern void
 state_load(state *st, void *ret)
 {
     (void)st, (void)ret;

@@ -26,12 +26,23 @@ header:
 .long header_end - header                     // LENGTH
 .long -(MAGIC + ARCH + (header_end - header)) // CHECKSUM
 
-.word 5  // TYPE
-.word 0  // FLAGS
-.word 20 // SIZE
-.long 0  // WIDTH
-.long 0  // HEIGHT
-.long 32 // DEPTH
+.short 1  // TYPE = Info request
+.short 0  // FLAGS
+.long  12 // SIZE
+.long  5  // REQUEST = Video info
+.long  0  // PADDING
+
+.short 5  // TYPE = Video preference
+.short 0  // FLAGS
+.long  20 // SIZE
+.long  0  // WIDTH
+.long  0  // HEIGHT
+.long  32 // DEPTH
+.short 0  // PADDING
+
+.short 0  // TYPE = End tag
+.short 0  // FLAGS
+.long  8  // SIZE
 header_end:
 
 .global multiboot_addr

@@ -53,22 +53,17 @@ stat(void *ctx, u32 idx, u32 *width, u32 *depth)
 {
     bool ret = true;
 
-    if (ctx)
+    struct memory *mem = ctx;
+    switch (idx)
     {
-        struct memory *mem = ctx;
-        switch (idx)
-        {
-            case 0:
-                *width = mem->width;
-                *depth = mem->depth;
-                break;
-            default:
-                ret = false;
-                break;
-        }
+        case 0:
+            *width = mem->width;
+            *depth = mem->depth;
+            break;
+        default:
+            ret = false;
+            break;
     }
-    else
-        ret = false;
 
     return ret;
 }
@@ -78,19 +73,16 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx)
+    struct memory *mem = ctx;
+    switch (idx)
     {
-        struct memory *mem = ctx;
-        switch (idx)
-        {
-            case 0:
-                ret = (block < mem->depth);
+        case 0:
+            ret = (block < mem->depth);
 
-                if (ret)
-                    mem_copy(buffer, (void*)(mem->base + (block * mem->width)),
-                             mem->width);
-                break;
-        }
+            if (ret)
+                mem_copy(buffer, (void*)(mem->base + (block * mem->width)),
+                         mem->width);
+            break;
     }
 
     return ret;
@@ -101,19 +93,16 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx)
+    struct memory *mem = ctx;
+    switch (idx)
     {
-        struct memory *mem = ctx;
-        switch (idx)
-        {
-            case 0:
-                ret = (block < mem->depth);
+        case 0:
+            ret = (block < mem->depth);
 
-                if (ret)
-                    mem_copy((void*)(mem->base + (block * mem->width)), buffer,
-                             mem->width);
-                break;
-        }
+            if (ret)
+                mem_copy((void*)(mem->base + (block * mem->width)), buffer,
+                         mem->width);
+            break;
     }
 
     return ret;

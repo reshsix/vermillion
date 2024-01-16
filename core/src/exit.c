@@ -22,7 +22,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <i686/env.h>
 #endif
 
-extern noreturn
+[[noreturn]]
+extern void
 exit_qemu(bool failure)
 {
     #if defined(CONFIG_ARCH_ARM)

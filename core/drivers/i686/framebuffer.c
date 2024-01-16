@@ -123,26 +123,21 @@ stat(void *ctx, u32 idx, u32 *width, u32 *depth)
 {
     bool ret = true;
 
-    if (ctx)
+    struct framebuffer *fb = ctx;
+    switch (idx)
     {
-        struct framebuffer *fb = ctx;
-        switch (idx)
-        {
-            case 0:
-                *width = sizeof(struct video_fb);
-                *depth = 1;
-                break;
-            case 1:
-                *width = fb->pitch;
-                *depth = fb->fb.height;
-                break;
-            default:
-                ret = false;
-                break;
-        }
+        case 0:
+            *width = sizeof(struct video_fb);
+            *depth = 1;
+            break;
+        case 1:
+            *width = fb->pitch;
+            *depth = fb->fb.height;
+            break;
+        default:
+            ret = false;
+            break;
     }
-    else
-        ret = false;
 
     return ret;
 }
@@ -152,26 +147,23 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx)
+    struct framebuffer *fb = ctx;
+    switch (idx)
     {
-        struct framebuffer *fb = ctx;
-        switch (idx)
-        {
-            case 0:
-                ret = (block == 0);
+        case 0:
+            ret = (block == 0);
 
-                if (ret)
-                    mem_copy(buffer, &(fb->fb), sizeof(struct video_fb));
-                break;
+            if (ret)
+                mem_copy(buffer, &(fb->fb), sizeof(struct video_fb));
+            break;
 
-            case 1:
-                ret = (block < fb->fb.height);
+        case 1:
+            ret = (block < fb->fb.height);
 
-                if (ret)
-                    mem_copy(buffer, &(fb->addr[block * fb->pitch]),
-                             fb->pitch);
-                break;
-        }
+            if (ret)
+                mem_copy(buffer, &(fb->addr[block * fb->pitch]),
+                         fb->pitch);
+            break;
     }
 
     return ret;
@@ -182,19 +174,16 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx)
+    struct framebuffer *fb = ctx;
+    switch (idx)
     {
-        struct framebuffer *fb = ctx;
-        switch (idx)
-        {
-            case 1:
-                ret = (block < fb->fb.height);
+        case 1:
+            ret = (block < fb->fb.height);
 
-                if (ret)
-                    mem_copy(&(fb->addr[block * fb->pitch]), buffer,
-                             fb->pitch);
-                break;
-        }
+            if (ret)
+                mem_copy(&(fb->addr[block * fb->pitch]), buffer,
+                         fb->pitch);
+            break;
     }
 
     return ret;

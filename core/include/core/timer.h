@@ -23,7 +23,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 drv_typedef (block, timer);
 dev_typedef (timer);
 
-struct [[packed]] timer_cb
+struct [[gnu::packed]] timer_cb
 {
     bool enabled;
     void (*handler)(void *), *arg;

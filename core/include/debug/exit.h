@@ -19,6 +19,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/types.h>
 
-noreturn exit_qemu(bool failure);
+[[noreturn]] void exit_qemu(bool failure);
 
 #endif

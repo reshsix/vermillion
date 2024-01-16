@@ -19,17 +19,16 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/state.h>
 
-struct [[packed, align(4)]] _state
+typedef struct [[packed, aligned(4)]] state
 {
     #if defined(CONFIG_ARCH_ARM)
     void *gpr[13];
     #elif defined(CONFIG_ARCH_I686)
     void *gpr[6], *retaddr;
     #endif
-};
+} state;
 
-typedef struct _state state;
 void *state_save(state *st);
-noreturn state_load(state *st, void *ret);
+[[noreturn]] void state_load(state *st, void *ret);
 
 #endif

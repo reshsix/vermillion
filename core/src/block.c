@@ -21,19 +21,43 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/block.h>
 
 extern bool
-block_stat(dev_block *db, u32 idx, u32 *width, u32 *length)
+block_stat(dev_block *db, u32 idx, u32 *width, u32 *depth)
 {
-    return db->driver->stat(db->context, idx, width, length);
+    bool ret = (db != NULL);
+
+    u32 w = 0, d = 0;
+    if (ret)
+        ret = db->driver->stat(db->context, idx, &w, &d);
+
+    if (ret)
+    {
+        if (width)
+            *width = w;
+        if (depth)
+            *depth = d;
+    }
+
+    return ret;
 }
 
 extern bool
 block_read(dev_block *db, u32 idx, void *buf, u32 block)
 {
-    return db->driver->read(db->context, idx, buf, block);
+    bool ret = (db != NULL);
+
+    if (ret)
+        ret = db->driver->read(db->context, idx, buf, block);
+
+    return ret;
 }
 
 extern bool
 block_write(dev_block *db, u32 idx, void *buf, u32 block)
 {
-    return db->driver->write(db->context, idx, buf, block);
+    bool ret = (db != NULL);
+
+    if (ret)
+        ret = db->driver->write(db->context, idx, buf, block);
+
+    return ret;
 }

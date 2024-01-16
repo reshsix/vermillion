@@ -19,7 +19,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <core/types.h>
 
-typedef struct _channel channel;
+typedef struct channel
+{
+    size_t type, size, count;
+    u8 *buffer;
+} channel;
+
 channel *channel_new(size_t type, size_t size);
 channel *channel_del(channel *ch);
 bool channel_empty(channel *ch);

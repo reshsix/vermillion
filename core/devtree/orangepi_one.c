@@ -28,41 +28,43 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/block.h>
 #include <core/timer.h>
 
+drv_incl (uart, sunxi_uart);
+dev_decl (uart, sunxi_uart, tty0);
+dev_decl (uart, sunxi_uart, tty1);
+dev_decl (uart, sunxi_uart, tty2);
+dev_decl (uart, sunxi_uart, tty3);
+dev_decl (uart, sunxi_uart, tty4);
+
+drv_incl (gpio, sunxi_gpio);
+dev_decl (gpio, sunxi_gpio, gpio0);
+dev_decl (gpio, sunxi_gpio, gpio1);
+
+drv_incl (pic, arm_gic);
+dev_decl (pic, arm_gic, pic);
+drv_incl (timer, sunxi_timer);
+dev_decl (timer, sunxi_timer, timer0);
+dev_decl (timer, sunxi_timer, timer1);
+
+drv_incl (block, sunxi_mmc);
+dev_decl (block, sunxi_mmc, mmcblk0);
+drv_incl (block, mbr);
+dev_decl (block, mbr, mmcblk0p1);
+
+drv_incl (block, memory);
+dev_decl (block, memory, ram);
+
+drv_incl (fs, fat32);
+dev_decl (fs, fat32, root);
+
 #define R_PRCM 0x01F01400
 #define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)
 
-drv_incl (uart, sunxi_uart)
-dev_decl (uart, sunxi_uart, tty0)
-dev_decl (uart, sunxi_uart, tty1)
-dev_decl (uart, sunxi_uart, tty2)
-dev_decl (uart, sunxi_uart, tty3)
-dev_decl (uart, sunxi_uart, tty4)
-
-drv_incl (gpio, sunxi_gpio)
-dev_decl (gpio, sunxi_gpio, gpio0)
-dev_decl (gpio, sunxi_gpio, gpio1)
-
-drv_incl (pic, arm_gic)
-dev_decl (pic, arm_gic, pic)
-drv_incl (timer, sunxi_timer)
-dev_decl (timer, sunxi_timer, timer0)
-dev_decl (timer, sunxi_timer, timer1)
-
-drv_incl (block, sunxi_mmc)
-dev_decl (block, sunxi_mmc, mmcblk0)
-drv_incl (block, mbr)
-dev_decl (block, mbr, mmcblk0p1)
-
-drv_incl (block, memory)
-dev_decl (block, memory, mem)
-
-drv_incl (fs, fat32)
-dev_decl (fs, fat32, root)
-
 extern void
-_devtree_init(void)
+devtree_init(void)
 {
     APB0_GATE = 1;
+
+    dev_init (ram, 0x0, 0x200, CONFIG_RAM_SIZE / 0x200);
 
     dev_init (tty0, 0x01c28000);
     uart_config(&dev(tty0), 115200, UART_8B, UART_NOPARITY, UART_1S);
@@ -84,8 +86,6 @@ _devtree_init(void)
     dev_init (mmcblk0,   0x01c0f000);
     dev_init (mmcblk0p1, &dev(mmcblk0), 1);
 
-    dev_init (mem, 0x0, 0x200, CONFIG_RAM_SIZE / 0x200);
-
     dev_init (root, &dev(mmcblk0p1));
 
     gpio_config(&dev(gpio1), 10, GPIO_OUT, GPIO_PULLOFF);
@@ -93,16 +93,15 @@ _devtree_init(void)
 
     pic_state(&dev(pic), true);
     wheel_timer(&dev(timer0));
-
 }
 
 extern void
-_devtree_clean(void)
+devtree_clean(void)
 {
-    dev_clean (tty1)
-    dev_clean (tty2)
-    dev_clean (tty3)
-    dev_clean (tty4)
+    dev_clean (tty1);
+    dev_clean (tty2);
+    dev_clean (tty3);
+    dev_clean (tty4);
 
     gpio_set(&dev(gpio1), 10, false);
     gpio_config(&dev(gpio1), 10, GPIO_OFF, GPIO_PULLOFF);
@@ -110,20 +109,20 @@ _devtree_clean(void)
     gpio_config(&dev(gpio0), 15, GPIO_OUT, GPIO_PULLOFF);
     gpio_set(&dev(gpio0), 15, true);
 
-    dev_clean (gpio0)
-    dev_clean (gpio1)
+    dev_clean (gpio0);
+    dev_clean (gpio1);
 
-    dev_clean (timer0)
-    dev_clean (timer1)
+    dev_clean (timer0);
+    dev_clean (timer1);
 
-    dev_clean (mmcblk0)
-    dev_clean (mmcblk0p1)
+    dev_clean (mmcblk0);
+    dev_clean (mmcblk0p1);
 
-    dev_clean (mem)
+    dev_clean (ram);
 
-    dev_clean (root)
+    dev_clean (root);
 
-    dev_clean (tty0)
+    dev_clean (tty0);
     log_set_dev(NULL, 0);
 
     APB0_GATE = 0;

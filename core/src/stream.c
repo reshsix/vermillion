@@ -23,17 +23,39 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 extern bool
 stream_stat(dev_stream *ds, u32 idx, u32 *width)
 {
-    return ds->driver->stat(ds->context, idx, width);
+    bool ret = (ds != NULL);
+
+    u32 w = 0;
+    if (ret)
+        ret = ds->driver->stat(ds->context, idx, &w);
+
+    if (ret)
+    {
+        if (width)
+            *width = w;
+    }
+
+    return ret;
 }
 
 extern bool
 stream_read(dev_stream *ds, u32 idx, void *data)
 {
-    return ds->driver->read(ds->context, idx, data);
+    bool ret = (ds != NULL);
+
+    if (ret)
+        ret = ds->driver->read(ds->context, idx, data);
+
+    return ret;
 }
 
 extern bool
 stream_write(dev_stream *ds, u32 idx, void *data)
 {
-    return ds->driver->write(ds->context, idx, data);
+    bool ret = (ds != NULL);
+
+    if (ret)
+        ret = ds->driver->write(ds->context, idx, data);
+
+    return ret;
 }

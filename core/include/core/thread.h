@@ -20,39 +20,43 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/types.h>
 #include <core/generator.h>
 
-#define thread_task(id) \
-    noreturn id(__attribute__((unused)) generator *___)
+#define thread_decl(storage, id) \
+    [[noreturn]] \
+    storage void \
+    id([[maybe_unused]] generator *___)
+#define thread_incl(id) \
+    [[noreturn]] void id(generator *___);
 
-struct _thread
+typedef void (*thread_task)(generator *);
+
+typedef struct thread
 {
+    generator *gen;
+
     size_t step;
     bool persistent, stepping;
-    generator *gen;
     u8 counter, priority;
 
-    struct _thread *prev, *next;
-};
-typedef struct _thread thread;
+    struct thread *prev, *next;
+} thread;
 
-thread *thread_new(thread_task(f), void *arg, bool persistent, u8 priority);
+thread *thread_new(thread_task f, void *arg, bool persistent, u8 priority);
 thread *thread_del(thread *t);
 size_t thread_sync(thread *t, size_t step);
 size_t thread_wait(thread *t);
 bool thread_rewind(thread *t);
 void *thread_arg(void);
-void thread_block(bool state);
-void thread_steps(bool state);
 void thread_yield(void);
-noreturn thread_loop(void);
-noreturn thread_finish(void);
+[[noreturn]] void thread_loop(void);
+[[noreturn]] void thread_finish(void);
 
-struct _threads
+struct thread_list
 {
-    thread *head, *cur, *tail;
-    bool blocked, stepping;
+    thread *head, *current, *tail;
+    bool blocked;
 };
-extern struct _threads _threads;
+extern struct thread_list thread_list;
 
-noreturn thread_scheduler(void);
+[[noreturn]] void thread_scheduler(void);
 
 #endif

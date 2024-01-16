@@ -22,12 +22,16 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <debug/exit.h>
 #include <debug/assert.h>
 
-static thread_task (test_critical)
+static u32 counter = 0;
+thread_decl (static, test_critical)
 {
     u32 arg = (u32)thread_arg();
 
     critical for (u32 i = 0; i < arg; i++)
+    {
+        counter++;
         thread_yield();
+    }
 
     thread_finish();
 }
@@ -39,6 +43,7 @@ main(void)
     assert (th != NULL);
 
     assert (thread_sync(th, 1) == 11);
+    assert (counter == 10);
 
     th = thread_del(th);
     assert (th == NULL);

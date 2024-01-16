@@ -70,22 +70,17 @@ stat(void *ctx, u32 idx, u32 *width, u32 *depth)
 {
     bool ret = true;
 
-    if (ctx)
+    struct mbr *mbr = ctx;
+    switch (idx)
     {
-        struct mbr *mbr = ctx;
-        switch (idx)
-        {
-            case 0:
-                *width = mbr->width;
-                *depth = mbr->depth;
-                break;
-            default:
-                ret = false;
-                break;
-        }
+        case 0:
+            *width = mbr->width;
+            *depth = mbr->depth;
+            break;
+        default:
+            ret = false;
+            break;
     }
-    else
-        ret = false;
 
     return ret;
 }
@@ -95,19 +90,16 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx)
+    struct mbr *mbr = ctx;
+    switch (idx)
     {
-        struct mbr *mbr = ctx;
-        switch (idx)
-        {
-            case 0:
-                ret = (block < mbr->depth);
+        case 0:
+            ret = (block < mbr->depth);
 
-                if (ret)
-                    ret = block_read(mbr->storage, 0,
-                                     buffer, block + mbr->lba);
-            break;
-        }
+            if (ret)
+                ret = block_read(mbr->storage, 0,
+                                 buffer, block + mbr->lba);
+        break;
     }
 
     return ret;
@@ -118,19 +110,16 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx)
+    struct mbr *mbr = ctx;
+    switch (idx)
     {
-        struct mbr *mbr = ctx;
-        switch (idx)
-        {
-            case 0:
-                ret = (block < mbr->depth);
+        case 0:
+            ret = (block < mbr->depth);
 
-                if (ret)
-                    ret = block_write(mbr->storage, 0,
-                                      buffer, block + mbr->lba);
-            break;
-        }
+            if (ret)
+                ret = block_write(mbr->storage, 0,
+                                  buffer, block + mbr->lba);
+        break;
     }
 
     return ret;

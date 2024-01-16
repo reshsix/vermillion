@@ -19,20 +19,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/mem.h>
 #include <core/fork.h>
 
-struct _fork
-{
-    void *stack;
-    void (*f)(void*), *arg;
-
-    #if defined(CONFIG_ARCH_ARM)
-    void *fp, *sp;
-    #elif defined(CONFIG_ARCH_I686)
-    void *ebp, *esp;
-    #endif
-
-    fork *previous;
-};
-
 extern fork *
 fork_new(void (*f)(void *), void *arg)
 {

@@ -21,6 +21,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdalign.h>
 
 typedef int8_t  s8;
 typedef int16_t s16;
@@ -31,7 +32,5 @@ typedef uint8_t  u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
-
-typedef void __attribute__((noreturn)) noreturn;
 
 #endif

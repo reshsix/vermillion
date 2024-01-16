@@ -22,10 +22,11 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/drv.h>
 #include <core/log.h>
 #include <core/mem.h>
+#include <core/critical.h>
 
 #include <core/pic.h>
 
-struct __attribute__((packed)) descriptor
+struct [[gnu::packed]] descriptor
 {
     u16 limit;
     u32 base;
@@ -137,7 +138,8 @@ pic_mask(u8 id, bool state)
     }
 }
 
-static u16 __attribute__((unused))
+[[maybe_unused]]
+static u16
 pic_irr(void)
 {
     /* OCW3: Get irr value */
@@ -232,11 +234,12 @@ pic_disable(void)
     asm volatile ("cli");
 }
 
+#define interrupt \
+    [[gnu::target("general-regs-only")]] [[gnu::interrupt]] \
+    static void
+
 #define TRAP(id, name) \
-    __attribute__((target("general-regs-only"))) \
-    __attribute__((interrupt)) \
-    static void \
-    name(struct interrupt_frame *frame) \
+    interrupt name(struct interrupt_frame *frame) \
     { \
         log ("trap\r\n"); \
         if (pic->traps[id].f) \
@@ -244,10 +247,7 @@ pic_disable(void)
     }
 
 #define FAULT(id, name) \
-    __attribute__((target("general-regs-only"))) \
-    __attribute__((interrupt)) \
-    static void \
-    name(struct interrupt_frame *frame) \
+    interrupt name(struct interrupt_frame *frame) \
     { \
         log ("fault\r\n"); \
         if (pic->faults[id].f) \
@@ -255,10 +255,7 @@ pic_disable(void)
     }
 
 #define FAULT_ERR(id, name) \
-    __attribute__((target("general-regs-only"))) \
-    __attribute__((interrupt)) \
-    static void \
-    name(struct interrupt_frame *frame, int code) \
+    interrupt name(struct interrupt_frame *frame, int code) \
     { \
         log (#name); \
         log (code); \
@@ -268,10 +265,7 @@ pic_disable(void)
     }
 
 #define NMI(name) \
-    __attribute__((target("general-regs-only"))) \
-    __attribute__((interrupt)) \
-    static void \
-    name(struct interrupt_frame *frame) \
+    interrupt name(struct interrupt_frame *frame) \
     { \
         log ("nmi\r\n"); \
         if (pic->nmi.f) \
@@ -279,10 +273,7 @@ pic_disable(void)
     }
 
 #define DEBUG(name) \
-    __attribute__((target("general-regs-only"))) \
-    __attribute__((interrupt)) \
-    static void \
-    name(struct interrupt_frame *frame) \
+    interrupt name(struct interrupt_frame *frame) \
     { \
         log ("debug\r\n"); \
         if (pic->debug.f) \
@@ -290,52 +281,47 @@ pic_disable(void)
     }
 
 #define IRQ(id, name) \
-    __attribute__((target("general-regs-only"))) \
-    __attribute__((interrupt)) \
-    static void \
-    name(struct interrupt_frame *frame) \
+    interrupt name(struct interrupt_frame *frame) \
     { \
         (void)frame; \
-    \
-        bool spurious = false; \
-        if (id == 7) \
+\
+        critical \
         { \
-            u16 isr = pic_isr(); \
-            spurious = !(isr & (1 << 7)); \
-        } \
-        else if (id == 15) \
-        { \
-            u16 isr = pic_isr(); \
-            spurious = !(isr & (1 << 15)); \
-            if (spurious) \
-                out8(PIC1_CMD, 0x20); \
-        } \
-    \
-        if (!spurious) \
-        { \
-            if (pic->irqs[id].enabled && pic->irqs[id].handler) \
-                pic->irqs[id].handler(pic->irqs[id].arg); \
-            pic_eoi(id); \
+            bool spurious = false; \
+            if (id == 7) \
+            { \
+                u16 isr = pic_isr(); \
+                spurious = !(isr & (1 << 7)); \
+            } \
+            else if (id == 15) \
+            { \
+                u16 isr = pic_isr(); \
+                spurious = !(isr & (1 << 15)); \
+                if (spurious) \
+                    out8(PIC1_CMD, 0x20); \
+            } \
+\
+            if (!spurious) \
+            { \
+                if (pic->irqs[id].enabled && pic->irqs[id].handler) \
+                    pic->irqs[id].handler(pic->irqs[id].arg); \
+                pic_eoi(id); \
+            } \
         } \
     }
 
 #define SWI(name) \
-    __attribute__((target("general-regs-only"))) \
-    __attribute__((interrupt)) \
-    static void \
-    name(struct interrupt_frame *frame) \
+    interrupt name(struct interrupt_frame *frame) \
     { \
         (void)frame; \
-        if (pic->swis[pic->swi_id].enabled && pic->swis[pic->swi_id].handler) \
+        critical if (pic->swis[pic->swi_id].enabled && \
+                     pic->swis[pic->swi_id].handler) \
             pic->swis[pic->swi_id].handler(pic->swis[pic->swi_id].arg, \
                                            pic->swi_data); \
     }
 
 #define ABORT(name) \
-    __attribute__((target("general-regs-only"))) \
-    __attribute__((interrupt)) \
-    static void \
-    name(struct interrupt_frame *frame) \
+    interrupt name(struct interrupt_frame *frame) \
     { \
         (void)frame; \
         log ("Aborted: "); \
@@ -463,7 +449,7 @@ init(void **ctx)
 static void
 clean(void *ctx)
 {
-    if (ctx && ctx == pic)
+    if (ctx == pic)
         pic = mem_del(pic);
 }
 
@@ -472,7 +458,7 @@ stat(void *ctx, u32 idx, u32 *width, u32 *length)
 {
     bool ret = true;
 
-    if (ctx && ctx == pic)
+    if (ctx == pic)
     {
         switch (idx)
         {
@@ -517,7 +503,7 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx && ctx == pic)
+    if (ctx == pic)
     {
          switch (idx)
         {
@@ -561,9 +547,9 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx && ctx == pic)
+    if (ctx == pic)
     {
-         switch (idx)
+        switch (idx)
         {
             case 0:
                 ret = (block == 0);

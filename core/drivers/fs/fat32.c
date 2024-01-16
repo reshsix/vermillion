@@ -24,7 +24,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <core/fs.h>
 #include <core/block.h>
 
-struct fat32br
+struct [[gnu::packed]] fat32br
 {
     u8 jmp[3];
     char oem[8];
@@ -53,7 +53,7 @@ struct fat32br
     u32 volumeid;
     char label[11];
     char system[8];
-} __attribute__((packed));
+};
 
 struct fat32e
 {
@@ -85,7 +85,7 @@ struct fat32
     struct fat32e root;
 };
 
-static u8 fat32_buf[0x200] __attribute__((aligned(32)));
+alignas(32) static u8 fat32_buf[0x200];
 
 /* Helper functions */
 

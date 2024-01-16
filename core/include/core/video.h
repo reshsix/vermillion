@@ -29,13 +29,13 @@ struct video_color
     u8 size;
 };
 
-struct video_fb
+struct [[gnu::packed]] video_fb
 {
     u16 width, height;
 
     u8 bpp;
     struct video_color red, green, blue;
-} __attribute((packed));
+};
 
 bool video_stat(dev_video *dv, u16 *width, u16 *height);
 bool video_read(dev_video *dv, void *data, u16 line);

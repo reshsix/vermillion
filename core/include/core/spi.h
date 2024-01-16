@@ -28,7 +28,7 @@ enum spi_mode
     SPI_MODE0, SPI_MODE1, SPI_MODE2, SPI_MODE3
 };
 
-struct spi_cfg
+struct [[gnu::packed]] spi_cfg
 {
     u32 freq;
     enum spi_mode mode;

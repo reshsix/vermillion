@@ -21,7 +21,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <debug/exit.h>
 #include <debug/assert.h>
 
-static noreturn
+[[noreturn]]
+static void
 test_generator(generator *g)
 {
     bool *arg = generator_arg(g);
