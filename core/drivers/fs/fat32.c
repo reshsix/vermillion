@@ -14,15 +14,14 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <core/types.h>
+#include <general/types.h>
+#include <general/mem.h>
+#include <general/str.h>
 
-#include <core/dev.h>
-#include <core/drv.h>
-#include <core/mem.h>
-#include <core/str.h>
-
-#include <core/fs.h>
-#include <core/block.h>
+#include <hal/base/dev.h>
+#include <hal/base/drv.h>
+#include <hal/generic/block.h>
+#include <hal/classes/fs.h>
 
 struct [[gnu::packed]] fat32br
 {

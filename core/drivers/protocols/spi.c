@@ -14,15 +14,15 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <core/types.h>
+#include <general/types.h>
+#include <general/mem.h>
 
-#include <core/dev.h>
-#include <core/drv.h>
-#include <core/mem.h>
-#include <core/wheel.h>
+#include <hal/base/dev.h>
+#include <hal/base/drv.h>
+#include <hal/classes/spi.h>
+#include <hal/classes/gpio.h>
 
-#include <core/spi.h>
-#include <core/gpio.h>
+#include <system/wheel.h>
 
 struct spi
 {

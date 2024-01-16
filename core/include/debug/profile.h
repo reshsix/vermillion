@@ -14,13 +14,12 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef DEBUG_PROFILE_H
-#define DEBUG_PROFILE_H
+#pragma once
 
-#include <core/types.h>
-#include <core/macros.h>
+#include <general/types.h>
+#include <general/macros.h>
 
-#include <core/wheel.h>
+#include <system/wheel.h>
 
 #define profile \
     bool UNIQUE(_profile) = true; \
@@ -30,5 +29,3 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
          UNIQUE(_profile) = false)
 void profile_result(const char *file, int line, const char *func,
                     u64 start, u64 end);
-
-#endif

@@ -14,11 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef DEBUG_EXIT_H
-#define DEBUG_EXIT_H
+#pragma once
 
-#include <core/types.h>
+#include <general/types.h>
 
 [[noreturn]] void exit_qemu(bool failure);
-
-#endif

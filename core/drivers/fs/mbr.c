@@ -14,13 +14,12 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <core/types.h>
+#include <general/types.h>
+#include <general/mem.h>
 
-#include <core/dev.h>
-#include <core/drv.h>
-#include <core/mem.h>
-
-#include <core/block.h>
+#include <hal/base/dev.h>
+#include <hal/base/drv.h>
+#include <hal/generic/block.h>
 
 struct mbr
 {

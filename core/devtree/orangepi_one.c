@@ -14,19 +14,20 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <core/types.h>
+#include <general/types.h>
 
-#include <core/dev.h>
-#include <core/drv.h>
-#include <core/log.h>
-#include <core/wheel.h>
+#include <hal/base/dev.h>
+#include <hal/base/drv.h>
+#include <hal/generic/block.h>
+#include <hal/generic/stream.h>
+#include <hal/classes/fs.h>
+#include <hal/classes/pic.h>
+#include <hal/classes/gpio.h>
+#include <hal/classes/uart.h>
+#include <hal/classes/timer.h>
 
-#include <core/fs.h>
-#include <core/pic.h>
-#include <core/gpio.h>
-#include <core/uart.h>
-#include <core/block.h>
-#include <core/timer.h>
+#include <system/log.h>
+#include <system/wheel.h>
 
 drv_incl (uart, sunxi_uart);
 dev_decl (uart, sunxi_uart, tty0);

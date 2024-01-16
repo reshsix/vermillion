@@ -33,9 +33,9 @@ vmake defconfig > /dev/null || exit 1
 failure=0
 
 clear
-for x in *.c; do
-    echo "[core/${x%.c}.h]"
-    result="$(run_test $x 2>&1)"
+find * -name '*.c' | while IFS= read -r line; do
+    echo "[${line%.c}.h]"
+    result="$(true | run_test "$line")"
     if [[ "$?" != 0 ]]; then
         asserts="$(echo "$result" | grep "^$(pwd)/$x")"
         if [[ -n "$asserts" ]]; then

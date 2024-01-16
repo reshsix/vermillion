@@ -16,15 +16,16 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <i686/env.h>
 
-#include <core/types.h>
+#include <general/types.h>
+#include <general/mem.h>
 
-#include <core/dev.h>
-#include <core/drv.h>
-#include <core/log.h>
-#include <core/mem.h>
-#include <core/critical.h>
+#include <thread/critical.h>
 
-#include <core/pic.h>
+#include <hal/base/dev.h>
+#include <hal/base/drv.h>
+#include <hal/classes/pic.h>
+
+#include <system/log.h>
 
 struct [[gnu::packed]] descriptor
 {

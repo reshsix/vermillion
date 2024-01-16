@@ -85,6 +85,9 @@ defconfig: config/$(BOARD)_defconfig
 
 # Folder creation
 FOLDERS := $(BUILD) $(BUILD)/arch $(BUILD)/mount $(BUILD)/src
+FOLDERS += $(BUILD)/src/general $(BUILD)/src/environ $(BUILD)/src/thread
+FOLDERS += $(BUILD)/src/hal/generic $(BUILD)/src/hal/classes
+FOLDERS += $(BUILD)/src/system $(BUILD)/src/debug
 FOLDERS += $(BUILD)/drivers $(BUILD)/drivers/audio
 FOLDERS += $(BUILD)/drivers/video $(BUILD)/drivers/fs
 FOLDERS += $(BUILD)/drivers/generic $(BUILD)/drivers/protocols
@@ -112,11 +115,28 @@ $(BUILD)/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 
 # --------------------------------- Objects  --------------------------------- #
 
-OBJS := src/assert.o src/block.o src/channel.o src/exit.o \
-        src/fork.o src/generator.o src/gpio.o \
-        src/log.o src/mem.o src/mutex.o src/pic.o src/profile.o \
-        src/semaphore.o src/spi.o src/state.o src/str.o src/stream.o \
-        src/thread.o src/timer.o src/uart.o src/video.o src/wheel.o
+PREFIX = src/general
+OBJS := $(PREFIX)/mem.o $(PREFIX)/str.o
+
+PREFIX = src/environ
+OBJS += $(PREFIX)/fork.o $(PREFIX)/generator.o $(PREFIX)/state.o
+
+PREFIX = src/thread
+OBJS += $(PREFIX)/channel.o $(PREFIX)/mutex.o \
+        $(PREFIX)/semaphore.o $(PREFIX)/thread.o
+
+PREFIX = src/hal/generic
+OBJS += $(PREFIX)/block.o $(PREFIX)/stream.o
+
+PREFIX = src/hal/classes
+OBJS += $(PREFIX)/gpio.o $(PREFIX)/pic.o $(PREFIX)/spi.o $(PREFIX)/timer.o \
+        $(PREFIX)/uart.o $(PREFIX)/video.o
+
+PREFIX = src/system
+OBJS += $(PREFIX)/log.o $(PREFIX)/wheel.o
+
+PREFIX = src/debug
+OBJS += $(PREFIX)/assert.o $(PREFIX)/exit.o $(PREFIX)/profile.o
 
 OBJS += devtree.o
 

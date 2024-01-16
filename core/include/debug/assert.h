@@ -14,15 +14,12 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef DEBUG_ASSERT_H
-#define DEBUG_ASSERT_H
+#pragma once
 
-#include <core/types.h>
+#include <general/types.h>
 
 #define assert(x) ((void)((x) || \
                    (assert_fail(__FILE__, __LINE__, __func__, #x), 0)))
 void assert_fail(const char *file, int line,
                  const char *func, const char *text);
 extern bool assert_failed;
-
-#endif

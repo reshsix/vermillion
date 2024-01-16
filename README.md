@@ -19,12 +19,13 @@ qemu-system-arm qemu-system-i386 gdb-multiarch
 ## Example
 ~/my\_project/main.c:
 ```c
-#include <core/types.h>
+#include <general/types.h>
 
-#include <core/dev.h>
-#include <core/log.h>
+#include <hal/base/dev.h>
+#include <hal/classes/gpio.h>
 
-#include <core/gpio.h>
+#include <system/log.h>
+
 dev_incl (gpio, gpio0)
 
 extern void

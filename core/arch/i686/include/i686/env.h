@@ -14,10 +14,9 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef I686_ENV_H
-#define I686_ENV_H
+#pragma once
 
-#include <core/types.h>
+#include <general/types.h>
 
 static inline u8
 in8(u16 port)
@@ -66,5 +65,3 @@ io_wait(void)
 {
     out8(0x80, 0);
 }
-
-#endif

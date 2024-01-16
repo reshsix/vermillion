@@ -2,32 +2,41 @@
 
 ## Coverage
 
-- [x] core/types.h
-- [ ] core/macros.h
+- [x] general/types.h
+- [ ] general/macros.h
+- [x] general/mem.h
+- [x] general/str.h
 
-- [ ] core/dev.h
-- [ ] core/drv.h
-- [x] core/log.h
-- [x] core/mem.h
-- [x] core/str.h
-- [x] core/fork.h
-- [x] core/mutex.h
-- [x] core/state.h
-- [x] core/thread.h
-- [x] core/channel.h
-- [x] core/critical.h
-- [x] core/generator.h
-- [x] core/semaphore.h
+- [x] environ/fork.h
+- [x] environ/state.h
+- [x] environ/generator.h
 
-- [ ] core/block.h
-- [ ] core/stream.h
+- [x] thread/mutex.h
+- [x] thread/thread.h
+- [x] thread/channel.h
+- [x] thread/critical.h
+- [x] thread/implicit.h
+- [x] thread/semaphore.h
 
-- [ ] core/fs.h
-- [ ] core/pic.h
-- [ ] core/spi.h
-- [ ] core/gpio.h
-- [ ] core/audio.h
-- [ ] core/timer.h
-- [ ] core/video.h
-- [ ] core/serial.h
-- [ ] core/storage.h
+- [ ] hal/base/dev.h
+- [ ] hal/base/drv.h
+
+- [ ] hal/generic/block.h
+- [ ] hal/generic/stream.h
+
+- [ ] hal/classes/fs.h
+- [ ] hal/classes/pic.h
+- [ ] hal/classes/spi.h
+- [ ] hal/classes/gpio.h
+- [ ] hal/classes/uart.h
+- [ ] hal/classes/video.h
+- [ ] hal/classes/audio.h
+- [ ] hal/classes/timer.h
+- [ ] hal/classes/storage.h
+
+- [x] system/log.h
+- [ ] system/wheel.h
+
+- [ ] debug/exit.h
+- [ ] debug/assert.h
+- [ ] debug/profile.h
