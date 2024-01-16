@@ -1,8 +1,8 @@
 # When building deps
-core/deps
+deps
 
 # When building test
-test/build
+build
 
 # Config anywhere
 .config
