@@ -25,7 +25,7 @@ Type that contains the data of a channel
 </details>
 
 <details>
-<summary>channel *channel_new(size_t type, size_t size);
+<summary>channel *channel_new(size_t type, size_t size)</summary>
 Creates a channel for inter-thread communication
 
 #### Parameters
@@ -128,7 +128,7 @@ Reads from inter-thread channel
 </details>
 
 <details>
-<summary>size_t *channel_read(channel *ch, void *data)</summary>
+<summary>size_t *channel_write(channel *ch, void *data)</summary>
 Writes to inter-thread channel
 
 #### Threading
