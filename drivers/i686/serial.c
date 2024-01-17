@@ -21,6 +21,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/base/dev.h>
 #include <hal/base/drv.h>
+#include <hal/generic/stream.h>
 #include <hal/classes/uart.h>
 
 #define IO_DAT(x)  (x + 0)
@@ -80,11 +81,11 @@ stat(void *ctx, u32 idx, u32 *width)
     (void)ctx;
     switch (idx)
     {
-        case 0:
-            *width = sizeof(struct uart_cfg);
-            break;
-        case 1:
+        case STREAM_COMMON:
             *width = sizeof(u8);
+            break;
+        case UART_CONFIG:
+            *width = sizeof(struct uart_cfg);
             break;
         default:
             ret = false;
@@ -102,17 +103,17 @@ read(void *ctx, u32 idx, void *data)
     struct serial *com = ctx;
     switch (idx)
     {
-        case 0:
-            ret = true;
-            mem_copy(data, &com->cfg, sizeof(u8));
-            break;
-
-        case 1:
+        case STREAM_COMMON:
             ret = true;
             while (!(in8(IO_LSR(com->port)) & 0x1));
 
             u8 byte = in8(IO_DAT(com->port));
             mem_copy(data, &byte, sizeof(u8));
+            break;
+
+        case UART_CONFIG:
+            ret = true;
+            mem_copy(data, &com->cfg, sizeof(u8));
             break;
     }
 
@@ -127,7 +128,16 @@ write(void *ctx, u32 idx, void *data)
     struct serial *com = ctx;
     switch (idx)
     {
-        case 0:;
+        case STREAM_COMMON:
+            ret = true;
+            while (!(in8(IO_LSR(com->port)) & 0x20));
+
+            u8 byte = 0;
+            mem_copy(&byte, data, sizeof(u8));
+            out8(IO_DAT(com->port), byte);
+            break;
+
+        case UART_CONFIG:;
             struct uart_cfg cfg = {0};
             mem_copy(&cfg, data, sizeof(struct uart_cfg));
 
@@ -161,15 +171,6 @@ write(void *ctx, u32 idx, void *data)
 
                 out8(IO_LCR(com->port), LCR & ~0x80);
             }
-            break;
-
-        case 1:
-            ret = true;
-            while (!(in8(IO_LSR(com->port)) & 0x20));
-
-            u8 byte = 0;
-            mem_copy(&byte, data, sizeof(u8));
-            out8(IO_DAT(com->port), byte);
             break;
     }
 

@@ -43,7 +43,7 @@ init(void **ctx, u16 width, u16 height, dev_video *video)
 
     if (ret)
     {
-        if (!(block_read((dev_block *)video, 0, &(ret->fb), 0)))
+        if (!(block_read((dev_block *)video, VIDEO_CONFIG, &(ret->fb), 0)))
             ret = mem_del(ret);
 
         if (ret)
@@ -101,20 +101,20 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
     struct virtual *v = ctx;
     switch (idx)
     {
-        case 0:
-            ret = (block == 0);
-
-            if (ret)
-                mem_copy(buffer, &(v->fb), sizeof(struct video_fb));
-            break;
-
-        case 1:
+        case BLOCK_COMMON:
             ret = (block < v->fb.height);
 
             if (ret)
                 mem_copy(buffer,
                          &(v->buffer[block * v->fb.width * v->depth]),
                          v->fb.width * v->depth);
+            break;
+
+        case VIDEO_CONFIG:
+            ret = (block == 0);
+
+            if (ret)
+                mem_copy(buffer, &(v->fb), sizeof(struct video_fb));
             break;
     }
 
@@ -129,7 +129,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
     struct virtual *v = ctx;
     switch (idx)
     {
-        case 1:
+        case BLOCK_COMMON:
             ret = (block < v->fb.height);
 
             if (ret)
@@ -158,7 +158,8 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
                         mem_copy(dest, src, v->depth);
                     }
 
-                    ret = block_write((dev_block *)v->video, 1, v->buffer2, j);
+                    ret = block_write((dev_block *)v->video, BLOCK_COMMON,
+                                      v->buffer2, j);
                 }
             }
             break;

@@ -20,6 +20,14 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/base/drv.h>
 #include <hal/base/dev.h>
+#include <hal/generic/block.h>
+
+enum gpio_index
+{
+    GPIO_PINS = BLOCK_COMMON + 1,
+    GPIO_CONFIG_PIN,
+    GPIO_CONFIG_EINT
+};
 
 drv_typedef (block, gpio);
 dev_typedef (gpio);

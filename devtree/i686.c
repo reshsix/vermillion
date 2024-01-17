@@ -62,7 +62,7 @@ devtree_init(void)
 
     dev_init (tty0, 0x3F8);
     uart_config(&dev(tty0), 115200, UART_8B, UART_NOPARITY, UART_1S);
-    log_set_dev((dev_stream *)&dev(tty0), 1);
+    log_output((dev_stream *)&dev(tty0));
 
     dev_init (tty1, 0x2F8);
     dev_init (tty2, 0x3E8);
@@ -85,5 +85,5 @@ devtree_clean(void)
     dev_clean (tty2);
 
     dev_clean (tty0);
-    log_set_dev(NULL, 0);
+    log_output(NULL);
 }

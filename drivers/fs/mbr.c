@@ -37,13 +37,13 @@ init(void **ctx, dev_block *storage, u8 partition)
     if (storage && partition > 0 && partition < 5)
         ret = mem_new(sizeof(struct mbr));
 
-    if (ret && !block_stat(storage, 0, &(ret->width), &(ret->depth)))
+    if (ret && !block_stat(storage, BLOCK_COMMON, &(ret->width), &(ret->depth)))
         ret = mem_del(ret);
 
     if (ret)
     {
         u8 *buffer = mem_new(ret->width);
-        if (buffer && block_read(storage, 0, buffer, 0))
+        if (buffer && block_read(storage, BLOCK_COMMON, buffer, 0))
         {
             u8 *info = &(buffer[0x1BE + ((partition - 1) * 16)]);
             mem_copy(&(ret->lba),   &(info[sizeof(u32) * 2]), sizeof(u32));
@@ -96,7 +96,7 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
             ret = (block < mbr->depth);
 
             if (ret)
-                ret = block_read(mbr->storage, 0,
+                ret = block_read(mbr->storage, BLOCK_COMMON,
                                  buffer, block + mbr->lba);
         break;
     }
@@ -116,7 +116,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
             ret = (block < mbr->depth);
 
             if (ret)
-                ret = block_write(mbr->storage, 0,
+                ret = block_write(mbr->storage, BLOCK_COMMON,
                                   buffer, block + mbr->lba);
         break;
     }

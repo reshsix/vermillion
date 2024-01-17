@@ -95,16 +95,16 @@ handler(void *arg)
 extern dev_timer *
 wheel_timer(dev_timer *timer)
 {
-    if (timer != NULL)
-    {
-        if (tmrdev)
-            timer_setup(tmrdev, false, NULL, NULL, 0);
+    dev_timer *ret = tmrdev;
 
-        tmrdev = timer;
+    if (ret)
+        timer_setup(ret, false, NULL, NULL, 0);
+
+    tmrdev = timer;
+    if (tmrdev)
         timer_setup(tmrdev, true, handler, NULL, WHEEL_INNER_US);
-    }
 
-    return tmrdev;
+    return ret;
 }
 
 extern struct wheel_slot *

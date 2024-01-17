@@ -18,6 +18,16 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/base/drv.h>
 #include <hal/base/dev.h>
+#include <hal/generic/block.h>
+
+enum pic_index
+{
+    PIC_STATE = BLOCK_COMMON + 1,
+    PIC_CONFIG_IRQ,
+    PIC_CONFIG_SWI,
+    PIC_WAIT,
+    PIC_SYSCALL
+};
 
 drv_typedef (block, pic);
 dev_typedef (pic);

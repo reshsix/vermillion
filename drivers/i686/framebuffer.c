@@ -125,13 +125,13 @@ stat(void *ctx, u32 idx, u32 *width, u32 *depth)
     struct framebuffer *fb = ctx;
     switch (idx)
     {
-        case 0:
-            *width = sizeof(struct video_fb);
-            *depth = 1;
-            break;
-        case 1:
+        case BLOCK_COMMON:
             *width = fb->pitch;
             *depth = fb->fb.height;
+            break;
+        case VIDEO_CONFIG:
+            *width = sizeof(struct video_fb);
+            *depth = 1;
             break;
         default:
             ret = false;
@@ -149,19 +149,19 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
     struct framebuffer *fb = ctx;
     switch (idx)
     {
-        case 0:
-            ret = (block == 0);
-
-            if (ret)
-                mem_copy(buffer, &(fb->fb), sizeof(struct video_fb));
-            break;
-
-        case 1:
+        case BLOCK_COMMON:
             ret = (block < fb->fb.height);
 
             if (ret)
                 mem_copy(buffer, &(fb->addr[block * fb->pitch]),
                          fb->pitch);
+            break;
+
+        case VIDEO_CONFIG:
+            ret = (block == 0);
+
+            if (ret)
+                mem_copy(buffer, &(fb->fb), sizeof(struct video_fb));
             break;
     }
 
@@ -176,7 +176,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
     struct framebuffer *fb = ctx;
     switch (idx)
     {
-        case 1:
+        case BLOCK_COMMON:
             ret = (block < fb->fb.height);
 
             if (ret)

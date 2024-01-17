@@ -19,6 +19,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/base/dev.h>
 #include <hal/base/drv.h>
+#include <hal/generic/block.h>
 #include <hal/classes/pic.h>
 #include <hal/classes/gpio.h>
 
@@ -128,19 +129,19 @@ stat(void *ctx, u32 idx, u32 *width, u32 *length)
     struct gpio *gpio = ctx;
     switch (idx)
     {
-        case 0:
+        case BLOCK_COMMON:
             *width = sizeof(u32);
             *length = gpio->io_ports;
             break;
-        case 1:
+        case GPIO_PINS:
             *width = sizeof(bool);
             *length = gpio->io_ports * 32;
             break;
-        case 2:
+        case GPIO_CONFIG_PIN:
             *width = sizeof(struct gpio_pin);
             *length = gpio->io_ports * 32;
             break;
-        case 3:
+        case GPIO_CONFIG_EINT:
             *width = sizeof(struct gpio_intr);
             *length = gpio->int_ports * 32;
             break;
@@ -160,7 +161,7 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
     struct gpio *gpio = ctx;
     switch (idx)
     {
-        case 0:
+        case BLOCK_COMMON:
             ret = (block < gpio->io_ports);
 
             if (ret)
@@ -170,7 +171,7 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
             }
             break;
 
-        case 1:
+        case GPIO_PINS:
             ret = ((block / 32) < gpio->io_ports);
 
             if (ret)
@@ -181,7 +182,7 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
             }
             break;
 
-        case 2:
+        case GPIO_CONFIG_PIN:
             ret = ((block / 32) < gpio->io_ports);
 
             if (ret)
@@ -201,7 +202,7 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
             }
             break;
 
-        case 3:
+        case GPIO_CONFIG_EINT:
             ret = ((block / 32) < gpio->int_ports);
 
             if (ret)
@@ -234,7 +235,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
     struct gpio *gpio = ctx;
     switch (idx)
     {
-        case 0:
+        case BLOCK_COMMON:
             ret = (block < gpio->io_ports);
 
             if (ret)
@@ -245,7 +246,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
             }
             break;
 
-        case 1:
+        case GPIO_PINS:
             ret = ((block / 32) < gpio->io_ports);
 
             if (ret)
@@ -262,7 +263,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
             }
             break;
 
-        case 2:
+        case GPIO_CONFIG_PIN:
             ret = ((block / 32) < gpio->io_ports);
 
             struct gpio_pin pin = {0};
@@ -291,7 +292,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
             }
             break;
 
-        case 3:
+        case GPIO_CONFIG_EINT:
             ret = ((block / 32) < gpio->int_ports);
 
             struct gpio_intr intr = {0};

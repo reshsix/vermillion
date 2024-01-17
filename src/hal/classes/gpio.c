@@ -22,31 +22,31 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 extern bool
 gpio_stat(dev_gpio *dg, u32 *width, u32 *ports)
 {
-    return block_stat((dev_block *)dg, 0, width, ports);
+    return block_stat((dev_block *)dg, BLOCK_COMMON, width, ports);
 }
 
 extern bool
 gpio_read(dev_gpio *dg, u16 port, void *data)
 {
-    return block_read((dev_block *)dg, 0, data, port);
+    return block_read((dev_block *)dg, BLOCK_COMMON, data, port);
 }
 
 extern bool
 gpio_write(dev_gpio *dg, u16 port, void *data)
 {
-    return block_write((dev_block *)dg, 0, data, port);
+    return block_write((dev_block *)dg, BLOCK_COMMON, data, port);
 }
 
 extern bool
 gpio_get(dev_gpio *dg, u16 pin, bool *data)
 {
-    return block_read((dev_block *)dg, 1, data, pin);
+    return block_read((dev_block *)dg, GPIO_PINS, data, pin);
 }
 
 extern bool
 gpio_set(dev_gpio *dg, u16 pin, bool data)
 {
-    return block_write((dev_block*)dg, 1, &data, pin);
+    return block_write((dev_block*)dg, GPIO_PINS, &data, pin);
 }
 
 extern bool
@@ -54,7 +54,7 @@ gpio_info(dev_gpio *dg, u16 id, enum gpio_role *role, enum gpio_pull *pull)
 {
     struct gpio_pin pin = {0};
 
-    bool ret = block_read((dev_block *)dg, 2, &pin, id);
+    bool ret = block_read((dev_block *)dg, GPIO_CONFIG_PIN, &pin, id);
 
     if (ret)
     {
@@ -71,7 +71,7 @@ extern bool
 gpio_config(dev_gpio *dg, u16 id, enum gpio_role role, enum gpio_pull pull)
 {
     struct gpio_pin pin = {.role = role, .pull = pull};
-    return block_write((dev_block *)dg, 2, &pin, id);
+    return block_write((dev_block *)dg, GPIO_CONFIG_PIN, &pin, id);
 }
 
 extern bool
@@ -80,7 +80,7 @@ gpio_check(dev_gpio *dg, u16 id, bool *enabled,
 {
     struct gpio_intr intr = {0};
 
-    bool ret = block_read((dev_block *)dg, 3, &intr, id);
+    bool ret = block_read((dev_block *)dg, GPIO_CONFIG_EINT, &intr, id);
 
     if (ret)
     {
@@ -103,5 +103,5 @@ gpio_setup(dev_gpio *dg, u16 id, bool enabled,
 {
     struct gpio_intr intr = {.enabled = enabled, .handler = handler,
                              .arg = arg, .level = level};
-    return block_write((dev_block *)dg, 3, &intr, id);
+    return block_write((dev_block *)dg, GPIO_CONFIG_EINT, &intr, id);
 }

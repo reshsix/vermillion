@@ -21,6 +21,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/base/dev.h>
 #include <hal/base/drv.h>
+#include <hal/generic/block.h>
 #include <hal/classes/pic.h>
 
 #include <system/log.h>
@@ -337,27 +338,27 @@ stat(void *ctx, u32 idx, u32 *width, u32 *length)
     {
         switch (idx)
         {
-            case 0:
+            case PIC_STATE:
                 *width = sizeof(bool);
                 *length = 1;
                 break;
 
-            case 1:
+            case PIC_CONFIG_IRQ:
                 *width = sizeof(struct pic_irq);
                 *length = 256;
                 break;
 
-            case 2:
+            case PIC_CONFIG_SWI:
                 *width = sizeof(struct pic_swi);
                 *length = 256;
                 break;
 
-            case 3:
+            case PIC_WAIT:
                 *width = 0;
                 *length = 1;
                 break;
 
-            case 4:
+            case PIC_SYSCALL:
                 *width = sizeof(void *);
                 *length = 256;
                 break;
@@ -382,14 +383,14 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
     {
         switch (idx)
         {
-            case 0:
+            case PIC_STATE:
                 ret = (block == 0);
 
                 if (ret)
                     mem_copy(buffer, &(gic->enabled), sizeof(bool));
                 break;
 
-            case 1:
+            case PIC_CONFIG_IRQ:
                 ret = (block < 256);
 
                 if (ret)
@@ -397,7 +398,7 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
                              sizeof(struct pic_irq));
                 break;
 
-            case 2:
+            case PIC_CONFIG_SWI:
                 ret = (block < 256);
 
                 if (ret)
@@ -405,7 +406,7 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
                              sizeof(struct pic_swi));
                 break;
 
-            case 3:
+            case PIC_WAIT:
                 ret = (block == 0);
 
                 if (ret)
@@ -426,7 +427,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
     {
         switch (idx)
         {
-            case 0:
+            case PIC_STATE:
                 ret = (block == 0);
 
                 if (ret)
@@ -447,7 +448,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
                 }
                 break;
 
-            case 1:
+            case PIC_CONFIG_IRQ:
                 ret = (block < 256);
 
                 if (ret)
@@ -514,7 +515,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
                 }
                 break;
 
-            case 2:
+            case PIC_CONFIG_SWI:
                 ret = (block < 256);
 
                 if (ret)
@@ -522,14 +523,14 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
                              sizeof(struct pic_swi));
                 break;
 
-            case 3:
+            case PIC_WAIT:
                 ret = (block == 0);
 
                 if (ret)
                     arm_wait_interrupts();
                 break;
 
-            case 4:
+            case PIC_SYSCALL:
                 ret = (block < 256);
 
                 if (ret)

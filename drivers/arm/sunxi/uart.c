@@ -19,6 +19,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/base/dev.h>
 #include <hal/base/drv.h>
+#include <hal/generic/stream.h>
 #include <hal/classes/uart.h>
 
 #define IO_BUF(p) *(volatile u32*)(p + 0x00)
@@ -69,11 +70,11 @@ stat(void *ctx, u32 idx, u32 *width)
     (void)ctx;
     switch (idx)
     {
-        case 0:
-            *width = sizeof(struct uart_cfg);
-            break;
-        case 1:
+        case STREAM_COMMON:
             *width = sizeof(u8);
+            break;
+        case UART_CONFIG:
+            *width = sizeof(struct uart_cfg);
             break;
         default:
             ret = false;
@@ -91,17 +92,17 @@ read(void *ctx, u32 idx, void *data)
     struct serial *u = ctx;
     switch (idx)
     {
-        case 0:
-            ret = true;
-            mem_copy(data, &(u->cfg), sizeof(struct uart_cfg));
-            break;
-
-        case 1:
+        case STREAM_COMMON:
             ret = true;
             while (!(IO_LSR(u->port) & (1 << 0)));
 
             u8 byte = IO_BUF(u->port);
             mem_copy(data, &byte, sizeof(u8));
+            break;
+
+        case UART_CONFIG:
+            ret = true;
+            mem_copy(data, &(u->cfg), sizeof(struct uart_cfg));
             break;
     }
 
@@ -116,7 +117,16 @@ write(void *ctx, u32 idx, void *data)
     struct serial *u = ctx;
     switch (idx)
     {
-        case 0:;
+        case STREAM_COMMON:
+            ret = true;
+            while (!(IO_LSR(u->port) & (1 << 5)));
+
+            u8 byte = IO_BUF(u->port);
+            mem_copy(&byte, data, sizeof(u8));
+            IO_BUF(u->port) = byte;
+            break;
+
+        case UART_CONFIG:;
             struct uart_cfg cfg = {0};
             mem_copy(&cfg, data, sizeof(struct uart_cfg));
 
@@ -168,15 +178,6 @@ write(void *ctx, u32 idx, void *data)
                         break;
                 }
             }
-            break;
-
-        case 1:
-            ret = true;
-            while (!(IO_LSR(u->port) & (1 << 5)));
-
-            u8 byte = IO_BUF(u->port);
-            mem_copy(&byte, data, sizeof(u8));
-            IO_BUF(u->port) = byte;
             break;
     }
 

@@ -39,7 +39,7 @@ test_log_clear(void)
 static bool
 test_log_write(void *ctx, u32 idx, void *data)
 {
-    bool ret = (ctx == test_ctx && idx == 0);
+    bool ret = (ctx == test_ctx && idx == STREAM_COMMON);
 
     if (ret)
         buffer[buffer_s++] = *((u8*)(data));
@@ -53,10 +53,8 @@ test_system_log(void)
     drv_stream logdrv = { .write = test_log_write };
     dev_stream logdev = { .context = test_ctx, .driver = &logdrv };
 
-    dev_stream *logger = log_get_dev();
-    log_set_dev(&logdev, 0);
-
-    assert (log_get_dev() == &logdev);
+    dev_stream *logger = log_output(&logdev);
+    assert (logger != &logdev);
 
     log((char)'a');
     assert (buffer[0] == 'a');
@@ -76,5 +74,7 @@ test_system_log(void)
 
     log((s64)-12345678901);
     assert (str_comp(buffer, "-12345678901", 0) == 0);
-    log_set_dev(logger, 0);
+
+    logger = log_output(logger);
+    assert (logger == &logdev);
 }

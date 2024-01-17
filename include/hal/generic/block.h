@@ -21,6 +21,11 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <hal/base/drv.h>
 #include <hal/base/dev.h>
 
+enum block_index
+{
+    BLOCK_COMMON
+};
+
 drv_typedef (block, block);
 dev_typedef (block);
 

@@ -20,12 +20,24 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <hal/classes/uart.h>
 
 extern bool
+uart_read(dev_uart *du, u8 *data)
+{
+    return stream_read((dev_stream *)du, STREAM_COMMON, data);
+}
+
+extern bool
+uart_write(dev_uart *du, u8 data)
+{
+    return stream_write((dev_stream *)du, STREAM_COMMON, &data);
+}
+
+extern bool
 uart_info(dev_uart *du, u32 *baud, enum uart_bits *bits,
           enum uart_parity *parity, enum uart_stop *stop)
 {
     struct uart_cfg cfg = {0};
 
-    bool ret = stream_read((dev_stream *)du, 0, &cfg);
+    bool ret = stream_read((dev_stream *)du, UART_CONFIG, &cfg);
     if (ret)
     {
         if (baud)   *baud   = cfg.baud;
@@ -44,17 +56,5 @@ uart_config(dev_uart *du, u32 baud, enum uart_bits bits,
     struct uart_cfg cfg = {.baud = baud, .bits = bits,
                            .parity = parity, stop = stop};
 
-    return stream_write((dev_stream *)du, 0, &cfg);
-}
-
-extern bool
-uart_read(dev_uart *du, u8 *data)
-{
-    return stream_read((dev_stream *)du, 1, data);
-}
-
-extern bool
-uart_write(dev_uart *du, u8 data)
-{
-    return stream_write((dev_stream *)du, 1, &data);
+    return stream_write((dev_stream *)du, UART_CONFIG, &cfg);
 }

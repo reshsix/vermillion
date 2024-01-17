@@ -18,6 +18,13 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/base/drv.h>
 #include <hal/base/dev.h>
+#include <hal/generic/block.h>
+
+enum timer_index
+{
+    TIMER_CONFIG = BLOCK_COMMON + 1,
+    TIMER_WAIT
+};
 
 drv_typedef (block, timer);
 dev_typedef (timer);

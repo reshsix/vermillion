@@ -18,6 +18,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/base/drv.h>
 #include <hal/base/dev.h>
+#include <hal/generic/stream.h>
+
+enum uart_index
+{
+    UART_CONFIG = STREAM_COMMON + 1,
+};
 
 drv_typedef (stream, uart);
 dev_typedef (uart);
@@ -45,9 +51,9 @@ struct [[gnu::packed]] uart_cfg
     enum uart_stop stop;
 };
 
+bool uart_read(dev_uart *du, u8 *data);
+bool uart_write(dev_uart *du, u8 data);
 bool uart_info(dev_uart *du, u32 *baud, enum uart_bits *bits,
                enum uart_parity *parity, enum uart_stop *stop);
 bool uart_config(dev_uart *du, u32 baud, enum uart_bits bits,
                  enum uart_parity parity, enum uart_stop stop);
-bool uart_read(dev_uart *du, u8 *data);
-bool uart_write(dev_uart *du, u8 data);

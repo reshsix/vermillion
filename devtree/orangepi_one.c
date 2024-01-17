@@ -69,7 +69,7 @@ devtree_init(void)
 
     dev_init (tty0, 0x01c28000);
     uart_config(&dev(tty0), 115200, UART_8B, UART_NOPARITY, UART_1S);
-    log_set_dev((dev_stream *)&dev(tty0), 1);
+    log_output((dev_stream *)&dev(tty0));
 
     dev_init (tty1, 0x01c28400);
     dev_init (tty2, 0x01c28800);
@@ -124,7 +124,7 @@ devtree_clean(void)
     dev_clean (root);
 
     dev_clean (tty0);
-    log_set_dev(NULL, 0);
+    log_output(NULL);
 
     APB0_GATE = 0;
 }

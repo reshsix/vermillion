@@ -19,6 +19,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/base/dev.h>
 #include <hal/base/drv.h>
+#include <hal/generic/block.h>
 #include <hal/classes/pic.h>
 #include <hal/classes/timer.h>
 
@@ -88,11 +89,11 @@ stat(void *ctx, u32 idx, u32 *width, u32 *length)
     (void)ctx;
     switch (idx)
     {
-        case 0:
+        case TIMER_CONFIG:
             *width = sizeof(struct timer_cb);
             *length = 1;
             break;
-        case 1:
+        case TIMER_WAIT:
             *width = 0;
             *length = 1;
             break;
@@ -112,14 +113,14 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
     struct timer *tmr = ctx;
     switch (idx)
     {
-        case 0:
+        case TIMER_CONFIG:
             ret = (block == 0);
 
             if (ret)
                 mem_copy(buffer, &(tmr->cb), sizeof(struct timer_cb));
             break;
 
-        case 1:
+        case TIMER_WAIT:
             ret = (block == 0);
 
             if (ret)
@@ -138,7 +139,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
     struct timer *tmr = ctx;
     switch (idx)
     {
-        case 0:
+        case TIMER_CONFIG:
             ret = (block == 0);
 
             if (ret)
@@ -155,7 +156,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
             }
             break;
 
-        case 1:
+        case TIMER_WAIT:
             ret = (block == 0);
 
             if (ret)

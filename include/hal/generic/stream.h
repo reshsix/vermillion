@@ -21,6 +21,11 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <hal/base/drv.h>
 #include <hal/base/dev.h>
 
+enum stream_index
+{
+    STREAM_COMMON
+};
+
 drv_typedef (stream, stream);
 dev_typedef (stream);
 

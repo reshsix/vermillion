@@ -31,7 +31,7 @@ static u32 buffer_s = 0;
 extern bool
 video_stat(dev_video *dv, u16 *width, u16 *height)
 {
-    bool ret = block_read((dev_block *)dv, 0, &cache_fb, 0);
+    bool ret = block_read((dev_block *)dv, VIDEO_CONFIG, &cache_fb, 0);
 
     if (ret)
     {
@@ -55,7 +55,7 @@ video_cache(dev_video *dv)
         ret = (cache_fb.bpp <= 32) && (cache_fb.bpp % 8 == 0);
     if (ret)
     {
-        ret = block_stat((dev_block *)dv, 1, &cache_pitch, NULL);
+        ret = block_stat((dev_block *)dv, BLOCK_COMMON, &cache_pitch, NULL);
         cache_depth = cache_pitch / cache_fb.width;
     }
     if (ret)
@@ -90,7 +90,7 @@ video_read(dev_video *dv, void *data, u16 line)
         ret = video_cache(dv);
 
     if (ret)
-        ret = block_read((dev_block *)dv, 1, buffer, line);
+        ret = block_read((dev_block *)dv, BLOCK_COMMON, buffer, line);
 
     if (ret)
     {
@@ -165,7 +165,7 @@ video_write(dev_video *dv, void *data, u16 line)
     }
 
     if (ret)
-        ret = block_write((dev_block *)dv, 1, buffer, line);
+        ret = block_write((dev_block *)dv, BLOCK_COMMON, buffer, line);
 
     return ret;
 }

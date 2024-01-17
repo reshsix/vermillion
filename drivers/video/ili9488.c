@@ -19,6 +19,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/base/dev.h>
 #include <hal/base/drv.h>
+#include <hal/generic/block.h>
 #include <hal/generic/stream.h>
 #include <hal/classes/gpio.h>
 #include <hal/classes/video.h>
@@ -57,11 +58,11 @@ ili9488_command(struct ili9488 *ili, u8 c, ...)
         buf[i] = va_arg(args, int);
 
     gpio_set(ili->gpio, ili->dcrs, false);
-    stream_write(ili->stream, 0, &(buf[0]));
+    stream_write(ili->stream, STREAM_COMMON, &(buf[0]));
 
     gpio_set(ili->gpio, ili->dcrs, true);
     for (u8 i = 1; i < c; i++)
-        stream_write(ili->stream, 0, &(buf[i]));
+        stream_write(ili->stream, STREAM_COMMON, &(buf[i]));
     gpio_set(ili->gpio, ili->dcrs, false);
 }
 
@@ -69,11 +70,11 @@ static void
 ili9488_command2(struct ili9488 *ili, u8 n, u8 *buf, size_t length)
 {
     gpio_set(ili->gpio, ili->dcrs, false);
-    stream_write(ili->stream, 0, &n);
+    stream_write(ili->stream, STREAM_COMMON, &n);
 
     gpio_set(ili->gpio, ili->dcrs, true);
     for (size_t i = 0; i < length; i++)
-        stream_write(ili->stream, 0, &(buf[i]));
+        stream_write(ili->stream, STREAM_COMMON, &(buf[i]));
     gpio_set(ili->gpio, ili->dcrs, false);
 }
 
@@ -81,11 +82,11 @@ static void
 ili9488_command3(struct ili9488 *ili, u8 n, u8 c, size_t length)
 {
     gpio_set(ili->gpio, ili->dcrs, false);
-    stream_write(ili->stream, 0, &n);
+    stream_write(ili->stream, STREAM_COMMON, &n);
 
     gpio_set(ili->gpio, ili->dcrs, true);
     for (size_t i = 0; i < length; i++)
-        stream_write(ili->stream, 0, &c);
+        stream_write(ili->stream, STREAM_COMMON, &c);
     gpio_set(ili->gpio, ili->dcrs, false);
 }
 
@@ -183,13 +184,13 @@ stat(void *ctx, u32 idx, u32 *width, u32 *depth)
     (void)ctx;
     switch (idx)
     {
-        case 0:
-            *width = sizeof(struct video_fb);
-            *depth = 1;
-            break;
-        case 1:
+        case BLOCK_COMMON:
             *width = 480 * 4;
             *depth = 320;
+            break;
+        case VIDEO_CONFIG:
+            *width = sizeof(struct video_fb);
+            *depth = 1;
             break;
         default:
             ret = false;
@@ -207,19 +208,19 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
     struct ili9488 *ili = ctx;
     switch (idx)
     {
-        case 0:
-            ret = (block == 0);
-
-            if (ret)
-                mem_copy(buffer, &(ili->fb), sizeof(struct video_fb));
-            break;
-
-        case 1:
+        case BLOCK_COMMON:
             ret = (block < 320);
 
             if (ret)
                 mem_copy(buffer, &(ili->buffer32[block * 480 * 4]),
                          480 * 4);
+            break;
+
+        case VIDEO_CONFIG:
+            ret = (block == 0);
+
+            if (ret)
+                mem_copy(buffer, &(ili->fb), sizeof(struct video_fb));
             break;
     }
 
@@ -234,7 +235,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
     struct ili9488 *ili = ctx;
     switch (idx)
     {
-        case 1:
+        case BLOCK_COMMON:
             ret = (block < 320);
 
             if (ret)

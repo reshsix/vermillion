@@ -74,7 +74,7 @@ stat(void *ctx, u32 idx, u32 *width, u32 *depth)
     (void)ctx;
     switch (idx)
     {
-        case 0:
+        case BLOCK_COMMON:
             *width = 0x200;
             *depth = 0x800000;
             break;
@@ -94,7 +94,7 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
     struct card *card = ctx;
     switch (idx)
     {
-        case 0:
+        case BLOCK_COMMON:
             ret = true;
 
             SD_BLK(card->base) = 0x200;

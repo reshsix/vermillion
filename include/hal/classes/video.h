@@ -18,6 +18,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/base/drv.h>
 #include <hal/base/dev.h>
+#include <hal/generic/block.h>
+
+enum video_index
+{
+    VIDEO_CONFIG = BLOCK_COMMON + 1,
+};
 
 drv_typedef (block, video);
 dev_typedef (video);

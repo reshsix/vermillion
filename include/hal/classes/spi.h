@@ -18,6 +18,12 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/base/drv.h>
 #include <hal/base/dev.h>
+#include <hal/generic/stream.h>
+
+enum spi_index
+{
+    SPI_CONFIG = STREAM_COMMON + 1,
+};
 
 drv_typedef (stream, spi);
 dev_typedef (spi);
@@ -34,7 +40,7 @@ struct [[gnu::packed]] spi_cfg
     bool lsb;
 };
 
-bool spi_info(dev_spi *ds, u32 *freq, enum spi_mode *mode, bool *lsb);
-bool spi_config(dev_spi *ds, u32 freq, enum spi_mode mode, bool lsb);
 bool spi_read(dev_spi *ds, u8 *data);
 bool spi_write(dev_spi *ds, u8 data);
+bool spi_info(dev_spi *ds, u32 *freq, enum spi_mode *mode, bool *lsb);
+bool spi_config(dev_spi *ds, u32 freq, enum spi_mode mode, bool lsb);

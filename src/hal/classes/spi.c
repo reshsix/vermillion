@@ -20,11 +20,23 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <hal/classes/spi.h>
 
 extern bool
+spi_read(dev_spi *ds, u8 *data)
+{
+    return stream_read((dev_stream *)ds, STREAM_COMMON, data);
+}
+
+extern bool
+spi_write(dev_spi *ds, u8 data)
+{
+    return stream_write((dev_stream *)ds, STREAM_COMMON, &data);
+}
+
+extern bool
 spi_info(dev_spi *ds, u32 *freq, enum spi_mode *mode, bool *lsb)
 {
     struct spi_cfg cfg = {0};
 
-    bool ret = stream_read((dev_stream *)ds, 0, &cfg);
+    bool ret = stream_read((dev_stream *)ds, SPI_CONFIG, &cfg);
     if (ret)
     {
         if (freq) *freq = cfg.freq;
@@ -39,17 +51,5 @@ extern bool
 spi_config(dev_spi *ds, u32 freq, enum spi_mode mode, bool lsb)
 {
     struct spi_cfg cfg = {.freq = freq, .mode = mode, .lsb = lsb};
-    return stream_write((dev_stream *)ds, 0, &cfg);
-}
-
-extern bool
-spi_read(dev_spi *ds, u8 *data)
-{
-    return stream_read((dev_stream *)ds, 1, data);
-}
-
-extern bool
-spi_write(dev_spi *ds, u8 data)
-{
-    return stream_write((dev_stream *)ds, 1, &data);
+    return stream_write((dev_stream *)ds, SPI_CONFIG, &cfg);
 }

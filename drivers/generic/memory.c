@@ -55,7 +55,7 @@ stat(void *ctx, u32 idx, u32 *width, u32 *depth)
     struct memory *mem = ctx;
     switch (idx)
     {
-        case 0:
+        case BLOCK_COMMON:
             *width = mem->width;
             *depth = mem->depth;
             break;
@@ -75,7 +75,7 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
     struct memory *mem = ctx;
     switch (idx)
     {
-        case 0:
+        case BLOCK_COMMON:
             ret = (block < mem->depth);
 
             if (ret)
@@ -95,7 +95,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
     struct memory *mem = ctx;
     switch (idx)
     {
-        case 0:
+        case BLOCK_COMMON:
             ret = (block < mem->depth);
 
             if (ret)

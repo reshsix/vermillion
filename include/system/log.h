@@ -21,8 +21,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <hal/base/dev.h>
 #include <hal/generic/stream.h>
 
-void log_set_dev(dev_stream *logger, u32 idx);
-dev_stream *log_get_dev(void);
+dev_stream *log_output(dev_stream *logger);
 
 void log_char(const char c);
 void log_string(const char *s);

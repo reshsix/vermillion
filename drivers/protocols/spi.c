@@ -19,6 +19,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/base/dev.h>
 #include <hal/base/drv.h>
+#include <hal/generic/stream.h>
 #include <hal/classes/spi.h>
 #include <hal/classes/gpio.h>
 
@@ -124,11 +125,11 @@ stat(void *ctx, u32 idx, u32 *width)
     {
         switch (idx)
         {
-            case 0:
-                *width = sizeof(struct spi_cfg);
-                break;
-            case 1:
+            case STREAM_COMMON:
                 *width = sizeof(u8);
+                break;
+            case SPI_CONFIG:
+                *width = sizeof(struct spi_cfg);
                 break;
             default:
                 ret = false;
@@ -149,7 +150,14 @@ read(void *ctx, u32 idx, void *data)
         struct spi *spi = ctx;
         switch (idx)
         {
-            case 0:
+            case STREAM_COMMON:
+                ret = true;
+
+                u8 byte = spi_transfer(ctx, 0x0);
+                mem_copy(data, &byte, sizeof(u8));
+                break;
+
+            case SPI_CONFIG:
                 ret = true;
 
                 struct spi_cfg cfg = {0};
@@ -157,13 +165,6 @@ read(void *ctx, u32 idx, void *data)
                 cfg.lsb = spi->lsb;
                 cfg.freq = 1000000 / (WHEEL_INNER_US * spi->delay);
                 mem_copy(data, &cfg, sizeof(struct spi_cfg));
-                break;
-
-            case 1:
-                ret = true;
-
-                u8 byte = spi_transfer(ctx, 0x0);
-                mem_copy(data, &byte, sizeof(u8));
                 break;
         }
     }
@@ -181,7 +182,15 @@ write(void *ctx, u32 idx, void *data)
         struct spi *spi = ctx;
         switch (idx)
         {
-            case 0:;
+            case STREAM_COMMON:
+                ret = true;
+
+                u8 byte = 0;
+                mem_copy(&byte, data, sizeof(u8));
+                spi_transfer(spi, byte);
+                break;
+
+            case SPI_CONFIG:;
                 struct spi_cfg cfg = {0};
                 mem_copy(&cfg, data, sizeof(struct spi_cfg));
                 ret = (cfg.freq <= 100000 && cfg.freq >= 391 && cfg.mode < 4);
@@ -194,14 +203,6 @@ write(void *ctx, u32 idx, void *data)
                     spi->lsb = cfg.lsb;
                     spi->delay = (1000000 / (cfg.freq * WHEEL_INNER_US));
                 }
-                break;
-
-            case 1:
-                ret = true;
-
-                u8 byte = 0;
-                mem_copy(&byte, data, sizeof(u8));
-                spi_transfer(spi, byte);
                 break;
         }
     }
