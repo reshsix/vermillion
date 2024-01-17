@@ -14,7 +14,6 @@
 
 BUILD ?= build
 CONFIG ?= .config
-BOARD ?= orangepi_one
 
 -include $(CONFIG)
 export PATH += :$(shell pwd)/deps/tools/bin
@@ -78,10 +77,6 @@ menuconfig:
 	@rm -rf $(BUILD) .config.old
 xconfig:
 	@KCONFIG_CONFIG="$(CONFIG)" kconfig-qconf Kconfig
-	@rm -rf $(BUILD) .config.old
-defconfig: config/$(BOARD)_defconfig
-	@cp $< $(CONFIG)
-	@KCONFIG_CONFIG="$(CONFIG)" kconfig-conf --olddefconfig Kconfig
 	@rm -rf $(BUILD) .config.old
 
 # Folder creation

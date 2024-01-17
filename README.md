@@ -19,8 +19,10 @@ qemu-system-arm qemu-system-i386 gdb-multiarch
 ## Compilation
 The image will be created in build/
 ```sh
-export BOARD=orangepi_one
+make -f core.mk i686_defconfig
 
 make -f deps.mk all
-make -f core.mk defconfig all debug
+make -f core.mk all
+
+make -f core.mk debug
 ```
