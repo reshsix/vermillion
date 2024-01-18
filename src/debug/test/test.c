@@ -20,6 +20,7 @@ void test_general_types(void);
 //void test_general_macros(void);
 void test_general_mem(void);
 void test_general_str(void);
+void test_general_dict(void);
 
 void test_environ_fork(void);
 void test_environ_state(void);
@@ -62,6 +63,7 @@ test_all()
     //test_general_macros();
     test_general_mem();
     test_general_str();
+    test_general_dict();
 
     test_environ_fork();
     test_environ_state();

@@ -114,7 +114,7 @@ $(BUILD)/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 # --------------------------------- Objects  --------------------------------- #
 
 PREFIX = src/general
-OBJS := $(PREFIX)/mem.o $(PREFIX)/str.o
+OBJS := $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/dict.o
 
 PREFIX = src/environ
 OBJS += $(PREFIX)/fork.o $(PREFIX)/generator.o $(PREFIX)/state.o
@@ -138,7 +138,7 @@ OBJS += $(PREFIX)/assert.o $(PREFIX)/exit.o $(PREFIX)/profile.o \
         $(PREFIX)/test/test.o
 
 PREFIX = src/debug/test/general
-OBJS += $(PREFIX)/types.o $(PREFIX)/mem.o $(PREFIX)/str.o
+OBJS += $(PREFIX)/types.o $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/dict.o
 PREFIX = src/debug/test/environ
 OBJS += $(PREFIX)/fork.o $(PREFIX)/generator.o $(PREFIX)/state.o
 PREFIX = src/debug/test/thread

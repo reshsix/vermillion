@@ -24,6 +24,7 @@ Headers that serve a general purpose
 | [general/macros.h](general/macros.md) | Macro definitions |
 | [general/mem.h](general/mem.md) | Memory manipulation |
 | [general/str.h](general/str.md) | String manipulation |
+| [general/dict.h](general/dict.md) | Hash table implementation |
 
 ## Environment headers
 
