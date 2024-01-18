@@ -34,5 +34,5 @@ assert_fail(const char *file, int line, const char *func, const char *text)
     log (": ");
     log ("Assertion '");
     log (text);
-    log ("' failed\n");
+    log ("' failed\r\n");
 }

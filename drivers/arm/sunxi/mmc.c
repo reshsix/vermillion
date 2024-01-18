@@ -112,13 +112,13 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
             while (SD_CMD(card->base) >> 31);
             while (SD_STA(card->base) & (1 << 10));
 
-            for (u32 i = 0; i < (0x200 / 4); i++)
+            for (u32 i = 0; i < (0x200 / sizeof(u32)); i++)
             {
                 while (SD_STA(card->base) & (1 << 2));
 
+                u8 *dest = buffer;
                 u32 x = SD_FIFO(card->base);
-                for (u8 j = 0; j < 4; j++)
-                    ((u8*)buffer)[(i * 4) + j] = ((u8*)&x)[j];
+                mem_copy(&(dest[(i * sizeof(u32))]), &x, sizeof(u32));
             }
             break;
     }

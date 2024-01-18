@@ -20,15 +20,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <environ/generator.h>
 
-#define thread_decl(storage, id) \
-    [[noreturn]] \
-    storage void \
-    id([[maybe_unused]] generator *___)
-#define thread_incl(id) \
-    [[noreturn]] void id(generator *___);
-
-typedef void (*thread_task)(generator *);
-
 typedef struct thread
 {
     generator *gen;
@@ -39,6 +30,15 @@ typedef struct thread
 
     struct thread *prev, *next;
 } thread;
+
+#define thread_decl(storage, id) \
+    [[noreturn]] \
+    storage void \
+    id([[maybe_unused]] generator *___)
+#define thread_incl(id) \
+    [[noreturn]] void id(generator *___);
+
+typedef void (*thread_task)(generator *);
 
 thread *thread_new(thread_task f, void *arg, bool persistent, u8 priority);
 thread *thread_del(thread *t);

@@ -25,9 +25,9 @@ test_environ_state(void)
 {
     state st = {};
 
-    bool flag0 = false, flag1 = false;
-    volatile void *test = (void*)987654321;
-    register volatile void *test2 = (void*)0xAABBCC;
+    volatile bool flag0 = false, flag1 = false;
+    void *test = (void*)987654321;
+    register void *test2 = (void*)0xAABBCC;
 
     void *x = state_save(&st);
     if (x == NULL)

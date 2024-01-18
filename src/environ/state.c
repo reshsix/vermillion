@@ -19,7 +19,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <environ/state.h>
 
-[[gnu::naked]]
+[[gnu::naked, gnu::return_twice]]
 extern void *
 state_save(state *st)
 {
