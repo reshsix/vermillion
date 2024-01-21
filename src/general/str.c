@@ -167,7 +167,7 @@ str_token(char *str, const char *chars, char **saveptr)
 }
 
 extern void
-str_copy(char *dest, char *src, size_t length)
+str_copy(char *dest, const char *src, size_t length)
 {
     size_t l = str_length(src);
 
@@ -183,7 +183,7 @@ str_copy(char *dest, char *src, size_t length)
 }
 
 extern void
-str_concat(char *dest, char *src, size_t length)
+str_concat(char *dest, const char *src, size_t length)
 {
     size_t l = str_length(dest);
 
@@ -203,7 +203,7 @@ str_concat(char *dest, char *src, size_t length)
 }
 
 extern char *
-str_dupl(char *str, size_t length)
+str_dupl(const char *str, size_t length)
 {
     char *ret = NULL;
 

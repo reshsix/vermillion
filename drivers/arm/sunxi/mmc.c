@@ -87,7 +87,7 @@ stat(void *ctx, u32 idx, u32 *width, u32 *depth)
 }
 
 static bool
-read(void *ctx, u32 idx, void *buffer, u32 block)
+mmc_rw(void *ctx, u32 idx, void *buffer, u32 block, bool write)
 {
     bool ret = false;
 
@@ -108,17 +108,31 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
             else
                 SD_ARG(card->base) = block * 0x200;
 
-            SD_CMD(card->base) = 0x80002251;
+            if (write)
+                SD_CMD(card->base) = 0x80002658;
+            else
+                SD_CMD(card->base) = 0x80002251;
+
             while (SD_CMD(card->base) >> 31);
             while (SD_STA(card->base) & (1 << 10));
 
             for (u32 i = 0; i < (0x200 / sizeof(u32)); i++)
             {
-                while (SD_STA(card->base) & (1 << 2));
-
-                u8 *dest = buffer;
-                u32 x = SD_FIFO(card->base);
-                mem_copy(&(dest[(i * sizeof(u32))]), &x, sizeof(u32));
+                if (write)
+                {
+                    while (SD_STA(card->base) & (1 << 3));
+                    u8 *source = buffer;
+                    u32 x = 0;
+                    mem_copy(&x, &(source[(i * sizeof(u32))]), sizeof(u32));
+                    SD_FIFO(card->base) = x;
+                }
+                else
+                {
+                    while (SD_STA(card->base) & (1 << 2));
+                    u8 *dest = buffer;
+                    u32 x = SD_FIFO(card->base);
+                    mem_copy(&(dest[(i * sizeof(u32))]), &x, sizeof(u32));
+                }
             }
             break;
     }
@@ -127,10 +141,15 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
 }
 
 static bool
+read(void *ctx, u32 idx, void *buffer, u32 block)
+{
+    return mmc_rw(ctx, idx, buffer, block, false);
+}
+
+static bool
 write(void *ctx, u32 idx, void *buffer, u32 block)
 {
-    (void)(ctx), (void)(idx), (void)(buffer), (void)(block);
-    return false;
+    return mmc_rw(ctx, idx, buffer, block, true);
 }
 
 drv_decl (block, sunxi_mmc)

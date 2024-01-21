@@ -34,14 +34,6 @@ union [[gnu::packed]] config
             DRIVER_AUDIO_FORMAT_PCM32FP, DRIVER_AUDIO_FORMAT_PCM64FP
         } format;
     } audio;
-
-    struct [[gnu::packed]]
-    {
-        u32  (*open) (void *ctx, char *path);
-        u32  (*close)(void *ctx, u32 idx);
-        void (*info) (void *ctx, u32 idx, size_t *size, s32 *files);
-        u32  (*index)(void *ctx, u32 idx, u32 sub);
-    } fs;
 };
 
 #define DRIVER_SPI_MAX 0

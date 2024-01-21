@@ -273,10 +273,10 @@ mem_init(void *mem, u8 c, size_t length)
 extern void
 mem_copy(void *dest, const void *src, size_t length)
 {
-    if (((u32)src + length) > (u32)dest)
+    if ((u32)src < (u32)dest && ((u32)src + length) > (u32)dest)
     {
-        for (size_t i = length; i > 0; i--)
-            ((u8*)dest)[i-1] = ((u8*)src)[i-1];
+        for (size_t i = 0; i != length; i++)
+            ((u8*)dest)[length - i - 1] = ((u8*)src)[length - i -1];
     }
     else if (dest != src)
     {

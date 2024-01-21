@@ -114,7 +114,7 @@ $(BUILD)/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 # --------------------------------- Objects  --------------------------------- #
 
 PREFIX = src/general
-OBJS := $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/dict.o
+OBJS := $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/dict.o $(PREFIX)/path.o
 
 PREFIX = src/environ
 OBJS += $(PREFIX)/fork.o $(PREFIX)/generator.o $(PREFIX)/state.o
@@ -127,8 +127,8 @@ PREFIX = src/hal/generic
 OBJS += $(PREFIX)/block.o $(PREFIX)/stream.o
 
 PREFIX = src/hal/classes
-OBJS += $(PREFIX)/gpio.o $(PREFIX)/pic.o $(PREFIX)/spi.o $(PREFIX)/timer.o \
-        $(PREFIX)/uart.o $(PREFIX)/video.o
+OBJS += $(PREFIX)/fs.o $(PREFIX)/gpio.o $(PREFIX)/pic.o $(PREFIX)/spi.o \
+        $(PREFIX)/timer.o $(PREFIX)/uart.o $(PREFIX)/video.o
 
 PREFIX = src/system
 OBJS += $(PREFIX)/log.o $(PREFIX)/wheel.o

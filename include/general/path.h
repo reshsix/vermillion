@@ -18,14 +18,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <general/types.h>
 
-size_t str_length(const char *str);
-int str_comp(const char *str, const char *str2, size_t length);
-size_t str_span(const char *str, const char *chars, bool complement);
-char *str_find_l(const char *str, char c);
-char *str_find_r(const char *str, char c);
-char *str_find_m(const char *str, const char *chars);
-char *str_find_s(const char *str, const char *str2);
-char *str_token(char *str, const char *chars, char **saveptr);
-void str_copy(char *dest, const char *src, size_t length);
-void str_concat(char *dest, const char *src, size_t length);
-char *str_dupl(const char *str, size_t length);
+char *path_cleanup(const char *path);
+char *path_dirname(const char *path);
+char *path_filename(const char *path);
