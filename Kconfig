@@ -92,13 +92,21 @@ config STORAGE_SUNXI_MMC
     bool "Sunxi SD/MMC"
     default y if ARCH_ARM_SUNXI
     depends on ARCH_ARM
+config STORAGE_I686_ATA
+    bool "i686 ATA PIO"
+    default y if ARCH_I686
+    depends on ARCH_I686
 endmenu
 
 # Filesystem configuration
 
 menu "Filesystem"
-config FS_FAT32_MBR
-    bool "Fat32 MBR"
+config FS_MBR
+    bool "Mbr"
+config FS_GPT
+    bool "Gpt"
+config FS_FAT32
+    bool "Fat32"
 endmenu
 
 # Serial configuration

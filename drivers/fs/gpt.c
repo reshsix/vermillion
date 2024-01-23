@@ -21,38 +21,51 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <hal/base/drv.h>
 #include <hal/generic/block.h>
 
-struct mbr
+struct gpt
 {
     dev_block *storage;
-    u32 lba;
-
-    u32 width, depth;
+    u32 lba, width, depth;
 };
 
 static void
 init(void **ctx, dev_block *storage, u8 partition)
 {
-    struct mbr *ret = NULL;
+    struct gpt *ret = NULL;
 
-    if (storage && partition > 0 && partition < 5)
-        ret = mem_new(sizeof(struct mbr));
+    if (storage && partition > 0 && partition < 128)
+        ret = mem_new(sizeof(struct gpt));
 
-    if (ret && !block_stat(storage, BLOCK_COMMON, &(ret->width), &(ret->depth)))
+    if (ret && !block_stat(storage, BLOCK_COMMON, &(ret->width), NULL))
         ret = mem_del(ret);
 
     if (ret)
     {
         u8 *buffer = mem_new(ret->width);
 
-        if (buffer && block_read(storage, BLOCK_COMMON, buffer, 0))
+        u32 entries = 0, entry_s = 0;
+        if (buffer && block_read(storage, BLOCK_COMMON, buffer, 1))
         {
-            u8 *info = &(buffer[0x1BE + ((partition - 1) * 16)]);
-            mem_copy(&(ret->lba),   &(info[sizeof(u32) * 2]), sizeof(u32));
-            mem_copy(&(ret->depth), &(info[sizeof(u32) * 3]), sizeof(u32));
+            mem_copy(&entries, &(buffer[0x48]), sizeof(u64));
+            mem_copy(&entry_s, &(buffer[0x54]), sizeof(u32));
+            u32 lba = entries + ((partition * entry_s) / ret->width);
+            u32 pos = (partition * entry_s) % ret->width;
 
+            u64 start = 0, end = 0;
+            if (block_read(storage, BLOCK_COMMON, buffer, lba))
+            {
+                mem_copy(&start, &(buffer[pos + 0x20]), sizeof(u32));
+                mem_copy(&end,   &(buffer[pos + 0x28]), sizeof(u32));
+                if (start <= 0xFFFFFFFF && end <= 0xFFFFFFFF)
+                {
+                    ret->lba = start;
+                    ret->depth = end - start;
+                }
+            }
             ret->storage = storage;
-            *ctx = ret;
         }
+
+        if (ret->depth != 0)
+            *ctx = ret;
         else
             ret = mem_del(ret);
 
@@ -71,12 +84,12 @@ stat(void *ctx, u32 idx, u32 *width, u32 *depth)
 {
     bool ret = true;
 
-    struct mbr *mbr = ctx;
+    struct gpt *gpt = ctx;
     switch (idx)
     {
         case 0:
-            *width = mbr->width;
-            *depth = mbr->depth;
+            *width = gpt->width;
+            *depth = gpt->depth;
             break;
         default:
             ret = false;
@@ -91,15 +104,15 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    struct mbr *mbr = ctx;
+    struct gpt *gpt = ctx;
     switch (idx)
     {
         case 0:
-            ret = (block < mbr->depth);
+            ret = (block < gpt->depth);
 
             if (ret)
-                ret = block_read(mbr->storage, BLOCK_COMMON,
-                                 buffer, block + mbr->lba);
+                ret = block_read(gpt->storage, BLOCK_COMMON,
+                                 buffer, block + gpt->lba);
         break;
     }
 
@@ -111,22 +124,22 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    struct mbr *mbr = ctx;
+    struct gpt *gpt = ctx;
     switch (idx)
     {
         case 0:
-            ret = (block < mbr->depth);
+            ret = (block < gpt->depth);
 
             if (ret)
-                ret = block_write(mbr->storage, BLOCK_COMMON,
-                                  buffer, block + mbr->lba);
+                ret = block_write(gpt->storage, BLOCK_COMMON,
+                                  buffer, block + gpt->lba);
         break;
     }
 
     return ret;
 }
 
-drv_decl (block, mbr)
+drv_decl (block, gpt)
 {
     .init = init, .clean = clean,
     .stat = stat, .read = read, .write = write

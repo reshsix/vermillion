@@ -88,7 +88,18 @@ stat(void *ctx, u32 idx, u32 *width, u32 *depth)
     bool ret = true;
 
     struct virtual *v = ctx;
-    ret = block_stat((dev_block *)v->video, idx, width, depth);
+    switch (idx)
+    {
+        case BLOCK_COMMON:
+            *width = v->fb.width * v->depth;
+            *depth = v->fb.height;
+            break;
+
+        case VIDEO_CONFIG:
+            *width = sizeof(struct video_fb);
+            *depth = 1;
+            break;
+    }
 
     return ret;
 }

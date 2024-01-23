@@ -24,6 +24,7 @@ static dev_video *cache_dv = NULL;
 static struct video_fb cache_fb = {0};
 static u32 cache_pitch = 0;
 static u32 cache_depth = 0;
+static bool cache_optimal = false;
 
 static u8 *buffer = NULL;
 static u32 buffer_s = 0;
@@ -31,16 +32,15 @@ static u32 buffer_s = 0;
 extern bool
 video_stat(dev_video *dv, u16 *width, u16 *height)
 {
-    bool ret = block_read((dev_block *)dv, VIDEO_CONFIG, &cache_fb, 0);
+    struct video_fb fb = {0};
+    bool ret = block_read((dev_block *)dv, VIDEO_CONFIG, &fb, 0);
 
     if (ret)
     {
-        cache_dv = dv;
-
         if (width)
-            *width = cache_fb.width;
+            *width = fb.width;
         if (height)
-            *height = cache_fb.height;
+            *height = fb.height;
     }
 
     return ret;
@@ -49,7 +49,7 @@ video_stat(dev_video *dv, u16 *width, u16 *height)
 static bool
 video_cache(dev_video *dv)
 {
-    bool ret = video_stat(dv, NULL, NULL);
+    bool ret = block_read((dev_block *)dv, VIDEO_CONFIG, &cache_fb, 0);
 
     if (ret)
         ret = (cache_fb.bpp <= 32) && (cache_fb.bpp % 8 == 0);
@@ -75,7 +75,17 @@ video_cache(dev_video *dv)
         }
     }
 
-    if (!ret)
+    if (ret)
+    {
+        if (cache_depth         == 4 &&
+            cache_fb.red.size   == 8 && cache_fb.red.pos   == 16 &&
+            cache_fb.green.size == 8 && cache_fb.green.pos == 8  &&
+            cache_fb.blue.size  == 8 && cache_fb.blue.pos  == 0)
+            cache_optimal = true;
+
+        cache_dv = dv;
+    }
+    else
         cache_dv = NULL;
 
     return ret;
@@ -90,37 +100,37 @@ video_read(dev_video *dv, void *data, u16 line)
         ret = video_cache(dv);
 
     if (ret)
-        ret = block_read((dev_block *)dv, BLOCK_COMMON, buffer, line);
-
-    if (ret)
     {
-        for (u16 i = 0; i < cache_fb.width; i++)
+        if (cache_optimal)
+            ret = block_read((dev_block *)dv, BLOCK_COMMON, data, line);
+        else
         {
-            u32 pixel = 0;
-            u32 depth = (cache_depth <= 4) ? cache_depth : sizeof(u32);
-            mem_copy(&pixel, &(buffer[i * cache_depth]), depth);
+            ret = block_read((dev_block *)dv, BLOCK_COMMON, buffer, line);
 
-            u32 mask = (1 << cache_fb.bpp) - 1;
-            pixel &= mask;
+            const u32 rmask = (1 << cache_fb.red.size)   - 1;
+            const u32 gmask = (1 << cache_fb.green.size) - 1;
+            const u32 bmask = (1 << cache_fb.blue.size)  - 1;
+            for (u16 i = 0; i < cache_fb.width; i++)
+            {
+                u32 pixel = 0;
+                u32 depth = (cache_depth <= 4) ? cache_depth : sizeof(u32);
+                mem_copy(&pixel, &(buffer[i * cache_depth]), depth);
 
-            u32 red_mask   = (1 << cache_fb.red.size)   - 1;
-            u32 green_mask = (1 << cache_fb.green.size) - 1;
-            u32 blue_mask  = (1 << cache_fb.blue.size)  - 1;
+                u32 mask = (1 << cache_fb.bpp) - 1;
+                pixel &= mask;
 
-            u32 red    = (pixel >> cache_fb.red.pos)   & red_mask;
-            u32 green  = (pixel >> cache_fb.green.pos) & green_mask;
-            u32 blue   = (pixel >> cache_fb.blue.pos)  & blue_mask;
+                u32 red    = (pixel >> cache_fb.red.pos)   & rmask;
+                u32 green  = (pixel >> cache_fb.green.pos) & gmask;
+                u32 blue   = (pixel >> cache_fb.blue.pos)  & bmask;
 
-            u8 red8   = (red_mask)   ? ((red * 255)   / red_mask)   : 0;
-            u8 green8 = (green_mask) ? ((green * 255) / green_mask) : 0;
-            u8 blue8  = (blue_mask)  ? ((blue * 255)  / blue_mask)  : 0;
-            u8 unused = 0x0;
+                u8 red8   = (rmask) ? ((red * 255)   / rmask) : 0;
+                u8 green8 = (gmask) ? ((green * 255) / gmask) : 0;
+                u8 blue8  = (bmask) ? ((blue * 255)  / bmask) : 0;
 
-            u8 *target = data;
-            mem_copy(&(target[(i * 4) + 0]), &red8,   sizeof(u8));
-            mem_copy(&(target[(i * 4) + 1]), &green8, sizeof(u8));
-            mem_copy(&(target[(i * 4) + 2]), &blue8,  sizeof(u8));
-            mem_copy(&(target[(i * 4) + 3]), &unused, sizeof(u8));
+                u8 *target = data;
+                u32 result = red8 << 16 | green8 << 8 | blue8 << 0;
+                mem_copy(&(target[i * 4]), &result, cache_depth);
+            }
         }
     }
 
@@ -137,35 +147,28 @@ video_write(dev_video *dv, void *data, u16 line)
 
     if (ret)
     {
-        for (u16 i = 0; i < cache_fb.width; i++)
+        if (cache_optimal)
+            ret = block_write((dev_block *)dv, BLOCK_COMMON, data, line);
+        else
         {
-            u8 *source = data;
+            const u32 rmask = (1 << cache_fb.red.size)   - 1;
+            const u32 gmask = (1 << cache_fb.green.size) - 1;
+            const u32 bmask = (1 << cache_fb.blue.size)  - 1;
 
             u8 pixel[4] = {0};
-            mem_copy(&pixel, &(source[i * sizeof(u32)]), sizeof(u32));
-
-            u32 red_mask   = (1 << cache_fb.red.size)   - 1;
-            u32 green_mask = (1 << cache_fb.green.size) - 1;
-            u32 blue_mask  = (1 << cache_fb.blue.size)  - 1;
-
-            u32 red   = ((pixel[0] * red_mask)   / 255) << cache_fb.red.pos;
-            u32 green = ((pixel[1] * green_mask) / 255) << cache_fb.green.pos;
-            u32 blue  = ((pixel[2] * blue_mask)  / 255) << cache_fb.blue.pos;
-            u32 result = red | green | blue;
-
-            u8 array[4] = {0};
-            array[0] = result & 0xFF;
-            array[1] = (result >> 8) & 0xFF;
-            array[2] = (result >> 16) & 0xFF;
-            array[3] = (result >> 24) & 0xFF;
-
-            u32 depth = (cache_depth <= 4) ? cache_depth : sizeof(u32);
-            mem_copy(&(buffer[i * cache_depth]), array, depth);
+            for (u16 i = 0; i < cache_fb.width; i++)
+            {
+                u8 *source = data;
+                mem_copy(pixel, &(source[i * sizeof(u32)]), sizeof(u32));
+                u32 red   = ((pixel[0] * rmask) / 255) << cache_fb.red.pos;
+                u32 green = ((pixel[1] * gmask) / 255) << cache_fb.green.pos;
+                u32 blue  = ((pixel[2] * bmask) / 255) << cache_fb.blue.pos;
+                u32 result = red | green | blue;
+                mem_copy(&(buffer[i * cache_depth]), &result, cache_depth);
+            }
+            ret = block_write((dev_block *)dv, BLOCK_COMMON, buffer, line);
         }
     }
-
-    if (ret)
-        ret = block_write((dev_block *)dv, BLOCK_COMMON, buffer, line);
 
     return ret;
 }

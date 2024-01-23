@@ -21,6 +21,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <hal/base/drv.h>
 #include <hal/generic/block.h>
 #include <hal/generic/stream.h>
+#include <hal/classes/fs.h>
 #include <hal/classes/pic.h>
 #include <hal/classes/uart.h>
 #include <hal/classes/timer.h>
@@ -47,6 +48,15 @@ dev_decl (video, i686_fb, video0);
 drv_incl (block, memory);
 dev_decl (block, memory, ram);
 
+drv_incl (block, i686_ata);
+dev_decl (block, i686_ata, sda);
+
+drv_incl (block, mbr);
+dev_decl (block, mbr, sda1);
+
+drv_incl (fs, fat32);
+dev_decl (fs, fat32, root);
+
 extern u32 *multiboot_addr;
 static void *multiboot_info = NULL;
 
@@ -70,6 +80,10 @@ devtree_init(void)
 
     dev_init (pic);
     dev_init (timer0, &dev(pic), 0);
+
+    dev_init (sda, 0x1F0, false);
+    dev_init (sda1, &dev(sda), 1);
+    dev_init (root, &dev(sda1));
 
     dev_init (video0, multiboot_info);
 

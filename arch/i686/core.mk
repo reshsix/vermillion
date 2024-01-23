@@ -15,27 +15,29 @@
 # --------------------------------- Recipes  --------------------------------- #
 
 # Helper recipes
-image: $(BUILD)/vermillion.img
-debug: $(BUILD)/vermillion.img scripts/debug.gdb
-	@printf '%s\n' "  QEMU    $(<:$(BUILD)/%=%)"
-	@qemu-system-i386 -s -S -cdrom $< &
+debug:
+	@printf '%s\n' "  QEMU    vermillion.img"
+	@qemu-system-i386 -s -S \
+        -drive file=build/vermillion.img,index=0,if=ide,format=raw &
 	@gdb-multiarch --command=scripts/debug.gdb
-test: $(BUILD)/vermillion.img
-	@printf '%s\n' "  TEST    $(<:$(BUILD)/%=%)"
-	@chronic sh -c "qemu-system-i386 -device isa-debug-exit -cdrom $< \
-                    -nographic || [ \$$? = 255 ]"
 
 # Specific recipes
 $(BUILD)/boot.o: arch/$(ARCH)/boot.S deps/.$(TARGET)-gcc | $(BUILD)
 	@printf '%s\n' "  AS      core/$(@:$(BUILD)/%=%)"
 	@$(CC) $(CFLAGS) -c $< -o $@
-$(BUILD)/vermillion.img: $(BUILD)/kernel.elf \
-                         arch/$(ARCH)/grub.cfg | $(BUILD)/mount
-	@printf '%s\n' "  BUILD   $(@:$(BUILD)/%=%)"
-	@mkdir -p $(BUILD)/mount/boot/grub
-	@cp $< $(BUILD)/mount/boot/
-	@cp arch/$(ARCH)/grub.cfg $(BUILD)/mount/boot/grub/
-	@chronic grub-mkrescue -o $@ $(BUILD)/mount
+$(BUILD)/root: $(BUILD)/kernel.elf arch/$(ARCH)/grub.cfg
+	@mkdir -p $@/boot/grub
+	@cp $(BUILD)/kernel.elf $@/boot/
+	@cp arch/$(ARCH)/grub.cfg $@/boot/grub/
+image: $(BUILD)/vermillion.img
+	@printf '%s\n' "  GRUB    $(<:$(BUILD)/%=%)"
+	@chronic sudo grub-install --target=i386-pc \
+        --root-directory=$(BUILD)/mount/ \
+        --boot-directory=$(BUILD)/mount/boot/ \
+        --modules="normal part_msdos multiboot2 fat search" \
+        /dev/loop0
+	@sudo umount $(BUILD)/mount
+	@sudo losetup -d /dev/loop0
 
 # --------------------------------- Objects  ---------------------------------
 

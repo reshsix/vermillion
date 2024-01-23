@@ -80,7 +80,7 @@ xconfig:
 	@rm -rf $(BUILD) .config.old
 
 # Folder creation
-FOLDERS := $(BUILD) $(BUILD)/arch $(BUILD)/mount $(BUILD)/src
+FOLDERS := $(BUILD) $(BUILD)/arch $(BUILD)/src
 FOLDERS += $(BUILD)/src/general $(BUILD)/src/environ $(BUILD)/src/thread
 FOLDERS += $(BUILD)/src/hal/generic $(BUILD)/src/hal/classes
 FOLDERS += $(BUILD)/src/system $(BUILD)/src/debug
@@ -93,6 +93,24 @@ FOLDERS += $(BUILD)/drivers/arm $(BUILD)/drivers/i686
 FOLDERS += $(BUILD)/drivers/arm/sunxi
 $(FOLDERS):
 	@mkdir -p $@
+
+# Image creation
+DISK_SIZE=$(shell echo "x=l(($$(du -b root | cut -f1)/1000000) + 16)/l(2); \
+            scale=0; 2^((x+1)/1)" | bc -l)
+$(BUILD)/vermillion.img: build/root root/
+	@printf '%s\n' "  BUILD   $(@:$(BUILD)/%=%)"
+	@dd if=/dev/zero of=$@ bs=1M count=$(DISK_SIZE) status=none
+	@sudo losetup /dev/loop0 $@
+	@printf 'start=2048, type=0c, bootable\n' \
+     | sudo chronic sfdisk -q /dev/loop0
+	@sudo partx -a /dev/loop0
+	@sudo chronic mkfs.vfat -F32 /dev/loop0p1
+	@mkdir -p $(BUILD)/mount/
+	@sudo mount -t vfat /dev/loop0p1 $(BUILD)/mount
+	@sudo cp -r root/* $(BUILD)/mount/
+	@sudo cp -r build/root/* $(BUILD)/mount/
+#	@sudo umount $(BUILD)/mount/
+#	@sudo rm -d $(BUILD)/mount/
 
 # Generic recipes
 $(BUILD)/%.o: %.c deps/.$(TARGET)-gcc | $(FOLDERS)
@@ -174,9 +192,16 @@ endif
 
 PREFIX = drivers/fs
 
-ifdef CONFIG_FS_FAT32_MBR
-OBJS += $(PREFIX)/mbr.o
+ifdef CONFIG_FS_FAT32
 OBJS += $(PREFIX)/fat32.o
+endif
+
+ifdef CONFIG_FS_MBR
+OBJS += $(PREFIX)/mbr.o
+endif
+
+ifdef CONFIG_FS_GPT
+OBJS += $(PREFIX)/gpt.o
 endif
 
 PREFIX = drivers/protocols
@@ -226,6 +251,10 @@ endif
 
 ifdef CONFIG_SERIAL_I686
 OBJS += $(PREFIX)/serial.o
+endif
+
+ifdef CONFIG_STORAGE_I686_ATA
+OBJS += $(PREFIX)/ata.o
 endif
 
 -include arch/$(ARCH)/core.mk

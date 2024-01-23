@@ -36,23 +36,15 @@ $(BUILD)/boot.o: arch/$(ARCH)/boot.S deps/.$(TARGET)-gcc | $(BUILD)
 $(BUILD)/boot.scr: $(BUILD)/arch/u-boot.cmd | $(BUILD)
 	@printf '%s\n' "  MKIMAGE core/$(@:$(BUILD)/%=%)"
 	@chronic mkimage -C none -A $(ARCH) -T script -d $< $@
-$(BUILD)/vermillion.img: deps/u-boot.bin $(BUILD)/kernel.bin \
-                      $(BUILD)/boot.scr | $(BUILD)/mount
-	@printf '%s\n' "  BUILD   $(@:$(BUILD)/%=%)"
-	@dd if=/dev/zero of=$@ bs=1M count=$(CONFIG_DISK_SIZE) status=none
-	@sudo losetup /dev/loop0 $@
-	@printf 'start=2048, type=83, bootable\n' \
-     | sudo chronic sfdisk -q /dev/loop0
-	@sudo partx -a /dev/loop0
-	@sudo chronic mkfs.fat -F32 "/dev/loop0p1"
-	@sudo mount /dev/loop0p1 $(BUILD)/mount
-	@sudo mkdir -p $(BUILD)/mount/boot/
-	@sudo cp $(BUILD)/boot.scr $(BUILD)/mount/
-	@sudo cp $(BUILD)/kernel.bin $(BUILD)/mount/boot/
+$(BUILD)/root: $(BUILD)/boot.scr $(BUILD)/kernel.bin
+	@mkdir -p $@/boot/grub
+	@cp $(BUILD)/boot.scr $@/
+	@cp $(BUILD)/kernel.bin $@/boot/
+image: $(BUILD)/vermillion.img deps/u-boot.bin
+	@printf '%s\n' "  UBOOT   $(<:$(BUILD)/%=%)"
 	@sudo umount $(BUILD)/mount
 	@sudo dd if=deps/u-boot.bin of=/dev/loop0 bs=1024 seek=8 status=none
 	@sleep 1
-	@sudo partx -d /dev/loop0
 	@sudo losetup -d /dev/loop0
 
 # --------------------------------- Objects  ---------------------------------

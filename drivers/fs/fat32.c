@@ -402,12 +402,10 @@ fat32e_grow(struct fat32e *fe)
     if ((fe->files.count + 1) >= fe->files.length)
     {
         void *new = mem_renew(fe->files.data,
-                              fe->files.length * 2);
+                              sizeof(struct fat32e) * fe->files.length * 2);
         if (new != NULL)
         {
             fe->files.data = new;
-            mem_init(&(fe->files.data[fe->files.length]), 0,
-                     fe->files.length);
             fe->files.length *= 2;
         }
         else
@@ -444,49 +442,67 @@ fat32_directory(struct fat32 *f, u32 cluster, struct fat32e *out)
 {
     bool ret = true;
 
-    cluster &= 0xFFFFFFF;
-    u32 firstsect = fat32_fsector(f, cluster);
-    for (u8 i = 0; ret && i < f->br.sectspercluster; i++)
-        ret = block_read(f->storage, BLOCK_COMMON,
-                         &(f->buffer[0x200 * i]), firstsect + i);
+    u32 firstsect = 0;
 
-    bool finished = false;
     static char name[(255 * 4) + 1] = {0};
-    static u16 lfn[(255 * 4) + 1] = {0};
-    u16 *lfn_p = lfn;
-    for (size_t i = 0; ret && i < (0x200 * f->br.sectspercluster); i += 32)
+    static u16 lfn[255] = {0};
+    static u8 lfn_last = 0;
+    mem_init(lfn, 0xFF, sizeof(lfn));
+    for (u32 i = 0x200 * f->br.sectspercluster; ret; i += 32)
     {
-        if (f->buffer[i] == 0x00)
+        if (i >= (0x200 * f->br.sectspercluster))
         {
-            finished = true;
-            break;
+            if (!cluster_eof(cluster))
+            {
+                firstsect = fat32_fsector(f, cluster);
+                for (u8 k = 0; ret && k < f->br.sectspercluster; k++)
+                    ret = block_read(f->storage, BLOCK_COMMON,
+                                     &(f->buffer[0x200 * k]), firstsect + k);
+                i = 0;
+            }
+            else
+                break;
+            cluster = fat32_next(f, cluster);
         }
+
+        if (f->buffer[i] == 0x00)
+            break;
 
         if (f->buffer[i] == 0x05 || f->buffer[i] == 0xE5)
             continue;
 
         if (f->buffer[i + 11] == 0xF)
         {
-            mem_copy(lfn_p, &(f->buffer[i + 1]), 10);
-            lfn_p = &(lfn_p[5]);
-            mem_copy(lfn_p, &(f->buffer[i + 14]), 12);
-            lfn_p = &(lfn_p[6]);
-            mem_copy(lfn_p, &(f->buffer[i + 28]), 4);
-            lfn_p = &(lfn_p[2]);
+            u16 idx = f->buffer[i] & 0x1F;
+            if (idx > 0 && idx < 256)
+            {
+                idx = (idx - 1) * 13;
+                mem_copy(&(lfn[idx]),      &(f->buffer[i + 1]),  5 * 2);
+                mem_copy(&(lfn[idx + 5]),  &(f->buffer[i + 14]), 6 * 2);
+                mem_copy(&(lfn[idx + 11]), &(f->buffer[i + 28]), 2 * 2);
+
+                u8 last = idx + 13;
+                if (last > lfn_last)
+                    lfn_last = last;
+            }
             continue;
         }
 
         size_t j = 0;
-        for (u16 *lfn16 = lfn; lfn16 < lfn_p; lfn16 = &(lfn16[1]))
+        for (u16 *lfn_p = lfn; lfn_p <= &(lfn[lfn_last]); lfn_p = &(lfn_p[1]))
         {
-            if (lfn16[0] == 0xFFFF)
+            if (*lfn_p == 0xFFFF)
                 continue;
 
-            j += unicode_to_utf8(utf16_to_unicode(&lfn16), &(name[j]));
+            j += unicode_to_utf8(utf16_to_unicode(&lfn_p), &(name[j]));
         }
-        lfn_p = lfn;
+        mem_init(lfn, 0xFF, sizeof(lfn));
 
-        j += id83_to_string(&(f->buffer[i]), &(name[j]));
+        if (j > 0)
+            name[j] = '\0';
+        else
+            id83_to_string(&(f->buffer[i]), name);
+
         if (str_comp(name, ".", 0) != 0 && str_comp(name, "..", 0) != 0)
         {
             if (fat32e_grow(out))
@@ -496,13 +512,6 @@ fat32_directory(struct fat32 *f, u32 cluster, struct fat32e *out)
                                   (firstsect * 0x200) + i);
             }
         }
-    }
-
-    if (ret && !finished)
-    {
-        u32 next = fat32_next(f, cluster);
-        if (!cluster_eof(next))
-            ret = fat32_directory(f, next, out);
     }
 
     return ret;
