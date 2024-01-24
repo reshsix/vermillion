@@ -29,6 +29,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <system/log.h>
 #include <system/wheel.h>
+#include <system/display.h>
 
 drv_incl (uart, i686_com);
 dev_decl (uart, i686_com, tty0);
@@ -89,6 +90,8 @@ devtree_init(void)
 
     pic_state(&dev(pic), true);
     wheel_timer(&dev(timer0));
+
+    display_setup(&dev(video0));
 }
 
 extern void
