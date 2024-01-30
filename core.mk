@@ -27,7 +27,7 @@ TARGET = $(shell echo $(CONFIG_TARGET))
 ifeq ($(NDEBUG), 1)
     CFLAGS = -O2 -DNDEBUG=1
 else
-    CFLAGS = -O0 -ggdb3
+    CFLAGS = -O1 -ggdb3
 endif
 CC = $(TARGET)-gcc
 LD = $(TARGET)-ld
@@ -83,7 +83,7 @@ xconfig:
 FOLDERS := $(BUILD) $(BUILD)/arch $(BUILD)/src
 FOLDERS += $(BUILD)/src/general $(BUILD)/src/environ $(BUILD)/src/thread
 FOLDERS += $(BUILD)/src/hal/generic $(BUILD)/src/hal/classes
-FOLDERS += $(BUILD)/src/system $(BUILD)/src/debug
+FOLDERS += $(BUILD)/src/system $(BUILD)/src/debug $(BUILD)/src/interface
 FOLDERS += $(BUILD)/src/debug/test/general $(BUILD)/src/debug/test/environ
 FOLDERS += $(BUILD)/src/debug/test/thread $(BUILD)/src/debug/test/system
 FOLDERS += $(BUILD)/drivers $(BUILD)/drivers/audio
@@ -95,7 +95,8 @@ $(FOLDERS):
 	@mkdir -p $@
 
 # Image creation
-DISK_SIZE=$(shell echo "x=l(($$(du -b root | cut -f1)/1000000) + 16)/l(2); \
+DISK_SIZE=$(shell echo "x=l(($$(du -b root | tail -n1 | cut -f1) \
+                            /1000000) + 16)/l(2); \
             scale=0; 2^((x+1)/1)" | bc -l)
 $(BUILD)/vermillion.img: build/root root/
 	@printf '%s\n' "  BUILD   $(@:$(BUILD)/%=%)"
@@ -109,8 +110,6 @@ $(BUILD)/vermillion.img: build/root root/
 	@sudo mount -t vfat /dev/loop0p1 $(BUILD)/mount
 	@sudo cp -r root/* $(BUILD)/mount/
 	@sudo cp -r build/root/* $(BUILD)/mount/
-#	@sudo umount $(BUILD)/mount/
-#	@sudo rm -d $(BUILD)/mount/
 
 # Generic recipes
 $(BUILD)/%.o: %.c deps/.$(TARGET)-gcc | $(FOLDERS)
@@ -164,6 +163,9 @@ OBJS += $(PREFIX)/channel.o $(PREFIX)/critical.o $(PREFIX)/implicit.o \
         $(PREFIX)/mutex.o $(PREFIX)/semaphore.o $(PREFIX)/thread.o
 PREFIX = src/debug/test/system
 OBJS += $(PREFIX)/log.o
+
+PREFIX = src/interface
+OBJS += $(PREFIX)/console.o
 
 OBJS += src/main.o
 

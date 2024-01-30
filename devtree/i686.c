@@ -31,6 +31,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <system/wheel.h>
 #include <system/display.h>
 
+#include <interface/console.h>
+
 drv_incl (uart, i686_com);
 dev_decl (uart, i686_com, tty0);
 dev_decl (uart, i686_com, tty1);
@@ -91,7 +93,12 @@ devtree_init(void)
     pic_state(&dev(pic), true);
     wheel_timer(&dev(timer0));
 
-    display_setup(&dev(video0));
+    u16 width = 0, height = 0;
+    if (video_stat(&dev(video0), &width, &height) && width && height)
+    {
+        display_setup(&dev(video0));
+        console_init(&dev(root), width, height);
+    }
 }
 
 extern void

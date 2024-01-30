@@ -17,14 +17,25 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <thread/thread.h>
 
 #include <system/log.h>
+#include <system/wheel.h>
+#include <system/display.h>
 
 #include <debug/test.h>
+
+#include <interface/console.h>
 
 thread_decl (extern, main)
 {
     test_all();
 
     log("Hello World!\r\n");
+
+    const char msg[] = "Vermillion 1.0a: Hello World\r\n\r\n";
+    const char msg2[] = "Input not implemented";
+    for (u8 i = 0; i < sizeof(msg); i++)
+        console_input(msg[i]);
+    for (u8 i = 0; i < sizeof(msg2); i++)
+        console_input(msg2[i]);
 
     thread_finish();
 }
