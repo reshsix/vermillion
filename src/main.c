@@ -37,5 +37,8 @@ thread_decl (extern, main)
     for (u8 i = 0; i < sizeof(msg2); i++)
         console_input(msg2[i]);
 
+    for (;;)
+        wheel_sleep(WHEEL_OUTER, 255);
+
     thread_finish();
 }

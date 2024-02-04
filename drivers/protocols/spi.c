@@ -29,16 +29,13 @@ struct spi
 {
     dev_gpio *gpio;
 
-    u16 ss;
-    u16 sck;
-    u16 mosi;
-    u16 miso;
-
-    bool lsb;
-    bool cpol;
-    bool cpha;
+    u16 ss, sck, mosi, miso;
+    bool lsb, csp, cpol, cpha;
 
     u8 delay;
+
+    bool duplex;
+    u8 last;
 };
 
 static u8
@@ -46,7 +43,7 @@ spi_transfer(struct spi *spi, u8 x)
 {
     u8 ret = 0;
 
-    gpio_set(spi->gpio, spi->ss, false);
+    gpio_set(spi->gpio, spi->ss, spi->csp);
     gpio_set(spi->gpio, spi->sck, (spi->cpha) ? true : false);
     for (u8 i = 0; i < 8; i++)
     {
@@ -68,7 +65,7 @@ spi_transfer(struct spi *spi, u8 x)
         if (spi->lsb) x >>= 1;
         else          x <<= 1;
     }
-    gpio_set(spi->gpio, spi->ss, true);
+    gpio_set(spi->gpio, spi->ss, !(spi->csp));
 
     return (spi->cpol) ? ~ret : ret;
 }
@@ -93,6 +90,8 @@ init(void **ctx, dev_gpio *gpio, u16 ss, u16 sck, u16 mosi, u16 miso)
         ret->delay = 1;
 
         gpio_config(ret->gpio, ret->ss, GPIO_OUT, GPIO_PULLOFF);
+        gpio_set(ret->gpio, ret->ss, !(ret->csp));
+
         gpio_config(ret->gpio, ret->sck, GPIO_OUT, GPIO_PULLOFF);
         gpio_config(ret->gpio, ret->mosi, GPIO_OUT, GPIO_PULLOFF);
         gpio_config(ret->gpio, ret->miso, GPIO_IN, GPIO_PULLOFF);
@@ -153,7 +152,11 @@ read(void *ctx, u32 idx, void *data)
             case STREAM_COMMON:
                 ret = true;
 
-                u8 byte = spi_transfer(ctx, 0x0);
+                u8 byte = 0;
+                if (spi->duplex)
+                    byte = spi->last;
+                else
+                    byte = spi_transfer(ctx, 0x0);
                 mem_copy(data, &byte, sizeof(u8));
                 break;
 
@@ -163,6 +166,8 @@ read(void *ctx, u32 idx, void *data)
                 struct spi_cfg cfg = {0};
                 cfg.mode = spi->cpol << 1 | spi->cpha;
                 cfg.lsb = spi->lsb;
+                cfg.csp = spi->csp;
+                cfg.duplex = spi->duplex;
                 cfg.freq = 1000000 / (WHEEL_INNER_US * spi->delay);
                 mem_copy(data, &cfg, sizeof(struct spi_cfg));
                 break;
@@ -187,7 +192,7 @@ write(void *ctx, u32 idx, void *data)
 
                 u8 byte = 0;
                 mem_copy(&byte, data, sizeof(u8));
-                spi_transfer(spi, byte);
+                spi->last = spi_transfer(spi, byte);
                 break;
 
             case SPI_CONFIG:;
@@ -201,6 +206,8 @@ write(void *ctx, u32 idx, void *data)
                     spi->cpha = (cfg.mode & 0x1);
                     spi->cpol = (cfg.mode & 0x2);
                     spi->lsb = cfg.lsb;
+                    spi->csp = cfg.csp;
+                    spi->duplex = cfg.duplex;
                     spi->delay = (1000000 / (cfg.freq * WHEEL_INNER_US));
                 }
                 break;

@@ -208,7 +208,7 @@ endif
 
 PREFIX = drivers/protocols
 
-ifdef CONFIG_PROTOCOL_SPI
+ifdef CONFIG_SPI_SOFT
 OBJS += $(PREFIX)/spi.o
 endif
 
@@ -227,6 +227,10 @@ endif
 
 ifdef CONFIG_STORAGE_SUNXI_MMC
 OBJS += $(PREFIX)/mmc.o
+endif
+
+ifdef CONFIG_SPI_SUNXI_SPI
+OBJS += $(PREFIX)/spi.o
 endif
 
 ifdef CONFIG_TIMER_SUNXI_TIMER

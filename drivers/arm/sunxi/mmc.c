@@ -114,7 +114,6 @@ mmc_rw(void *ctx, u32 idx, void *buffer, u32 block, bool write)
                 SD_CMD(card->base) = 0x80002251;
 
             while (SD_CMD(card->base) >> 31);
-            while (SD_STA(card->base) & (1 << 10));
 
             for (u32 i = 0; i < (0x200 / sizeof(u32)); i++)
             {

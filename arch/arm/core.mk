@@ -14,6 +14,7 @@
 
 # -------------------------------- Parameters -------------------------------- #
 
+UBOOT_CONFIG = $(shell echo $(CONFIG_UBOOT_CONFIG))
 QEMU_MACHINE = $(shell echo $(CONFIG_QEMU_MACHINE))
 
 # --------------------------------- Recipes  --------------------------------- #
@@ -40,10 +41,11 @@ $(BUILD)/root: $(BUILD)/boot.scr $(BUILD)/kernel.bin
 	@mkdir -p $@/boot/grub
 	@cp $(BUILD)/boot.scr $@/
 	@cp $(BUILD)/kernel.bin $@/boot/
-image: $(BUILD)/vermillion.img deps/u-boot.bin
+image: $(BUILD)/vermillion.img deps/$(UBOOT_CONFIG)_u-boot.bin
 	@printf '%s\n' "  UBOOT   $(<:$(BUILD)/%=%)"
 	@sudo umount $(BUILD)/mount
-	@sudo dd if=deps/u-boot.bin of=/dev/loop0 bs=1024 seek=8 status=none
+	@sudo dd if=deps/$(UBOOT_CONFIG)_u-boot.bin \
+             of=/dev/loop0 bs=1024 seek=8 status=none
 	@sleep 1
 	@sudo losetup -d /dev/loop0
 

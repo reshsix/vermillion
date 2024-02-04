@@ -32,24 +32,29 @@ spi_write(dev_spi *ds, u8 data)
 }
 
 extern bool
-spi_info(dev_spi *ds, u32 *freq, enum spi_mode *mode, bool *lsb)
+spi_info(dev_spi *ds, u32 *freq, enum spi_mode *mode,
+         bool *lsb, bool *csp, bool *duplex)
 {
     struct spi_cfg cfg = {0};
 
     bool ret = stream_read((dev_stream *)ds, SPI_CONFIG, &cfg);
     if (ret)
     {
-        if (freq) *freq = cfg.freq;
-        if (mode) *mode = cfg.mode;
-        if (lsb)  *lsb  = cfg.lsb;
+        if (freq)   *freq   = cfg.freq;
+        if (mode)   *mode   = cfg.mode;
+        if (lsb)    *lsb    = cfg.lsb;
+        if (csp)    *csp    = cfg.csp;
+        if (duplex) *duplex = cfg.duplex;
     }
 
     return ret;
 }
 
 extern bool
-spi_config(dev_spi *ds, u32 freq, enum spi_mode mode, bool lsb)
+spi_config(dev_spi *ds, u32 freq, enum spi_mode mode,
+           bool lsb, bool csp, bool duplex)
 {
-    struct spi_cfg cfg = {.freq = freq, .mode = mode, .lsb = lsb};
+    struct spi_cfg cfg = {.freq = freq, .mode = mode,
+                          .lsb = lsb, .csp = csp, .duplex = duplex};
     return stream_write((dev_stream *)ds, SPI_CONFIG, &cfg);
 }

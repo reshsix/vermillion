@@ -122,6 +122,17 @@ config SERIAL_I686
     depends on ARCH_I686
 endmenu
 
+# SPI configuration
+
+menu "SPI"
+config SPI_SOFT
+    bool "Software SPI"
+config SPI_SUNXI_SPI
+    bool "Sunxi SPI"
+    default y if ARCH_ARM_SUNXI
+    depends on ARCH_ARM
+endmenu
+
 # Timer configuration
 
 menu "Timer"
@@ -138,8 +149,6 @@ endmenu
 # Protocols configuration
 
 menu "Protocols"
-config PROTOCOL_SPI
-    bool "Software SPI"
 config PROTOCOL_SIPO
     bool "Serial-in Parallel-out"
 endmenu

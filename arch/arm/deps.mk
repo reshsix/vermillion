@@ -23,24 +23,25 @@ UBOOT = v2020.04
 # --------------------------------- Recipes  --------------------------------- #
 
 # U-boot compilation
-deps/u-boot.bin: deps/.$(TARGET)-gcc deps/.u-boot-step4
+deps/$(UBOOT_CONFIG)_u-boot.bin: deps/.$(TARGET)-gcc \
+                                 deps/.$(UBOOT_CONFIG)_u-boot-step3
 deps/u-boot: | deps
 	cd $| && git clone https://gitlab.denx.de/u-boot/u-boot.git
 deps/.u-boot-step1: | deps/u-boot
 	cd $| && git checkout tags/$(UBOOT)
 	touch $@
-deps/.u-boot-step2: deps/.u-boot-step1 | deps/u-boot
+deps/.$(UBOOT_CONFIG)_u-boot-step1: deps/.u-boot-step1 | deps/u-boot
 	cd $| && make ARCH=$(ARCH) CROSS_COMPILE=$(TARGET)- $(UBOOT_CONFIG)
-	[ -f arch/$(ARCH)/u-boot.patch ] && patch deps/u-boot/.config < \
-                                              arch/$(ARCH)/u-boot.patch
 	touch $@
-deps/.u-boot-step3: deps/.u-boot-step2 | deps/u-boot
+deps/.$(UBOOT_CONFIG)_u-boot-step2: deps/.$(UBOOT_CONFIG)_u-boot-step1 | \
+                                    deps/u-boot
 	cd $| && make ARCH=$(ARCH) CROSS_COMPILE=$(TARGET)-
 	touch $@
-deps/.u-boot-step4: deps/.u-boot-step3 | deps/u-boot
-	cp $|/$(UBOOT_IMAGE) deps/u-boot.bin
+deps/.$(UBOOT_CONFIG)_u-boot-step3: deps/.$(UBOOT_CONFIG)_u-boot-step2 | \
+                                    deps/u-boot
+	cp $|/$(UBOOT_IMAGE) deps/$(UBOOT_CONFIG)_u-boot.bin
 	touch $@
 
 # --------------------------------- Objects  --------------------------------- #
 
-OBJS += deps/u-boot.bin
+OBJS += deps/$(UBOOT_CONFIG)_u-boot.bin

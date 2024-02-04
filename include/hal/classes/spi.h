@@ -37,10 +37,12 @@ struct [[gnu::packed]] spi_cfg
 {
     u32 freq;
     enum spi_mode mode;
-    bool lsb;
+    bool lsb, csp, duplex;
 };
 
 bool spi_read(dev_spi *ds, u8 *data);
 bool spi_write(dev_spi *ds, u8 data);
-bool spi_info(dev_spi *ds, u32 *freq, enum spi_mode *mode, bool *lsb);
-bool spi_config(dev_spi *ds, u32 freq, enum spi_mode mode, bool lsb);
+bool spi_info(dev_spi *ds, u32 *freq, enum spi_mode *mode,
+              bool *lsb, bool *csp, bool *duplex);
+bool spi_config(dev_spi *ds, u32 freq, enum spi_mode mode,
+                bool lsb, bool csp, bool duplex);

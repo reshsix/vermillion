@@ -130,7 +130,7 @@ ili9488_start(struct ili9488 *ili)
     ili9488_command(ili, 1, 0x11);
     wheel_sleep(WHEEL_OUTER, 1);
 
-    ili9488_command(ili, 2, 0x36, 0xE8);
+    ili9488_command(ili, 2, 0x36, 0xE0);
     ili9488_command(ili, 2, 0x3A, 0x06);
     ili9488_clear(ili);
 
@@ -160,6 +160,16 @@ init(void **ctx, dev_gpio *gpio, u16 dcrs, u16 leds, dev_stream *stream)
         ret->leds = leds;
 
         ret->stream = stream;
+
+        ret->fb.width = 480;
+        ret->fb.height = 320;
+        ret->fb.bpp = 32;
+        ret->fb.red.pos = 16;
+        ret->fb.red.size = 8;
+        ret->fb.green.pos = 8;
+        ret->fb.green.size = 8;
+        ret->fb.blue.pos = 0;
+        ret->fb.blue.size = 8;
 
         ili9488_start(ret);
 
