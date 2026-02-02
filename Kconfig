@@ -20,24 +20,19 @@ choice ARCH
     prompt "Architecture"
 config ARCH_ARM
     bool "ARM"
-config ARCH_I686
-    bool "i686"
 endchoice
 
 menu "Architecture options"
 source arch/arm/Kconfig
-source arch/i686/Kconfig
 endmenu
 
 menu "Compilation"
 config ARCH
     string "Arch name"
     default arm  if ARCH_ARM
-    default i686 if ARCH_I686
 config TARGET
     string "Target triple"
     default arm-none-eabi if ARCH_ARM
-    default i686-elf      if ARCH_I686
 config CFLAGS_ARCH
     string "Additional Arch CFLAGS"
     default "-fpic -Wl,--no-warn-rwx-segment" if ARCH_ARM
@@ -50,7 +45,6 @@ endmenu
 menu "General purpose RAM"
 config RAM_ADDRESS
     hex "Mapped address"
-    default 0x100000   if ARCH_I686
 config RAM_SIZE
     hex "Full length"
 config STACK_SIZE
@@ -64,25 +58,6 @@ endmenu
 
 menu "Device drivers"
 
-# Video configuration
-
-menu "Video Output"
-config VIDEO_ILI9488
-    bool "Ili9488"
-config VIDEO_VIRTUAL
-    bool "Virtual Framebuffer"
-config VIDEO_I686_FB
-    bool "i686 VESA Framebuffer"
-    depends on ARCH_I686
-endmenu
-
-# Audio configuration
-
-menu "Audio Output"
-config AUDIO_BUZZER
-    bool "Buzzer"
-endmenu
-
 # Storage configuration
 
 menu "Storage"
@@ -92,19 +67,13 @@ config STORAGE_SUNXI_MMC
     bool "Sunxi SD/MMC"
     default y if ARCH_ARM_SUNXI
     depends on ARCH_ARM
-config STORAGE_I686_ATA
-    bool "i686 ATA PIO"
-    default y if ARCH_I686
-    depends on ARCH_I686
 endmenu
 
 # Filesystem configuration
 
 menu "Filesystem"
 config FS_MBR
-    bool "Mbr"
-config FS_GPT
-    bool "Gpt"
+    bool "MBR"
 config FS_FAT32
     bool "Fat32"
 endmenu
@@ -116,17 +85,11 @@ config SERIAL_SUNXI_UART
     bool "Sunxi UART"
     default y if ARCH_ARM_SUNXI
     depends on ARCH_ARM
-config SERIAL_I686
-    bool "x86 serial ports"
-    default y if ARCH_I686
-    depends on ARCH_I686
 endmenu
 
 # SPI configuration
 
 menu "SPI"
-config SPI_SOFT
-    bool "Software SPI"
 config SPI_SUNXI_SPI
     bool "Sunxi SPI"
     default y if ARCH_ARM_SUNXI
@@ -140,17 +103,6 @@ config TIMER_SUNXI_TIMER
     bool "Sunxi Timer"
     default y if ARCH_ARM_SUNXI
     depends on ARCH_ARM
-config TIMER_I686_TIMER
-    bool "8254 Intel Timer"
-    default y if ARCH_I686
-    depends on ARCH_I686
-endmenu
-
-# Protocols configuration
-
-menu "Protocols"
-config PROTOCOL_SIPO
-    bool "Serial-in Parallel-out"
 endmenu
 
 # GPIO configuration

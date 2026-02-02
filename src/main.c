@@ -14,31 +14,22 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <thread/thread.h>
+#include <general/mem.h>
 
 #include <system/log.h>
 #include <system/wheel.h>
-#include <system/display.h>
 
-#include <debug/test.h>
+void devtree_init();
+void devtree_clean();
 
-#include <interface/console.h>
-
-thread_decl (extern, main)
+void main(void)
 {
-    test_all();
+    _mem_init();
+    devtree_init();
 
-    log("Hello World!\r\n");
+    log("Initialized\r\n");
+    log("Exiting\r\n");
 
-    const char msg[] = "Vermillion 1.0a: Hello World\r\n\r\n";
-    const char msg2[] = "Input not implemented";
-    for (u8 i = 0; i < sizeof(msg); i++)
-        console_input(msg[i]);
-    for (u8 i = 0; i < sizeof(msg2); i++)
-        console_input(msg2[i]);
-
-    for (;;)
-        wheel_sleep(WHEEL_OUTER, 255);
-
-    thread_finish();
+    devtree_clean();
+    _mem_clean();
 }

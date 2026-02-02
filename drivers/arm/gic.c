@@ -17,8 +17,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/types.h>
 #include <general/mem.h>
 
-#include <thread/critical.h>
-
 #include <hal/base/dev.h>
 #include <hal/base/drv.h>
 #include <hal/generic/block.h>
@@ -219,7 +217,7 @@ interrupt(undef) handler_undef(void)
 
 interrupt(swi) handler_swi(void)
 {
-    critical if (gic)
+    if (gic)
     {
         u8 n = *((u32*)(__builtin_return_address(0) - 4)) % 256;
         if (n == 0x0)
@@ -249,7 +247,7 @@ interrupt(abort) handler_data(void)
 
 interrupt(irq) handler_irq(void)
 {
-    critical if (gic)
+    if (gic)
     {
         enum intr_core c = 0;
         u16 n = intr_info(gic->cpu, &c);
@@ -263,7 +261,7 @@ interrupt(irq) handler_irq(void)
 
 interrupt(fiq) handler_fiq(void)
 {
-    critical if (gic)
+    if (gic)
     {
         enum intr_core c = 0;
         u16 n = intr_info(gic->cpu, &c);

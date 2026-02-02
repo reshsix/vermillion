@@ -81,15 +81,13 @@ xconfig:
 
 # Folder creation
 FOLDERS := $(BUILD) $(BUILD)/arch $(BUILD)/src
-FOLDERS += $(BUILD)/src/general $(BUILD)/src/environ $(BUILD)/src/thread
-FOLDERS += $(BUILD)/src/hal/generic $(BUILD)/src/hal/classes
-FOLDERS += $(BUILD)/src/system $(BUILD)/src/debug $(BUILD)/src/interface
-FOLDERS += $(BUILD)/src/debug/test/general $(BUILD)/src/debug/test/environ
-FOLDERS += $(BUILD)/src/debug/test/thread $(BUILD)/src/debug/test/system
-FOLDERS += $(BUILD)/drivers $(BUILD)/drivers/audio
-FOLDERS += $(BUILD)/drivers/video $(BUILD)/drivers/fs
-FOLDERS += $(BUILD)/drivers/generic $(BUILD)/drivers/protocols
-FOLDERS += $(BUILD)/drivers/arm $(BUILD)/drivers/i686
+FOLDERS += $(BUILD)/src/general
+FOLDERS += $(BUILD)/src/hal/generic
+FOLDERS += $(BUILD)/src/hal/classes
+FOLDERS += $(BUILD)/src/system
+FOLDERS += $(BUILD)/drivers
+FOLDERS += $(BUILD)/drivers/fs
+FOLDERS += $(BUILD)/drivers/arm
 FOLDERS += $(BUILD)/drivers/arm/sunxi
 $(FOLDERS):
 	@mkdir -p $@
@@ -133,39 +131,15 @@ $(BUILD)/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 PREFIX = src/general
 OBJS := $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/dict.o $(PREFIX)/path.o
 
-PREFIX = src/environ
-OBJS += $(PREFIX)/fork.o $(PREFIX)/generator.o $(PREFIX)/state.o
-
-PREFIX = src/thread
-OBJS += $(PREFIX)/channel.o $(PREFIX)/mutex.o \
-        $(PREFIX)/semaphore.o $(PREFIX)/thread.o
-
 PREFIX = src/hal/generic
 OBJS += $(PREFIX)/block.o $(PREFIX)/stream.o
 
 PREFIX = src/hal/classes
-OBJS += $(PREFIX)/fs.o $(PREFIX)/gpio.o $(PREFIX)/pic.o $(PREFIX)/spi.o \
-        $(PREFIX)/timer.o $(PREFIX)/uart.o $(PREFIX)/video.o
+OBJS += $(PREFIX)/fs.o $(PREFIX)/gpio.o $(PREFIX)/pic.o \
+        $(PREFIX)/timer.o $(PREFIX)/uart.o
 
 PREFIX = src/system
-OBJS += $(PREFIX)/log.o $(PREFIX)/wheel.o $(PREFIX)/display.o
-
-PREFIX = src/debug
-OBJS += $(PREFIX)/assert.o $(PREFIX)/exit.o $(PREFIX)/profile.o \
-        $(PREFIX)/test/test.o
-
-PREFIX = src/debug/test/general
-OBJS += $(PREFIX)/types.o $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/dict.o
-PREFIX = src/debug/test/environ
-OBJS += $(PREFIX)/fork.o $(PREFIX)/generator.o $(PREFIX)/state.o
-PREFIX = src/debug/test/thread
-OBJS += $(PREFIX)/channel.o $(PREFIX)/critical.o $(PREFIX)/implicit.o \
-        $(PREFIX)/mutex.o $(PREFIX)/semaphore.o $(PREFIX)/thread.o
-PREFIX = src/debug/test/system
-OBJS += $(PREFIX)/log.o
-
-PREFIX = src/interface
-OBJS += $(PREFIX)/console.o
+OBJS += $(PREFIX)/log.o $(PREFIX)/wheel.o
 
 OBJS += src/main.o
 
@@ -174,22 +148,6 @@ OBJS += devtree.o
 PREFIX = drivers/arm
 ifdef CONFIG_ARM_GIC
 OBJS += $(PREFIX)/gic.o
-endif
-
-PREFIX = drivers/audio
-
-ifdef CONFIG_AUDIO_BUZZER
-OBJS += $(PREFIX)/buzzer.o
-endif
-
-PREFIX = drivers/video
-
-ifdef CONFIG_VIDEO_ILI9488
-OBJS += $(PREFIX)/ili9488.o
-endif
-
-ifdef CONFIG_VIDEO_VIRTUAL
-OBJS += $(PREFIX)/virtual.o
 endif
 
 PREFIX = drivers/fs
@@ -202,23 +160,6 @@ ifdef CONFIG_FS_MBR
 OBJS += $(PREFIX)/mbr.o
 endif
 
-ifdef CONFIG_FS_GPT
-OBJS += $(PREFIX)/gpt.o
-endif
-
-PREFIX = drivers/protocols
-
-ifdef CONFIG_SPI_SOFT
-OBJS += $(PREFIX)/spi.o
-endif
-
-ifdef CONFIG_PROTOCOL_SIPO
-OBJS += $(PREFIX)/sipo.o
-endif
-
-PREFIX = drivers/generic
-OBJS += $(PREFIX)/memory.o
-
 PREFIX = drivers/arm/sunxi
 
 ifdef CONFIG_GPIO_SUNXI_GPIO
@@ -229,38 +170,12 @@ ifdef CONFIG_STORAGE_SUNXI_MMC
 OBJS += $(PREFIX)/mmc.o
 endif
 
-ifdef CONFIG_SPI_SUNXI_SPI
-OBJS += $(PREFIX)/spi.o
-endif
-
 ifdef CONFIG_TIMER_SUNXI_TIMER
 OBJS += $(PREFIX)/timer.o
 endif
 
 ifdef CONFIG_SERIAL_SUNXI_UART
 OBJS += $(PREFIX)/uart.o
-endif
-
-PREFIX = drivers/i686
-
-ifdef CONFIG_I686_PIC
-OBJS += $(PREFIX)/pic.o
-endif
-
-ifdef CONFIG_TIMER_I686_TIMER
-OBJS += $(PREFIX)/timer.o
-endif
-
-ifdef CONFIG_VIDEO_I686_FB
-OBJS += $(PREFIX)/framebuffer.o
-endif
-
-ifdef CONFIG_SERIAL_I686
-OBJS += $(PREFIX)/serial.o
-endif
-
-ifdef CONFIG_STORAGE_I686_ATA
-OBJS += $(PREFIX)/ata.o
 endif
 
 -include arch/$(ARCH)/core.mk
