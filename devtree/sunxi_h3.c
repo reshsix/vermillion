@@ -26,8 +26,19 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <hal/classes/uart.h>
 #include <hal/classes/timer.h>
 
-#include <system/log.h>
+#include <system/comm.h>
 #include <system/wheel.h>
+
+#define R_PRCM 0x01F01400
+#define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)
+
+#define CCU 0x01C20000
+#define CLK_SPI0   *(volatile u32*)(CCU + 0xA0)
+#define BUS0_GATE  *(volatile u32*)(CCU + 0x60)
+#define BUS0_RESET *(volatile u32*)(CCU + 0x2C0)
+
+#define ORANGEPI_ONE 0
+#define NANOPI_NEO 1
 
 drv_incl (uart, sunxi_uart);
 dev_decl (uart, sunxi_uart, tty0);
@@ -54,17 +65,6 @@ dev_decl (block, mbr, mmcblk0p1);
 drv_incl (fs, fat32);
 dev_decl (fs, fat32, root);
 
-#define R_PRCM 0x01F01400
-#define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)
-
-#define CCU 0x01C20000
-#define CLK_SPI0   *(volatile u32*)(CCU + 0xA0)
-#define BUS0_GATE  *(volatile u32*)(CCU + 0x60)
-#define BUS0_RESET *(volatile u32*)(CCU + 0x2C0)
-
-#define ORANGEPI_ONE 0
-#define NANOPI_NEO 1
-
 extern void
 devtree_init(void)
 {
@@ -72,13 +72,12 @@ devtree_init(void)
 
     /* Serial */
     dev_init (tty0, 0x01c28000);
-    uart_config(&dev(tty0), 115200, UART_8B, UART_NOPARITY, UART_1S);
-    log_output((dev_stream *)&dev(tty0));
-
     dev_init (tty1, 0x01c28400);
     dev_init (tty2, 0x01c28800);
     dev_init (tty3, 0x01c28c00);
     dev_init (tty4, 0x01f02800);
+    uart_config(&dev(tty0), 115200, UART_8B, UART_NOPARITY, UART_1S);
+    uart_config(&dev(tty1), 115200, UART_8B, UART_NOPARITY, UART_1S);
 
     /* Interrupts */
     dev_init (pic, 0x01c82000, 0x01c81000);
@@ -109,7 +108,9 @@ devtree_init(void)
     dev_init (mmcblk0p1, &dev(mmcblk0), 1);
     dev_init (root, &dev(mmcblk0p1));
 
-    /* Systems and interface */
+    /* Systems */
+    comm_config((dev_stream *)&dev(tty0), (dev_stream *)&dev(tty0),
+                (dev_stream *)&dev(tty1), (dev_stream *)&dev(tty1));
     pic_state(&dev(pic), true);
     wheel_timer(&dev(timer0));
 }
@@ -117,7 +118,6 @@ devtree_init(void)
 extern void
 devtree_clean(void)
 {
-    dev_clean (tty1);
     dev_clean (tty2);
     dev_clean (tty3);
     dev_clean (tty4);
@@ -140,7 +140,8 @@ devtree_clean(void)
     dev_clean (root);
 
     dev_clean (tty0);
-    log_output(NULL);
+    dev_clean (tty1);
+    comm_config(NULL, NULL, NULL, NULL);
 
     APB0_GATE = 0;
 }

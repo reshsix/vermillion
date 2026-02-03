@@ -14,23 +14,21 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <general/mem.h>
+#pragma once
 
-#include <system/comm.h>
-#include <system/wheel.h>
+#include <general/types.h>
 
-void devtree_init();
-void devtree_clean();
+#include <hal/base/dev.h>
+#include <hal/generic/stream.h>
 
-void main(void)
-{
-    _mem_init();
-    devtree_init();
+/* For devtree usage */
 
-    const char *msg = "Initialized\r\n";
-    for (size_t i = 0; msg[i] != '\0'; i++)
-        comm_write0(msg[i]);
+void comm_config(dev_stream *in0, dev_stream *out0,
+                 dev_stream *in1, dev_stream *out1);
 
-    devtree_clean();
-    _mem_clean();
-}
+/* For external usage */
+
+char comm_read0(void);
+char comm_read1(void);
+void comm_write0(char c);
+void comm_write1(char c);

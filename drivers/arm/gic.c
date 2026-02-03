@@ -22,7 +22,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <hal/generic/block.h>
 #include <hal/classes/pic.h>
 
-#include <system/log.h>
+#include <system/comm.h>
 
 enum
 {
@@ -207,6 +207,13 @@ struct gic
     void *swi_data;
 };
 static struct gic *gic = NULL;
+
+static void
+log(const char *s)
+{
+    for (size_t i = 0; s[i] != '\0'; i++)
+        comm_write0(s[i]);
+}
 
 interrupt(undef) handler_undef(void)
 {
