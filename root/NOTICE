@@ -1,0 +1,12 @@
+
+Babylon Arsenal - Vermillion v1.0a, An Energy Star Enemy
+Copyleft (C) 2026, Reshsix Technologies, ACME.
+
+Chipset:   Allwinner H3 (Sun8i)
+Processor: Quad-Core ARM Cortex-A7 @ 1.296GHz
+
+    Detecting Disk          ... SD/MMC Card
+    Detecting Serial Master ... UART0
+    Detecting Serial Slave  ... UART1
+
+Initialized

@@ -25,6 +25,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <hal/classes/timer.h>
 
 #include <system/comm.h>
+#include <system/disk.h>
 #include <system/wheel.h>
 
 #include <drivers/fs/mbr.h>
@@ -92,6 +93,7 @@ devtree_init(void)
 
     /* Systems */
     comm_config(&tty0, &tty0, &tty1, &tty1);
+    disk_config(&root);
     pic_state(&pic, true);
     wheel_timer(&timer0);
 }

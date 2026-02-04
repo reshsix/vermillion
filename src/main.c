@@ -17,6 +17,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/mem.h>
 
 #include <system/comm.h>
+#include <system/disk.h>
 #include <system/wheel.h>
 
 void devtree_init();
@@ -27,9 +28,27 @@ void main(void)
     _mem_init();
     devtree_init();
 
-    const char *msg = "Initialized\r\n";
-    for (size_t i = 0; msg[i] != '\0'; i++)
-        comm_write0(msg[i]);
+    disk_f *f = disk_open("NOTICE");
+    if (f)
+    {
+        u8 buf[128] = {0};
+        for (;;)
+        {
+            u32 read = disk_read(f, buf, sizeof(buf));
+            if (read == 0)
+                break;
+
+            for (size_t i = 0; i < read; i++)
+                comm_write0(buf[i]);
+        }
+    }
+    else
+    {
+        const char *msg = "NOTICE missing\r\n";
+        for (size_t i = 0; msg[i] != '\0'; i++)
+            comm_write0(msg[i]);
+    }
+    disk_close(f);
 
     devtree_clean();
     _mem_clean();

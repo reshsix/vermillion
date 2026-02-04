@@ -139,7 +139,7 @@ OBJS += $(PREFIX)/fs.o $(PREFIX)/gpio.o $(PREFIX)/pic.o \
         $(PREFIX)/timer.o $(PREFIX)/uart.o
 
 PREFIX = src/system
-OBJS += $(PREFIX)/comm.o $(PREFIX)/wheel.o
+OBJS += $(PREFIX)/comm.o $(PREFIX)/disk.o $(PREFIX)/wheel.o
 
 OBJS += src/main.o
 
