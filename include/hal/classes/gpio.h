@@ -18,9 +18,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <general/types.h>
 
-#include <hal/base/drv.h>
-#include <hal/base/dev.h>
-#include <hal/generic/block.h>
+#include <hal/block.h>
 
 enum gpio_index
 {
@@ -29,8 +27,8 @@ enum gpio_index
     GPIO_CONFIG_EINT
 };
 
-drv_typedef (block, gpio);
-dev_typedef (gpio);
+typedef drv_block drv_gpio;
+typedef dev_block dev_gpio;
 
 enum gpio_role
 {

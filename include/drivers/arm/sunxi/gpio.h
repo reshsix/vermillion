@@ -16,26 +16,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <hal/block.h>
-
-enum timer_index
-{
-    TIMER_CONFIG = BLOCK_COMMON + 1,
-    TIMER_WAIT
-};
-
-typedef drv_block drv_timer;
-typedef dev_block dev_timer;
-
-struct [[gnu::packed]] timer_cb
-{
-    bool enabled;
-    void (*handler)(void *), *arg;
-    u32 delay;
-};
-
-bool timer_check(dev_timer *dg, bool *enabled,
-                 void (**handler)(void *), void **arg, u32 *delay);
-bool timer_setup(dev_timer *dg, bool enabled,
-                 void (*handler)(void *), void *arg, u32 delay);
-bool timer_wait(dev_timer *dg);
+dev_gpio sunxi_gpio_init(u32 base, u8 io_ports, u8 int_ports,
+                         dev_pic *pic, u16 *irqs);
+void sunxi_gpio_clean(dev_gpio *g);

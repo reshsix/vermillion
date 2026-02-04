@@ -19,7 +19,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/str.h>
 #include <general/path.h>
 
-#include <hal/generic/block.h>
 #include <hal/classes/fs.h>
 
 extern struct fs_file *

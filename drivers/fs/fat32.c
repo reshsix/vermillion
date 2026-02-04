@@ -19,9 +19,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/str.h>
 #include <general/path.h>
 
-#include <hal/base/dev.h>
-#include <hal/base/drv.h>
-#include <hal/generic/block.h>
 #include <hal/classes/fs.h>
 
 struct [[gnu::packed]] fat32br
@@ -1094,25 +1091,7 @@ fat32_rename(struct fat32 *f, struct fat32e *fe, char *path)
     return ret;
 }
 
-/* External interface */
-
-static void
-init(void **ctx, dev_block *storage)
-{
-    if (storage)
-    {
-        u32 width = 0;
-        if (block_stat(storage, BLOCK_COMMON, &width, NULL) && width == 0x200)
-            *ctx = fat32_new(storage);
-    }
-}
-
-static void
-clean(void *ctx)
-{
-    if (ctx)
-        fat32_del(ctx);
-}
+/* Driver definition */
 
 static bool
 stat(void *ctx, u32 idx, u32 *width, u32 *length)
@@ -1316,8 +1295,31 @@ write(void *ctx, u32 idx, void *data, u32 block)
     return ret;
 }
 
-drv_decl (fs, fat32)
+static const drv_fs fat32 =
 {
-    .init = init, .clean = clean,
     .stat = stat, .read = read, .write = write
 };
+
+/* Device creation */
+
+extern dev_fs
+fat32_init(dev_block *storage)
+{
+    void *ret = NULL;
+
+    if (storage)
+    {
+        u32 width = 0;
+        if (block_stat(storage, BLOCK_COMMON, &width, NULL) && width == 0x200)
+            ret = fat32_new(storage);
+    }
+
+    return (dev_fs){.driver = &fat32, .context = ret};
+}
+
+extern void
+fat32_clean(dev_fs *f)
+{
+    if (f)
+        f->context = fat32_del(f->context);
+}

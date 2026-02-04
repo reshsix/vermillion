@@ -131,7 +131,7 @@ $(BUILD)/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 PREFIX = src/general
 OBJS := $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/dict.o $(PREFIX)/path.o
 
-PREFIX = src/hal/generic
+PREFIX = src/hal
 OBJS += $(PREFIX)/block.o $(PREFIX)/stream.o
 
 PREFIX = src/hal/classes

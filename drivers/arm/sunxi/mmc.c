@@ -19,9 +19,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/types.h>
 #include <general/mem.h>
 
-#include <hal/base/dev.h>
-#include <hal/base/drv.h>
-#include <hal/generic/block.h>
+#include <hal/block.h>
 
 #define SD_CFG(x)   *(volatile u32*)(x + 0x00)
 #define SD_BLK(x)   *(volatile u32*)(x + 0x10)
@@ -36,35 +34,13 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define SD_STA(x)   *(volatile u32*)(x + 0x3C)
 #define SD_FIFO(x)  *(volatile u32*)(x + 0x200)
 
+/* Driver definition */
+
 struct card
 {
     u32 base;
     bool mmc;
 };
-
-static void
-init(void **ctx, u32 base)
-{
-    struct card *ret = mem_new(sizeof(struct card));
-
-    if (ret)
-    {
-        ret->base = base;
-        while (SD_CMD(ret->base) & (1 << 31));
-        SD_ARG(ret->base) = 0x0;
-        SD_CMD(ret->base) = 1 << 31 | 1 << 6 | 58;
-        while (SD_CMD(ret->base) & (1 << 31));
-        ret->mmc = (SD_RAW(ret->base)  & (1 << 1) ||
-                    SD_RES1(ret->base) & (1 << 2));
-        *ctx = ret;
-    }
-}
-
-static void
-clean(void *ctx)
-{
-    mem_del(ctx);
-}
 
 static bool
 stat(void *ctx, u32 idx, u32 *width, u32 *depth)
@@ -151,8 +127,35 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
     return mmc_rw(ctx, idx, buffer, block, true);
 }
 
-drv_decl (block, sunxi_mmc)
+static const drv_block sunxi_mmc =
 {
-    .init = init, .clean = clean,
     .stat = stat, .read = read, .write = write
 };
+
+/* Device creation */
+
+extern dev_block
+sunxi_mmc_init(u32 base)
+{
+    struct card *ret = mem_new(sizeof(struct card));
+
+    if (ret)
+    {
+        ret->base = base;
+        while (SD_CMD(ret->base) & (1 << 31));
+        SD_ARG(ret->base) = 0x0;
+        SD_CMD(ret->base) = 1 << 31 | 1 << 6 | 58;
+        while (SD_CMD(ret->base) & (1 << 31));
+        ret->mmc = (SD_RAW(ret->base)  & (1 << 1) ||
+                    SD_RES1(ret->base) & (1 << 2));
+    }
+
+    return (dev_block){.driver = &sunxi_mmc, .context = ret};
+}
+
+extern void
+sunxi_mmc_clean(dev_block *b)
+{
+    if (b)
+        b->context = mem_del(b->context);
+}

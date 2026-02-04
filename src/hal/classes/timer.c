@@ -16,7 +16,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <general/types.h>
 
-#include <hal/generic/block.h>
 #include <hal/classes/timer.h>
 
 extern bool

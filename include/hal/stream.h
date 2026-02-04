@@ -16,26 +16,27 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <hal/block.h>
+#include <general/types.h>
 
-enum timer_index
+enum stream_index
 {
-    TIMER_CONFIG = BLOCK_COMMON + 1,
-    TIMER_WAIT
+    STREAM_COMMON
 };
 
-typedef drv_block drv_timer;
-typedef dev_block dev_timer;
-
-struct [[gnu::packed]] timer_cb
+typedef struct [[gnu::packed]]
 {
-    bool enabled;
-    void (*handler)(void *), *arg;
-    u32 delay;
-};
+    void *init, (*clean)(void *);
+    bool (*stat) (void *ctx, u32 idx, u32 *width);
+    bool (*read)  (void *ctx, u32 idx, void *data);
+    bool (*write) (void *ctx, u32 idx, void *data);
+} drv_stream;
 
-bool timer_check(dev_timer *dg, bool *enabled,
-                 void (**handler)(void *), void **arg, u32 *delay);
-bool timer_setup(dev_timer *dg, bool enabled,
-                 void (*handler)(void *), void *arg, u32 delay);
-bool timer_wait(dev_timer *dg);
+typedef struct [[gnu::packed]]
+{
+    const drv_stream *driver;
+    void *context;
+} dev_stream;
+
+bool stream_stat(dev_stream *ds, u32 idx, u32 *width);
+bool stream_read(dev_stream *ds, u32 idx, void *data);
+bool stream_write(dev_stream *ds, u32 idx, void *data);

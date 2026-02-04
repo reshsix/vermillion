@@ -17,9 +17,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/types.h>
 #include <general/mem.h>
 
-#include <hal/base/dev.h>
-#include <hal/base/drv.h>
-#include <hal/generic/block.h>
 #include <hal/classes/pic.h>
 #include <hal/classes/gpio.h>
 
@@ -31,18 +28,20 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define EINT_CTL(c, n)    *(volatile u32 *)(c + 0x200 + (n * 0x20) + 0x10)
 #define EINT_STA(c, n)    *(volatile u32 *)(c + 0x200 + (n * 0x20) + 0x14)
 
-static enum gpio_role readable_role[8] =
+static const enum gpio_role readable_role[8] =
     {GPIO_IN, GPIO_OUT, GPIO_CUSTOM + 0, GPIO_CUSTOM + 1, GPIO_CUSTOM + 2,
      GPIO_CUSTOM + 3, GPIO_EINT, GPIO_OFF};
-static enum gpio_pull readable_pull[4] =
+static const enum gpio_pull readable_pull[4] =
     {GPIO_PULLOFF, GPIO_PULLUP, GPIO_PULLDOWN, GPIO_PULLOFF};
-static enum gpio_level readable_level[8] =
+static const enum gpio_level readable_level[8] =
     {GPIO_EDGE_H, GPIO_EDGE_L, GPIO_LEVEL_H, GPIO_LEVEL_L,
      GPIO_DOUBLE, GPIO_EDGE_H, GPIO_EDGE_H, GPIO_EDGE_H};
 
-static u8 writable_role[8] = {7, 0, 1, 6, 2, 3, 4, 5};
-static u8 writable_pull[3] = {0, 1, 2};
-static u8 writable_level[5] = {0, 1, 2, 3, 4};
+static const u8 writable_role[8] = {7, 0, 1, 6, 2, 3, 4, 5};
+static const u8 writable_pull[3] = {0, 1, 2};
+static const u8 writable_level[5] = {0, 1, 2, 3, 4};
+
+/* Driver definition */
 
 struct gpio
 {
@@ -74,51 +73,6 @@ handler(void *arg)
             }
         }
     }
-}
-
-static void
-init(void **ctx, u32 base, u8 io_ports, u8 int_ports, dev_pic *pic, u16 *irqs)
-{
-    struct gpio *ret = mem_new(sizeof(struct gpio));
-
-    if (ret && int_ports)
-    {
-        ret->handlers = mem_new(int_ports * 32 * sizeof(void (*)(void *)));
-        ret->args = mem_new(int_ports * 32 * sizeof(void *));
-        if (!ret->handlers || !ret->args)
-        {
-            mem_del(ret->handlers);
-            mem_del(ret->args);
-            ret = mem_del(ret);
-        }
-    }
-
-    if (ret)
-    {
-        ret->base = base;
-        ret->io_ports = io_ports;
-        ret->int_ports = int_ports;
-
-        ret->pic = pic;
-        ret->irqs = irqs;
-        for (int i = 0; i < int_ports; i++)
-            pic_config(pic, irqs[i], true, handler, ret, PIC_EDGE_L);
-
-        *ctx = ret;
-    }
-}
-
-static void
-clean(void *ctx)
-{
-    struct gpio *gpio = ctx;
-    for (u8 i = 0; i < gpio->int_ports; i++)
-        pic_config(gpio->pic, gpio->irqs[i], false,
-                   NULL, NULL, PIC_EDGE_L);
-
-    mem_del(gpio->handlers);
-    mem_del(gpio->args);
-    mem_del(gpio);
 }
 
 static bool
@@ -326,8 +280,60 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
     return ret;
 }
 
-drv_decl (gpio, sunxi_gpio)
+static const drv_gpio sunxi_gpio =
 {
-    .init = init, .clean = clean,
     .stat = stat, .read = read, .write = write
 };
+
+/* Device creation */
+
+extern dev_gpio
+sunxi_gpio_init(u32 base, u8 io_ports, u8 int_ports, dev_pic *pic, u16 *irqs)
+{
+    struct gpio *ret = mem_new(sizeof(struct gpio));
+
+    if (ret && int_ports)
+    {
+        ret->handlers = mem_new(int_ports * 32 * sizeof(void (*)(void *)));
+        ret->args = mem_new(int_ports * 32 * sizeof(void *));
+        if (!ret->handlers || !ret->args)
+        {
+            mem_del(ret->handlers);
+            mem_del(ret->args);
+            ret = mem_del(ret);
+        }
+    }
+
+    if (ret)
+    {
+        ret->base = base;
+        ret->io_ports = io_ports;
+        ret->int_ports = int_ports;
+
+        ret->pic = pic;
+        ret->irqs = irqs;
+        for (int i = 0; i < int_ports; i++)
+            pic_config(pic, irqs[i], true, handler, ret, PIC_EDGE_L);
+    }
+
+    return (dev_gpio){.driver = &sunxi_gpio, .context = ret};
+}
+
+extern void
+sunxi_gpio_clean(dev_gpio *g)
+{
+    if (g)
+    {
+        struct gpio *gpio = g->context;
+
+        for (u8 i = 0; i < gpio->int_ports; i++)
+            pic_config(gpio->pic, gpio->irqs[i], false,
+                       NULL, NULL, PIC_EDGE_L);
+
+        mem_del(gpio->handlers);
+        mem_del(gpio->args);
+        mem_del(gpio);
+
+        g->context = NULL;
+    }
+}

@@ -16,45 +16,46 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <general/types.h>
 
-#include <hal/base/dev.h>
-#include <hal/generic/stream.h>
+#include <hal/block.h>
 
 extern bool
-stream_stat(dev_stream *ds, u32 idx, u32 *width)
+block_stat(dev_block *db, u32 idx, u32 *width, u32 *depth)
 {
-    bool ret = (ds != NULL);
+    bool ret = (db != NULL);
 
-    u32 w = 0;
+    u32 w = 0, d = 0;
     if (ret)
-        ret = ds->driver->stat(ds->context, idx, &w);
+        ret = db->driver->stat(db->context, idx, &w, &d);
 
     if (ret)
     {
         if (width)
             *width = w;
+        if (depth)
+            *depth = d;
     }
 
     return ret;
 }
 
 extern bool
-stream_read(dev_stream *ds, u32 idx, void *data)
+block_read(dev_block *db, u32 idx, void *buf, u32 block)
 {
-    bool ret = (ds != NULL);
+    bool ret = (db != NULL);
 
     if (ret)
-        ret = ds->driver->read(ds->context, idx, data);
+        ret = db->driver->read(db->context, idx, buf, block);
 
     return ret;
 }
 
 extern bool
-stream_write(dev_stream *ds, u32 idx, void *data)
+block_write(dev_block *db, u32 idx, void *buf, u32 block)
 {
-    bool ret = (ds != NULL);
+    bool ret = (db != NULL);
 
     if (ret)
-        ret = ds->driver->write(ds->context, idx, data);
+        ret = db->driver->write(db->context, idx, buf, block);
 
     return ret;
 }

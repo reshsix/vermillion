@@ -17,9 +17,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/types.h>
 #include <general/mem.h>
 
-#include <hal/base/dev.h>
-#include <hal/base/drv.h>
-#include <hal/generic/block.h>
 #include <hal/classes/pic.h>
 
 #include <system/comm.h>
@@ -54,6 +51,8 @@ extern void *__ivt[8];
 #define ICDIPR(dist, n)  *(volatile u32*)(dist + 0x400 + (n * 4))
 #define ICDIPTR(dist, n) *(volatile u32*)(dist + 0x800 + (n * 4))
 #define ICDICFR(dist, n) *(volatile u32*)(dist + 0xC00 + (n * 4))
+
+/* Driver definition */
 
 enum intr_core
 {
@@ -288,52 +287,6 @@ stack_irq(void *addr)
     asm volatile ("msr CPSR_c, #0b11010011");
 }
 
-static void
-init(void **ctx, u32 cpu, u32 dist)
-{
-    if (!gic)
-    {
-        gic = mem_new(sizeof(struct gic));
-        if (gic)
-        {
-            gic->cpu = cpu;
-            gic->dist = dist;
-            *ctx = gic;
-
-            __ivt[IVT_UNDEF]    = handler_undef;
-            __ivt[IVT_SWI]      = handler_swi;
-            __ivt[IVT_PREFETCH] = handler_prefetch;
-            __ivt[IVT_DATA]     = handler_data;
-            __ivt[IVT_IRQ]      = handler_irq;
-            __ivt[IVT_FIQ]      = handler_fiq;
-
-            stack_irq((void*)((u32)gic->irq_stack + CONFIG_STACK_SIZE));
-            gic_priority(gic->cpu, 0xFF);
-
-        }
-    }
-}
-
-static void
-clean(void *ctx)
-{
-    if (ctx == gic)
-    {
-        arm_disable_irq();
-        gic_disable_dist(gic->dist);
-        gic_disable(gic->cpu);
-
-        __ivt[IVT_UNDEF]    = NULL;
-        __ivt[IVT_SWI]      = NULL;
-        __ivt[IVT_PREFETCH] = NULL;
-        __ivt[IVT_DATA]     = NULL;
-        __ivt[IVT_IRQ]      = NULL;
-        __ivt[IVT_FIQ]      = NULL;
-
-        gic = mem_del(gic);
-    }
-}
-
 static bool
 stat(void *ctx, u32 idx, u32 *width, u32 *length)
 {
@@ -550,8 +503,56 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
     return ret;
 }
 
-drv_decl (pic, arm_gic)
+static const drv_pic arm_gic =
 {
-    .init = init, .clean = clean,
     .stat = stat, .read = read, .write = write
 };
+
+/* Device creation */
+
+extern dev_pic
+arm_gic_init(u32 cpu, u32 dist)
+{
+    if (!gic)
+    {
+        gic = mem_new(sizeof(struct gic));
+        if (gic)
+        {
+            gic->cpu = cpu;
+            gic->dist = dist;
+
+            __ivt[IVT_UNDEF]    = handler_undef;
+            __ivt[IVT_SWI]      = handler_swi;
+            __ivt[IVT_PREFETCH] = handler_prefetch;
+            __ivt[IVT_DATA]     = handler_data;
+            __ivt[IVT_IRQ]      = handler_irq;
+            __ivt[IVT_FIQ]      = handler_fiq;
+
+            stack_irq((void*)((u32)gic->irq_stack + CONFIG_STACK_SIZE));
+            gic_priority(gic->cpu, 0xFF);
+
+        }
+    }
+
+    return (dev_pic){.driver = &arm_gic, .context = gic};
+}
+
+extern void
+arm_gic_clean(dev_pic *p)
+{
+    if (p->context == gic)
+    {
+        arm_disable_irq();
+        gic_disable_dist(gic->dist);
+        gic_disable(gic->cpu);
+
+        __ivt[IVT_UNDEF]    = NULL;
+        __ivt[IVT_SWI]      = NULL;
+        __ivt[IVT_PREFETCH] = NULL;
+        __ivt[IVT_DATA]     = NULL;
+        __ivt[IVT_IRQ]      = NULL;
+        __ivt[IVT_FIQ]      = NULL;
+
+        p->context = mem_del(gic);
+    }
+}

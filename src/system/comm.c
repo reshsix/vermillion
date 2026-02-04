@@ -16,7 +16,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <general/types.h>
 
-#include <hal/generic/stream.h>
+#include <hal/stream.h>
 
 #include <system/comm.h>
 

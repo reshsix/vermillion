@@ -18,17 +18,25 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <general/types.h>
 
-#include <hal/base/drv.h>
-#include <hal/base/dev.h>
-
-enum stream_index
+enum block_index
 {
-    STREAM_COMMON
+    BLOCK_COMMON
 };
 
-drv_typedef (stream, stream);
-dev_typedef (stream);
+typedef struct [[gnu::packed]]
+{
+    void *init, (*clean)(void *);
+    bool (*stat) (void *ctx, u32 idx, u32 *width, u32 *length);
+    bool (*read) (void *ctx, u32 idx, void *buffer, u32 block);
+    bool (*write)(void *ctx, u32 idx, void *buffer, u32 block);
+} drv_block;
 
-bool stream_stat(dev_stream *ds, u32 idx, u32 *width);
-bool stream_read(dev_stream *ds, u32 idx, void *data);
-bool stream_write(dev_stream *ds, u32 idx, void *data);
+typedef struct [[gnu::packed]]
+{
+    const drv_block *driver;
+    void *context;
+} dev_block;
+
+bool block_stat(dev_block *db, u32 idx, u32 *width, u32 *depth);
+bool block_read(dev_block *db, u32 idx, void *buffer, u32 block);
+bool block_write(dev_block *db, u32 idx, void *buffer, u32 block);

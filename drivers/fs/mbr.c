@@ -17,9 +17,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/types.h>
 #include <general/mem.h>
 
-#include <hal/base/dev.h>
-#include <hal/base/drv.h>
-#include <hal/generic/block.h>
+#include <hal/block.h>
+
+/* Driver definition */
 
 struct mbr
 {
@@ -28,43 +28,6 @@ struct mbr
 
     u32 width, depth;
 };
-
-static void
-init(void **ctx, dev_block *storage, u8 partition)
-{
-    struct mbr *ret = NULL;
-
-    if (storage && partition > 0 && partition < 5)
-        ret = mem_new(sizeof(struct mbr));
-
-    if (ret && !block_stat(storage, BLOCK_COMMON, &(ret->width), &(ret->depth)))
-        ret = mem_del(ret);
-
-    if (ret)
-    {
-        u8 *buffer = mem_new(ret->width);
-
-        if (buffer && block_read(storage, BLOCK_COMMON, buffer, 0))
-        {
-            u8 *info = &(buffer[0x1BE + ((partition - 1) * 16)]);
-            mem_copy(&(ret->lba),   &(info[sizeof(u32) * 2]), sizeof(u32));
-            mem_copy(&(ret->depth), &(info[sizeof(u32) * 3]), sizeof(u32));
-
-            ret->storage = storage;
-            *ctx = ret;
-        }
-        else
-            ret = mem_del(ret);
-
-        mem_del(buffer);
-    }
-}
-
-static void
-clean(void *ctx)
-{
-    mem_del(ctx);
-}
 
 static bool
 stat(void *ctx, u32 idx, u32 *width, u32 *depth)
@@ -126,8 +89,48 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
     return ret;
 }
 
-drv_decl (block, mbr)
+static const drv_block mbr =
 {
-    .init = init, .clean = clean,
     .stat = stat, .read = read, .write = write
 };
+
+/* Device creation */
+
+extern dev_block
+mbr_init(dev_block *storage, u8 partition)
+{
+    struct mbr *ret = NULL;
+
+    if (storage && partition > 0 && partition < 5)
+        ret = mem_new(sizeof(struct mbr));
+
+    if (ret && !block_stat(storage, BLOCK_COMMON, &(ret->width), &(ret->depth)))
+        ret = mem_del(ret);
+
+    if (ret)
+    {
+        u8 *buffer = mem_new(ret->width);
+
+        if (buffer && block_read(storage, BLOCK_COMMON, buffer, 0))
+        {
+            u8 *info = &(buffer[0x1BE + ((partition - 1) * 16)]);
+            mem_copy(&(ret->lba),   &(info[sizeof(u32) * 2]), sizeof(u32));
+            mem_copy(&(ret->depth), &(info[sizeof(u32) * 3]), sizeof(u32));
+
+            ret->storage = storage;
+        }
+        else
+            ret = mem_del(ret);
+
+        mem_del(buffer);
+    }
+
+    return (dev_block){.driver = &mbr, .context = ret};
+}
+
+extern void
+mbr_clean(dev_block *b)
+{
+    if (b)
+        b->context = mem_del(b->context);
+}

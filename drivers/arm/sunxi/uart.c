@@ -17,9 +17,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/types.h>
 #include <general/mem.h>
 
-#include <hal/base/dev.h>
-#include <hal/base/drv.h>
-#include <hal/generic/stream.h>
 #include <hal/classes/uart.h>
 
 #define IO_BUF(p) *(volatile u32*)(p + 0x00)
@@ -38,29 +35,13 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define IO_RFL(p) *(volatile u32*)(p + 0x84)
 #define IO_HLT(p) *(volatile u32*)(p + 0xA4)
 
+/* Driver definition */
+
 struct serial
 {
     u32 port;
     struct uart_cfg cfg;
 };
-
-static void
-init(void **ctx, u32 port)
-{
-    struct serial *ret = mem_new(sizeof(struct serial));
-
-    if (ret)
-    {
-        ret->port = port;
-        *ctx = ret;
-    }
-}
-
-static void
-clean(void *ctx)
-{
-    mem_del(ctx);
-}
 
 static bool
 stat(void *ctx, u32 idx, u32 *width)
@@ -184,8 +165,27 @@ write(void *ctx, u32 idx, void *data)
     return ret;
 }
 
-drv_decl (uart, sunxi_uart)
+static const drv_uart sunxi_uart =
 {
-    .init = init, .clean = clean,
     .stat = stat, .read = read, .write = write
 };
+
+/* Device creation */
+
+extern dev_uart
+sunxi_uart_init(u32 port)
+{
+    struct serial *ret = mem_new(sizeof(struct serial));
+
+    if (ret)
+        ret->port = port;
+
+    return (dev_uart){.driver = &sunxi_uart, .context = ret};
+}
+
+extern void
+sunxi_uart_clean(dev_uart *u)
+{
+    if (u)
+        u->context = mem_del(u->context);
+}

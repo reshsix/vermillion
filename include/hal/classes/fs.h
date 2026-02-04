@@ -18,9 +18,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <general/types.h>
 
-#include <hal/base/drv.h>
-#include <hal/base/dev.h>
-#include <hal/generic/block.h>
+#include <hal/block.h>
 
 enum fs_type
 {
@@ -40,8 +38,8 @@ enum fs_index
     FS_MKFILE, FS_MKDIR, FS_REMOVE,
 };
 
-drv_typedef (block, fs);
-dev_typedef (fs);
+typedef drv_block drv_fs;
+typedef dev_block dev_fs;
 
 struct fs_file
 {

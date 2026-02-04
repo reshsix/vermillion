@@ -16,19 +16,5 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <general/types.h>
-
-#include <hal/base/drv.h>
-#include <hal/base/dev.h>
-
-enum block_index
-{
-    BLOCK_COMMON
-};
-
-drv_typedef (block, block);
-dev_typedef (block);
-
-bool block_stat(dev_block *db, u32 idx, u32 *width, u32 *depth);
-bool block_read(dev_block *db, u32 idx, void *buffer, u32 block);
-bool block_write(dev_block *db, u32 idx, void *buffer, u32 block);
+extern dev_block mbr_init(dev_block *storage, u8 partition);
+extern void mbr_clean(dev_block *b);

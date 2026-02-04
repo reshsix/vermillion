@@ -16,17 +16,15 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <hal/base/drv.h>
-#include <hal/base/dev.h>
-#include <hal/generic/stream.h>
+#include <hal/stream.h>
 
 enum uart_index
 {
     UART_CONFIG = STREAM_COMMON + 1,
 };
 
-drv_typedef (stream, uart);
-dev_typedef (uart);
+typedef drv_stream drv_uart;
+typedef dev_stream dev_uart;
 
 enum uart_bits
 {

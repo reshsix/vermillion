@@ -17,9 +17,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/types.h>
 #include <general/mem.h>
 
-#include <hal/base/dev.h>
-#include <hal/base/drv.h>
-#include <hal/generic/block.h>
 #include <hal/classes/pic.h>
 #include <hal/classes/timer.h>
 
@@ -28,6 +25,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define TMR_CTRL(x, n) *(volatile u32*)(x + ((n + 1) * 0x10))
 #define TMR_INTV(x, n) *(volatile u32*)(x + ((n + 1) * 0x10) + 0x4)
 #define TMR_CUR(x, n)  *(volatile u32*)(x + ((n + 1) * 0x10) + 0x8)
+
+/* Driver definition */
 
 struct timer
 {
@@ -47,38 +46,6 @@ handler(void *arg)
     TMR_IRQ_STA(tmr->base) |= 1 << tmr->id;
 
     tmr->cb.handler(tmr->cb.arg);
-}
-
-static void
-init(void **ctx, u32 base, u8 id, dev_pic *pic, u16 irq)
-{
-    struct timer *ret = mem_new(sizeof(struct timer));
-
-    if (ret)
-    {
-        ret->base = base;
-        ret->id = id;
-        ret->pic = pic;
-        ret->irq = irq;
-
-        TMR_INTV(base, id) = 0xFFFFFFFF;
-        TMR_CTRL(base, id) = 1 << 2;
-        TMR_IRQ_STA(base) |= 1 << id;
-        TMR_IRQ_EN(base) |= 1 << id;
-
-        pic_config(pic, ret->irq, true, handler, ret, PIC_EDGE_L);
-
-        *ctx = ret;
-    }
-}
-
-static void
-clean(void *ctx)
-{
-    struct timer *tmr = ctx;
-    pic_config(tmr->pic, tmr->irq, false, NULL, NULL, PIC_EDGE_L);
-    tmr->base = 0;
-    mem_del(ctx);
 }
 
 static bool
@@ -167,8 +134,47 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
     return ret;
 }
 
-drv_decl (timer, sunxi_timer)
+static const drv_timer sunxi_timer =
 {
-    .init = init, .clean = clean,
     .stat = stat, .read = read, .write = write
 };
+
+/* Device creation */
+
+extern dev_timer
+sunxi_timer_init(u32 base, u8 id, dev_pic *pic, u16 irq)
+{
+    struct timer *ret = mem_new(sizeof(struct timer));
+
+    if (ret)
+    {
+        ret->base = base;
+        ret->id = id;
+        ret->pic = pic;
+        ret->irq = irq;
+
+        TMR_INTV(base, id) = 0xFFFFFFFF;
+        TMR_CTRL(base, id) = 1 << 2;
+        TMR_IRQ_STA(base) |= 1 << id;
+        TMR_IRQ_EN(base)  |= 1 << id;
+
+        pic_config(pic, ret->irq, true, handler, ret, PIC_EDGE_L);
+    }
+
+    return (dev_timer){.driver = &sunxi_timer, .context = ret};
+}
+
+extern void
+sunxi_timer_clean(dev_timer *t)
+{
+    if (t)
+    {
+        struct timer *tmr = t->context;
+
+        pic_config(tmr->pic, tmr->irq, false, NULL, NULL, PIC_EDGE_L);
+        tmr->base = 0;
+        mem_del(tmr);
+
+        t->context = NULL;
+    }
+}

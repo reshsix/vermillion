@@ -16,9 +16,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <hal/base/drv.h>
-#include <hal/base/dev.h>
-#include <hal/generic/block.h>
+#include <hal/block.h>
 
 enum pic_index
 {
@@ -29,8 +27,8 @@ enum pic_index
     PIC_SYSCALL
 };
 
-drv_typedef (block, pic);
-dev_typedef (pic);
+typedef drv_block drv_pic;
+typedef dev_block dev_pic;
 
 enum pic_level
 {
