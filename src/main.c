@@ -18,8 +18,11 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <system/comm.h>
 #include <system/disk.h>
-#include <system/wheel.h>
-#include <system/loader.h>
+#include <system/load.h>
+#include <system/time.h>
+
+#define VERMILLION_INTERNALS
+#include <vermillion/vrm.h>
 
 void devtree_init();
 void devtree_clean();
@@ -37,6 +40,32 @@ main(void)
     _mem_init();
     devtree_init();
 
+    struct vrm v = {.comm.read0  = comm_read0,
+                    .comm.read1  = comm_read1,
+                    .comm.write0 = comm_write0,
+                    .comm.write1 = comm_write1,
+                    .disk.open   = disk_open,
+                    .disk.close  = disk_close,
+                    .disk.stat   = disk_stat,
+                    .disk.walk   = disk_walk,
+                    .disk.seek   = disk_seek,
+                    .disk.tell   = disk_tell,
+                    .disk.read   = disk_read,
+                    .disk.write  = disk_write,
+                    .disk.flush  = disk_flush,
+                    .disk.rename = disk_rename,
+                    .disk.resize = disk_resize,
+                    .disk.mkfile = disk_mkfile,
+                    .disk.mkdir  = disk_mkdir,
+                    .disk.remove = disk_remove,
+                    .load.prog   = load_prog,
+                    .time.event0 = time_event0,
+                    .time.event1 = time_event1,
+                    .time.sleep0 = time_sleep0,
+                    .time.sleep1 = time_sleep1,
+                    .time.clock0 = time_clock0,
+                    .time.clock1 = time_clock1};
+
     disk_f *f = disk_open("NOTICE");
     if (f)
     {
@@ -52,11 +81,11 @@ main(void)
         }
 
         u32 entry = 0;
-        u8 *mem = loader_prog("init.elf", &entry);
+        u8 *mem = load_prog("init.elf", &entry);
         if (mem)
         {
-            int (*init)(void) = (void *)&(mem[entry]);
-            log(!init() ? "Init success" : "Init failure");
+            int (*init)(struct vrm *) = (void *)&(mem[entry]);
+            log(!init(&v) ? "Init success" : "Init failure");
         }
         else
             log("init.elf missing\r\n");

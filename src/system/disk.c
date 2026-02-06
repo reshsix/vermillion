@@ -45,70 +45,35 @@ disk_close(disk_f *f)
 }
 
 extern bool
-disk_stat(disk_f *f, enum disk_type *type, char **name, u32 *size)
+disk_stat(disk_f *f, bool *dir, char **name, u32 *size)
 {
     bool ret = false;
 
     enum fs_type type2 = FS_REGULAR;
     ret = fs_stat(f, &type2, name, size);
-    if (ret && type)
-    {
-        switch (type2)
-        {
-            case FS_REGULAR:
-                *type = DISK_REGULAR;
-                break;
-            case FS_DIRECTORY:
-                *type = DISK_DIRECTORY;
-                break;
-        }
-    }
+    if (ret && dir)
+        *dir = (type2 == FS_DIRECTORY);
 
     return ret;
 }
 
 extern bool
-disk_walk(disk_f *f, u32 index,
-          enum disk_type *type, char **name, u32 *size)
+disk_walk(disk_f *f, u32 index, bool *dir, char **name, u32 *size)
 {
     bool ret = false;
 
     enum fs_type type2 = FS_REGULAR;
     ret = fs_walk(f, index, &type2, name, size);
-    if (ret && type)
-    {
-        switch (type2)
-        {
-            case FS_REGULAR:
-                *type = DISK_REGULAR;
-                break;
-            case FS_DIRECTORY:
-                *type = DISK_DIRECTORY;
-                break;
-        }
-    }
+    if (ret && dir)
+        *dir = (type2 == FS_DIRECTORY);
 
     return ret;
 }
 
 extern bool
-disk_seek(disk_f *f, enum disk_seek seek, s32 pos)
+disk_seek(disk_f *f, u32 pos)
 {
-    enum fs_seek seek2 = FS_START;
-    switch (seek)
-    {
-        case DISK_START:
-            seek2 = FS_START;
-            break;
-        case DISK_CURRENT:
-            seek2 = FS_CURRENT;
-            break;
-        case DISK_END:
-            seek2 = FS_END;
-            break;
-    }
-
-    return fs_seek(f, seek2, pos);
+    return fs_seek(f, FS_START, pos);
 }
 
 extern bool

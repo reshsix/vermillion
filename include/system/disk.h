@@ -20,19 +20,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/classes/fs.h>
 
-enum disk_type
-{
-    DISK_REGULAR,
-    DISK_DIRECTORY
-};
-
-enum disk_seek
-{
-    DISK_START,
-    DISK_CURRENT,
-    DISK_END
-};
-
 /* For devtree usage */
 
 void disk_config(dev_fs *f);
@@ -44,11 +31,10 @@ typedef struct fs_file disk_f;
 disk_f *disk_open(const char *path);
 disk_f *disk_close(disk_f *f);
 
-bool disk_stat(disk_f *f, enum disk_type *type, char **name, u32 *size);
-bool disk_walk(disk_f *f, u32 index,
-               enum disk_type *type, char **name, u32 *size);
+bool disk_stat(disk_f *f, bool *dir, char **name, u32 *size);
+bool disk_walk(disk_f *f, u32 index, bool *dir, char **name, u32 *size);
 
-bool disk_seek(disk_f *f, enum disk_seek seek, s32 pos);
+bool disk_seek(disk_f *f, u32  pos);
 bool disk_tell(disk_f *f, u32 *pos);
 
 u32 disk_read(disk_f *f, void *buffer, u32 bytes);

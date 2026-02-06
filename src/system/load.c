@@ -89,7 +89,7 @@ fdpic_loader(const char *path, u32 *entry)
         struct elfp pheader = {0};
         s32 offset = header.progs + (header.prog_s * i);
 
-        ret = disk_seek(f, DISK_START, offset) &&
+        ret = disk_seek(f, offset) &&
               disk_read(f, &pheader, sizeof(struct elfp)) ==
                         sizeof(struct elfp);
 
@@ -110,7 +110,7 @@ fdpic_loader(const char *path, u32 *entry)
 
             if (ret)
             {
-                ret = disk_seek(f, DISK_START, pheader.offset) &&
+                ret = disk_seek(f, pheader.offset) &&
                       disk_read(f, &(buffer[pheader.vaddr]),
                                 pheader.size_f) == pheader.size_f;
             }
@@ -129,7 +129,7 @@ fdpic_loader(const char *path, u32 *entry)
 }
 
 extern u8 *
-loader_prog(const char *path, u32 *entry)
+load_prog(const char *path, u32 *entry)
 {
     u8 *ret = NULL;
 

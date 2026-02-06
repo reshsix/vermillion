@@ -26,7 +26,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <system/comm.h>
 #include <system/disk.h>
-#include <system/wheel.h>
+#include <system/time.h>
 
 #include <drivers/fs/mbr.h>
 #include <drivers/fs/fat32.h>
@@ -94,8 +94,8 @@ devtree_init(void)
     /* Systems */
     comm_config(&tty0, &tty0, &tty1, &tty1);
     disk_config(&root);
+    time_config(&timer0);
     pic_state(&pic, true);
-    wheel_timer(&timer0);
 }
 
 extern void

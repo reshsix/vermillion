@@ -18,4 +18,17 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <general/types.h>
 
-u8 *loader_prog(const char *path, u32 *entry);
+#include <hal/classes/timer.h>
+
+/* For devtree usage */
+
+void time_config(dev_timer *timer);
+
+/* For external usage */
+
+bool time_event0(void (*handler)(void *), void *arg, u8 jiffies);
+bool time_event1(void (*handler)(void *), void *arg, u8 jiffies);
+void time_sleep0(u8 jiffies);
+void time_sleep1(u8 jiffies);
+u64 time_clock0(void);
+u64 time_clock1(void);
