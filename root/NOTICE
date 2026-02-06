@@ -9,4 +9,3 @@ Processor: Quad-Core ARM Cortex-A7 @ 1.296GHz
     Detecting Serial Master ... UART0
     Detecting Serial Slave  ... UART1
 
-Initialized

@@ -19,11 +19,20 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <system/comm.h>
 #include <system/disk.h>
 #include <system/wheel.h>
+#include <system/loader.h>
 
 void devtree_init();
 void devtree_clean();
 
-void main(void)
+static void
+log(const char *s)
+{
+    for (size_t i = 0; s[i] != '\0'; i++)
+        comm_write0(s[i]);
+}
+
+extern void
+main(void)
 {
     _mem_init();
     devtree_init();
@@ -41,13 +50,20 @@ void main(void)
             for (size_t i = 0; i < read; i++)
                 comm_write0(buf[i]);
         }
+
+        u32 entry = 0;
+        u8 *mem = loader_prog("init.elf", &entry);
+        if (mem)
+        {
+            int (*init)(void) = (void *)&(mem[entry]);
+            log(!init() ? "Init success" : "Init failure");
+        }
+        else
+            log("init.elf missing\r\n");
+        mem_del(mem);
     }
     else
-    {
-        const char *msg = "NOTICE missing\r\n";
-        for (size_t i = 0; msg[i] != '\0'; i++)
-            comm_write0(msg[i]);
-    }
+        log("NOTICE missing\r\n");
     disk_close(f);
 
     devtree_clean();
