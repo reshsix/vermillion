@@ -32,10 +32,12 @@ struct memblk
 #define MEMEND(head) \
     ((struct memblk *)((u32)(head) + MEMTOTAL(((struct memblk *)head)->size)))
 
+/* For devtree usage */
+
 static struct memblk *head = NULL;
 extern struct memblk __free;
 extern void
-_mem_init(void)
+mem_init(void)
 {
     head = &__free;
     head->size = CONFIG_RAM_ADDRESS + CONFIG_RAM_SIZE + CONFIG_STACK_SIZE;
@@ -44,10 +46,12 @@ _mem_init(void)
 }
 
 extern void
-_mem_clean(void)
+mem_clean(void)
 {
     return;
 }
+
+/* For external usage */
 
 extern void *
 mem_new(size_t size)
@@ -88,7 +92,7 @@ mem_new(size_t size)
                 prev->next = next;
 
             ret = MEMBODY(blk, 0);
-            mem_init(ret, 0, size);
+            mem_fill(ret, 0, size);
         }
     }
 
@@ -143,7 +147,7 @@ mem_renew(void *mem, size_t size)
             else
                 prev->next = next;
 
-            mem_init(&(((u8*)mem)[previous]), 0, blk->size - previous);
+            mem_fill(&(((u8*)mem)[previous]), 0, blk->size - previous);
             ret = mem;
         }
         else
@@ -264,7 +268,7 @@ mem_find(const void *mem, u8 c, size_t length)
 }
 
 extern void
-mem_init(void *mem, u8 c, size_t length)
+mem_fill(void *mem, u8 c, size_t length)
 {
     for (size_t i = 0; i < length; i++)
         ((u8*)mem)[i] = c;
@@ -303,7 +307,7 @@ memmove(void *dest, const void *src, size_t length)
 extern void
 memset(void *mem, int c, size_t length)
 {
-    mem_init(mem, c, length);
+    mem_fill(mem, c, length);
 }
 
 [[gnu::weak]]

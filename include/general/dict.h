@@ -16,16 +16,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-typedef struct dict
-{
-    size_t type;
-    u32 size;
-
-    char **ids;
-    u8 *meta, *data;
-
-    size_t count;
-} dict;
+typedef struct dict dict;
 
 dict *dict_new(size_t type);
 dict *dict_del(dict *d);

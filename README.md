@@ -1,5 +1,5 @@
 # Vermillion
-**Status: 1.0 α**
+**Status: 1.0 β**
 
 ## Depends on
 ```sh
@@ -22,4 +22,25 @@ make -f deps.mk all
 make -f core.mk all
 
 make -f core.mk debug
+```
+
+## Writing programs
+
+```c
+#include <vermillion/entry.h>
+
+extern bool
+vrm_entry(struct vrm *v, const char **args, int count)
+{
+    const char msg[] = "vrm_entry message\r\n";
+    for (int i = 0; i < sizeof(msg) - 1; i++)
+        v->comm.write0(msg[i]);
+
+    return true;
+}
+```
+
+```sh
+CFLAGS="-shared -fPIE -fPIC -ffreestanding -nostdlib -Wl,-evrm_entry -Wl,-z,defs"
+arm-none-eabi-gcc -Iinclude $CFLAGS prog.c -o root/init.elf
 ```

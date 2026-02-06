@@ -271,7 +271,7 @@ string_to_id83(const char *str, u8 *buf)
     u32 len = str_length(str);
     if (str_length(str) <= 11)
     {
-        mem_init(buf, 0x20, 11);
+        mem_fill(buf, 0x20, 11);
         mem_copy(buf, str, len);
     }
     else
@@ -444,7 +444,7 @@ fat32_directory(struct fat32 *f, u32 cluster, struct fat32e *out)
     static char name[(255 * 4) + 1] = {0};
     static u16 lfn[255] = {0};
     static u8 lfn_last = 0;
-    mem_init(lfn, 0xFF, sizeof(lfn));
+    mem_fill(lfn, 0xFF, sizeof(lfn));
     for (u32 i = 0x200 * f->br.sectspercluster; ret; i += 32)
     {
         if (i >= (0x200 * f->br.sectspercluster))
@@ -493,7 +493,7 @@ fat32_directory(struct fat32 *f, u32 cluster, struct fat32e *out)
 
             j += unicode_to_utf8(utf16_to_unicode(&lfn_p), &(name[j]));
         }
-        mem_init(lfn, 0xFF, sizeof(lfn));
+        mem_fill(lfn, 0xFF, sizeof(lfn));
 
         if (j > 0)
             name[j] = '\0';
@@ -701,8 +701,8 @@ entry_update(struct fat32 *f, struct fat32e *fe)
                 if (i != index && f->buffer[i + 11] != 0x0F)
                     break;
 
-                mem_init(&(f->buffer[i]), 0xE5, 1);
-                mem_init(&(f->buffer[i + 1]), 0x00, 31);
+                mem_fill(&(f->buffer[i]), 0xE5, 1);
+                mem_fill(&(f->buffer[i + 1]), 0x00, 31);
 
                 if (i == 0)
                 {
@@ -793,7 +793,7 @@ fat32_resize(struct fat32 *f, struct fat32e *fe, u32 size)
 static void
 fill_entry(u8 *buf, const char *name, bool dir, u8 entries, u32 cluster)
 {
-    mem_init(buf, 0x0, 0x200);
+    mem_fill(buf, 0x0, 0x200);
 
     u8 id83[11] = {0};
     string_to_id83(name, id83);
@@ -900,10 +900,10 @@ directory_dots(struct fat32 *f, u32 cluster, u32 pcluster)
     if (ret)
     {
         u8 *buf = f->buffer;
-        mem_init(buf, 0x0, 32 * 3);
+        mem_fill(buf, 0x0, 32 * 3);
 
         u32 i = 0;
-        mem_init(&(buf[i]), 0x20, 11);
+        mem_fill(&(buf[i]), 0x20, 11);
         buf[i] = '.';
         buf[i + 11] = 0x30;
         buf[i + 26] = (cluster >> 0) & 0xFF;
@@ -912,7 +912,7 @@ directory_dots(struct fat32 *f, u32 cluster, u32 pcluster)
         buf[i + 21] = (cluster >> 24) & 0xFF;
 
         i += 32;
-        mem_init(&(buf[i]), 0x20, 11);
+        mem_fill(&(buf[i]), 0x20, 11);
         buf[i] = '.';
         buf[i + 1] = '.';
         buf[i + 11] = 0x30;

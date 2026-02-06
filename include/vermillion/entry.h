@@ -16,20 +16,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <general/types.h>
+#include <stdbool.h>
 
-/* For devtree usage */
+#include <vermillion/vrm.h>
 
-void mem_init(void);
-void mem_clean(void);
-
-/* For external usage */
-
-void *mem_new(size_t size);
-void *mem_renew(void *mem, size_t size);
-void *mem_del(void *mem);
-
-int mem_comp(const void *mem, const void *mem2, size_t length);
-void *mem_find(const void *mem, u8 c, size_t length);
-void mem_fill(void *mem, u8 c, size_t length);
-void mem_copy(void *dest, const void *src, size_t length);
+typedef int (*vrm_entry_t)(struct vrm *v, const char **args, int count);
+bool vrm_entry(struct vrm *v, const char **args, int count);

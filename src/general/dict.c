@@ -19,6 +19,17 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/str.h>
 #include <general/dict.h>
 
+struct dict
+{
+    size_t type;
+    u32 size;
+
+    char **ids;
+    u8 *meta, *data;
+
+    size_t count;
+};
+
 static u32
 dict_hash(const char *s)
 {
@@ -54,7 +65,7 @@ dict_new_st(size_t type, size_t size)
     }
 
     if (ret)
-        mem_init(ret->meta, 0x80, sizeof(u8) * ret->size);
+        mem_fill(ret->meta, 0x80, sizeof(u8) * ret->size);
 
     return ret;
 }
@@ -133,7 +144,7 @@ dict_set_st(dict *d, const char *id, void *data)
             {
                 d->ids[i] = mem_del(d->ids[i]);
                 d->meta[i] = 0x80;
-                mem_init(&(d->data[i * d->type]), 0, d->type);
+                mem_fill(&(d->data[i * d->type]), 0, d->type);
                 if (insert)
                     d->count--;
             }

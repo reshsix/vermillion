@@ -16,16 +16,65 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef VERMILLION_INTERNALS
 typedef struct fs_file vrm_disk_f;
+typedef struct dict    vrm_dict;
 #else
 typedef struct vrm_disk_f vrm_disk_f;
+typedef struct vrm_dict   vrm_dict;
 #endif
 
 struct vrm
 {
+    /* General functions */
+
+    struct
+    {
+        void * (*new)(size_t size);
+        void * (*renew)(void *mem, size_t size);
+        void * (*del)(void *mem);
+        int (*comp)(const void *mem, const void *mem2, size_t length);
+        void * (*find)(const void *mem, uint8_t c, size_t length);
+        void (*fill)(void *mem, uint8_t c, size_t length);
+        void (*copy)(void *dest, const void *src, size_t length);
+    } mem;
+
+    struct
+    {
+        size_t (*length)(const char *str);
+        int  (*comp)(const char *str, const char *str2, size_t length);
+        size_t (*span)(const char *str, const char *chars, bool complement);
+        char * (*find_l)(const char *str, char c);
+        char * (*find_r)(const char *str, char c);
+        char * (*find_m)(const char *str, const char *chars);
+        char * (*find_s)(const char *str, const char *str2);
+        char * (*token)(char *str, const char *chars, char **saveptr);
+        void (*copy)(char *dest, const char *src, size_t length);
+        void (*concat)(char *dest, const char *src, size_t length);
+        char * (*dupl)(const char *str, size_t length);
+    } str;
+
+    struct
+    {
+        vrm_dict * (*new)(size_t type);
+        vrm_dict * (*del)(vrm_dict *d);
+        bool (*get)(vrm_dict *d, const char *id, void *data);
+        bool (*set)(vrm_dict *d, const char *id, void *data);
+    } dict;
+
+    struct
+    {
+        char * (*cleanup)(const char *path);
+        char * (*dirname)(const char *path);
+        char * (*filename)(const char *path);
+    } path;
+
+    /* System functions */
+
     struct
     {
         char (*read0)(void);
@@ -61,16 +110,16 @@ struct vrm
 
     struct
     {
-        u8 * (*prog)(const char *path, uint32_t *entry);
+        uint8_t * (*prog)(const char *path, uint32_t *entry);
     } load;
 
     struct
     {
-        bool (*event0)(void (*handler)(void *), void *arg, u8 jiffies);
-        bool (*event1)(void (*handler)(void *), void *arg, u8 jiffies);
-        void (*sleep0)(u8 jiffies);
-        void (*sleep1)(u8 jiffies);
-        u64  (*clock0)(void);
-        u64  (*clock1)(void);
+        bool (*event0)(void (*handler)(void *), void *arg, uint8_t jiffies);
+        bool (*event1)(void (*handler)(void *), void *arg, uint8_t jiffies);
+        void (*sleep0)(uint8_t jiffies);
+        void (*sleep1)(uint8_t jiffies);
+        uint64_t (*clock0)(void);
+        uint64_t (*clock1)(void);
     } time;
 };

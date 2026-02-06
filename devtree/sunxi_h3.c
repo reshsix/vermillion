@@ -14,6 +14,7 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <general/mem.h>
 #include <general/types.h>
 
 #include <hal/block.h>
@@ -52,6 +53,7 @@ dev_timer timer0, timer1;
 extern void
 devtree_init(void)
 {
+    mem_init();
     APB0_GATE = 1;
 
     /* Serial */
@@ -130,4 +132,5 @@ devtree_clean(void)
     arm_gic_clean(&pic);
 
     APB0_GATE = 0;
+    mem_clean();
 }

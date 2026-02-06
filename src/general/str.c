@@ -174,7 +174,7 @@ str_copy(char *dest, const char *src, size_t length)
     if (length > l)
     {
         mem_copy(dest, src, l);
-        mem_init(&(dest[l]), '\0', length - l);
+        mem_fill(&(dest[l]), '\0', length - l);
     }
     else if (length != 0)
         mem_copy(dest, src, length);

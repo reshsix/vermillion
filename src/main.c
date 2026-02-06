@@ -15,6 +15,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <general/mem.h>
+#include <general/str.h>
+#include <general/dict.h>
+#include <general/path.h>
 
 #include <system/comm.h>
 #include <system/disk.h>
@@ -23,6 +26,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #define VERMILLION_INTERNALS
 #include <vermillion/vrm.h>
+#include <vermillion/entry.h>
 
 void devtree_init();
 void devtree_clean();
@@ -37,10 +41,35 @@ log(const char *s)
 extern void
 main(void)
 {
-    _mem_init();
     devtree_init();
 
-    struct vrm v = {.comm.read0  = comm_read0,
+    struct vrm v = {.mem.new       = mem_new,
+                    .mem.renew     = mem_renew,
+                    .mem.del       = mem_del,
+                    .mem.comp      = mem_comp,
+                    .mem.find      = mem_find,
+                    .mem.fill      = mem_fill,
+                    .mem.copy      = mem_copy,
+                    .str.length    = str_length,
+                    .str.comp      = str_comp,
+                    .str.span      = str_span,
+                    .str.find_l    = str_find_l,
+                    .str.find_r    = str_find_r,
+                    .str.find_m    = str_find_m,
+                    .str.find_s    = str_find_s,
+                    .str.token     = str_token,
+                    .str.copy      = str_copy,
+                    .str.concat    = str_concat,
+                    .str.dupl      = str_dupl,
+                    .dict.new      = dict_new,
+                    .dict.del      = dict_del,
+                    .dict.get      = dict_get,
+                    .dict.set      = dict_set,
+                    .path.cleanup  = path_cleanup,
+                    .path.dirname  = path_dirname,
+                    .path.filename = path_filename,
+
+                    .comm.read0  = comm_read0,
                     .comm.read1  = comm_read1,
                     .comm.write0 = comm_write0,
                     .comm.write1 = comm_write1,
@@ -66,7 +95,7 @@ main(void)
                     .time.clock0 = time_clock0,
                     .time.clock1 = time_clock1};
 
-    disk_f *f = disk_open("NOTICE");
+    disk_f *f = disk_open("/NOTICE");
     if (f)
     {
         u8 buf[128] = {0};
@@ -80,12 +109,14 @@ main(void)
                 comm_write0(buf[i]);
         }
 
+        const char *path = "/init.elf";
+
         u32 entry = 0;
-        u8 *mem = load_prog("init.elf", &entry);
+        u8 *mem = load_prog(path, &entry);
         if (mem)
         {
-            int (*init)(struct vrm *) = (void *)&(mem[entry]);
-            log(!init(&v) ? "Init success" : "Init failure");
+            vrm_entry_t f = (void *)&(mem[entry]);
+            log(f(&v, &path, 1) ? "Init success" : "Init failure");
         }
         else
             log("init.elf missing\r\n");
@@ -96,5 +127,4 @@ main(void)
     disk_close(f);
 
     devtree_clean();
-    _mem_clean();
 }
