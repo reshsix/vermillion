@@ -122,4 +122,10 @@ struct vrm
         uint64_t (*clock0)(void);
         uint64_t (*clock1)(void);
     } time;
+
+    struct
+    {
+        void * (*get)(const char *id);
+        bool (*set)(const char *id, void *data);
+    } vars;
 };

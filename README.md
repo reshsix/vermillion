@@ -41,6 +41,7 @@ vrm_entry(struct vrm *v, const char **args, int count)
 ```
 
 ```sh
+PATH=$PATH:$(realpath deps/tools/bin)
 CFLAGS="-shared -fPIE -fPIC -ffreestanding -nostdlib -Wl,-evrm_entry -Wl,-z,defs"
 arm-none-eabi-gcc -Iinclude $CFLAGS prog.c -o root/init.elf
 ```

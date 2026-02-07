@@ -14,13 +14,40 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
-
+#include <general/dict.h>
 #include <general/types.h>
 
-typedef struct dict dict;
+static dict *vars = NULL;
 
-dict *dict_new(size_t type);
-dict *dict_del(dict *d);
-bool dict_get(dict *d, const char *id, void *data);
-bool dict_set(dict *d, const char *id, void *data);
+/* For devtree usage */
+
+extern void
+vars_init(void)
+{
+    vars = dict_new(sizeof(void *));
+}
+
+extern void
+vars_clean(void)
+{
+    dict_del(vars);
+}
+
+/* For external usage */
+
+extern void *
+vars_get(const char *id)
+{
+    void *ret = NULL;
+    dict_get(vars, id, &ret);
+    return ret;
+}
+
+extern bool
+vars_set(const char *id, void *data)
+{
+    if (!vars)
+        vars = dict_new(sizeof(void *));
+
+    return dict_set(vars, id, &data);
+}

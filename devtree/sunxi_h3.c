@@ -28,6 +28,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <system/comm.h>
 #include <system/disk.h>
 #include <system/time.h>
+#include <system/vars.h>
 
 #include <drivers/fs/mbr.h>
 #include <drivers/fs/fat32.h>
@@ -98,11 +99,13 @@ devtree_init(void)
     disk_config(&root);
     time_config(&timer0);
     pic_state(&pic, true);
+    vars_init();
 }
 
 extern void
 devtree_clean(void)
 {
+    vars_clean();
     pic_state(&pic, false);
 
     gpio_set(&gpio1, 10, false);

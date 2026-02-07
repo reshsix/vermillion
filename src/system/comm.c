@@ -29,7 +29,7 @@ static dev_stream *output1 = NULL;
 
 extern void
 comm_config(dev_stream *in0, dev_stream *out0,
-           dev_stream *in1, dev_stream *out1)
+            dev_stream *in1, dev_stream *out1)
 {
     input0  = in0;
     input1  = in1;

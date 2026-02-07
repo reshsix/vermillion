@@ -27,8 +27,8 @@ debug: $(BUILD)/vermillion.img scripts/debug.gdb
 	@gdb-multiarch --command=scripts/debug.gdb
 test: $(BUILD)/vermillion.img
 	@printf '%s\n' "  TEST    $(<:$(BUILD)/%=%)"
-	@chronic qemu-system-arm -M $(QEMU_MACHINE) \
-             -semihosting -nographic -drive file=$<,format=raw
+	@qemu-system-arm -M $(QEMU_MACHINE) \
+		-nographic -serial mon:stdio -drive file=$<,format=raw
 
 # Specific recipes
 $(BUILD)/boot.o: arch/$(ARCH)/boot.S deps/.$(TARGET)-gcc | $(BUILD)

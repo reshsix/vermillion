@@ -23,6 +23,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <system/disk.h>
 #include <system/load.h>
 #include <system/time.h>
+#include <system/vars.h>
 
 #define VERMILLION_INTERNALS
 #include <vermillion/vrm.h>
@@ -93,7 +94,10 @@ main(void)
                     .time.sleep0 = time_sleep0,
                     .time.sleep1 = time_sleep1,
                     .time.clock0 = time_clock0,
-                    .time.clock1 = time_clock1};
+                    .time.clock1 = time_clock1,
+                    .vars.get    = vars_get,
+                    .vars.set    = vars_set};
+    log("\033[2J\033[H");
 
     disk_f *f = disk_open("/NOTICE");
     if (f)
@@ -116,7 +120,7 @@ main(void)
         if (mem)
         {
             vrm_entry_t f = (void *)&(mem[entry]);
-            log(f(&v, &path, 1) ? "Init success" : "Init failure");
+            log(f(&v, &path, 1) ? "Success" : "Failure");
         }
         else
             log("init.elf missing\r\n");

@@ -18,9 +18,14 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <general/types.h>
 
-typedef struct dict dict;
+#include <hal/stream.h>
 
-dict *dict_new(size_t type);
-dict *dict_del(dict *d);
-bool dict_get(dict *d, const char *id, void *data);
-bool dict_set(dict *d, const char *id, void *data);
+/* For devtree usage */
+
+void vars_init(void);
+void vars_clean(void);
+
+/* For external usage */
+
+void *vars_get(const char *id);
+bool vars_set(const char *id, void *data);
