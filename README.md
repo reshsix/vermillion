@@ -1,5 +1,5 @@
 # Vermillion
-**Status: 1.0 β**
+**Status: 1.0 γ**
 
 ## Depends on
 ```sh

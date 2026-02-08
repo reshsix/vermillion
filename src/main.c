@@ -21,23 +21,16 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <system/comm.h>
 #include <system/disk.h>
-#include <system/load.h>
 #include <system/time.h>
 #include <system/vars.h>
+
+#include <loader.h>
+#include <syslog.h>
+#include <devtree.h>
 
 #define VERMILLION_INTERNALS
 #include <vermillion/vrm.h>
 #include <vermillion/entry.h>
-
-void devtree_init();
-void devtree_clean();
-
-static void
-log(const char *s)
-{
-    for (size_t i = 0; s[i] != '\0'; i++)
-        comm_write0(s[i]);
-}
 
 extern void
 main(void)
@@ -88,7 +81,6 @@ main(void)
                     .disk.mkfile = disk_mkfile,
                     .disk.mkdir  = disk_mkdir,
                     .disk.remove = disk_remove,
-                    .load.prog   = load_prog,
                     .time.event0 = time_event0,
                     .time.event1 = time_event1,
                     .time.sleep0 = time_sleep0,
@@ -96,8 +88,14 @@ main(void)
                     .time.clock0 = time_clock0,
                     .time.clock1 = time_clock1,
                     .vars.get    = vars_get,
-                    .vars.set    = vars_set};
-    log("\033[2J\033[H");
+                    .vars.set    = vars_set,
+
+                    .loader.prog      = loader_prog,
+                    .syslog.char_     = syslog_char,
+                    .syslog.string    = syslog_string,
+                    .syslog.unsigned_ = syslog_unsigned,
+                    .syslog.signed_   = syslog_signed};
+    syslog_string("\033[2J\033[H");
 
     disk_f *f = disk_open("/NOTICE");
     if (f)
@@ -116,18 +114,18 @@ main(void)
         const char *path = "/init.elf";
 
         u32 entry = 0;
-        u8 *mem = load_prog(path, &entry);
+        u8 *mem = loader_prog(path, &entry);
         if (mem)
         {
             vrm_entry_t f = (void *)&(mem[entry]);
-            log(f(&v, &path, 1) ? "Success" : "Failure");
+            syslog_string(f(&v, &path, 1) ? "Success" : "Failure");
         }
         else
-            log("init.elf missing\r\n");
+            syslog_string("init.elf missing\r\n");
         mem_del(mem);
     }
     else
-        log("NOTICE missing\r\n");
+        syslog_string("NOTICE missing\r\n");
     disk_close(f);
 
     devtree_clean();

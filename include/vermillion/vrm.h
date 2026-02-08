@@ -110,11 +110,6 @@ struct vrm
 
     struct
     {
-        uint8_t * (*prog)(const char *path, uint32_t *entry);
-    } load;
-
-    struct
-    {
         bool (*event0)(void (*handler)(void *), void *arg, uint8_t jiffies);
         bool (*event1)(void (*handler)(void *), void *arg, uint8_t jiffies);
         void (*sleep0)(uint8_t jiffies);
@@ -128,4 +123,18 @@ struct vrm
         void * (*get)(const char *id);
         bool (*set)(const char *id, void *data);
     } vars;
+
+    struct
+    {
+        uint8_t * (*prog)(const char *path, uint32_t *entry);
+    } loader;
+
+    struct
+    {
+        void (*char_)(const char c);
+        void (*string)(const char *s);
+        void (*bool_)(const bool n);
+        void (*unsigned_)(const u64 n);
+        void (*signed_)(s64 n);
+    } syslog;
 };

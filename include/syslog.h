@@ -18,4 +18,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <general/types.h>
 
-u8 *load_prog(const char *path, u32 *entry);
+void syslog_char(const char c);
+void syslog_string(const char *s);
+void syslog_bool(const bool n);
+void syslog_unsigned(const u64 n);
+void syslog_signed(s64 n);

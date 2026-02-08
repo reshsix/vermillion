@@ -139,12 +139,9 @@ OBJS += $(PREFIX)/fs.o $(PREFIX)/gpio.o $(PREFIX)/pic.o \
         $(PREFIX)/timer.o $(PREFIX)/uart.o
 
 PREFIX = src/system
-OBJS += $(PREFIX)/comm.o $(PREFIX)/disk.o \
-		$(PREFIX)/load.o $(PREFIX)/time.o $(PREFIX)/vars.o
+OBJS += $(PREFIX)/comm.o $(PREFIX)/disk.o $(PREFIX)/time.o $(PREFIX)/vars.o
 
-OBJS += src/main.o
-
-OBJS += devtree.o
+OBJS += devtree.o src/loader.o src/syslog.o src/main.o
 
 PREFIX = drivers/arm
 ifdef CONFIG_ARM_GIC
