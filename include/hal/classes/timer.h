@@ -27,7 +27,7 @@ enum timer_index
 typedef drv_block drv_timer;
 typedef dev_block dev_timer;
 
-struct [[gnu::packed]] timer_cb
+struct timer_cb
 {
     bool enabled;
     void (*handler)(void *), *arg;

@@ -136,7 +136,7 @@ struct vrm
         void (*char_)(const char c);
         void (*string)(const char *s);
         void (*bool_)(const bool n);
-        void (*unsigned_)(const u64 n);
-        void (*signed_)(s64 n);
+        void (*unsigned_)(const uint64_t n);
+        void (*signed_)(int64_t n);
     } syslog;
 };

@@ -23,7 +23,7 @@ enum stream_index
     STREAM_COMMON
 };
 
-typedef struct [[gnu::packed]]
+typedef struct
 {
     void *init, (*clean)(void *);
     bool (*stat) (void *ctx, u32 idx, u32 *width);
@@ -31,7 +31,7 @@ typedef struct [[gnu::packed]]
     bool (*write) (void *ctx, u32 idx, void *data);
 } drv_stream;
 
-typedef struct [[gnu::packed]]
+typedef struct
 {
     const drv_stream *driver;
     void *context;

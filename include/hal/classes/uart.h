@@ -41,7 +41,7 @@ enum uart_stop
     UART_1S, UART_1HS, UART_2S
 };
 
-struct [[gnu::packed]] uart_cfg
+struct uart_cfg
 {
     u32 baud;
     enum uart_bits bits;

@@ -21,7 +21,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/classes/fs.h>
 
-struct [[gnu::packed]] fat32br
+struct __attribute__((packed)) fat32br
 {
     u8 jmp[3];
     char oem[8];
