@@ -14,10 +14,33 @@
 
 # -------------------------------- Parameters -------------------------------- #
 
+UBOOT_IMAGE  = $(shell echo $(CONFIG_UBOOT_IMAGE))
 UBOOT_CONFIG = $(shell echo $(CONFIG_UBOOT_CONFIG))
 QEMU_MACHINE = $(shell echo $(CONFIG_QEMU_MACHINE))
 
+# Dependency versions
+UBOOT = v2020.04
+
 # --------------------------------- Recipes  --------------------------------- #
+
+# U-boot compilation
+deps/$(UBOOT_CONFIG)_u-boot.bin: deps/.$(UBOOT_CONFIG)_u-boot-step3
+deps/u-boot: | deps
+	cd $| && git clone https://gitlab.denx.de/u-boot/u-boot.git
+deps/.u-boot-step1: | deps/u-boot
+	cd $| && git checkout tags/$(UBOOT)
+	touch $@
+deps/.$(UBOOT_CONFIG)_u-boot-step1: deps/.u-boot-step1 | deps/u-boot
+	cd $| && make ARCH=$(ARCH) CROSS_COMPILE=$(TARGET)- $(UBOOT_CONFIG)
+	touch $@
+deps/.$(UBOOT_CONFIG)_u-boot-step2: deps/.$(UBOOT_CONFIG)_u-boot-step1 | \
+                                    deps/u-boot
+	cd $| && make ARCH=$(ARCH) CROSS_COMPILE=$(TARGET)-
+	touch $@
+deps/.$(UBOOT_CONFIG)_u-boot-step3: deps/.$(UBOOT_CONFIG)_u-boot-step2 | \
+                                    deps/u-boot
+	cp $|/$(UBOOT_IMAGE) deps/$(UBOOT_CONFIG)_u-boot.bin
+	touch $@
 
 # Helper recipes
 image: $(BUILD)/vermillion.img
@@ -31,7 +54,7 @@ test: $(BUILD)/vermillion.img
 		-nographic -serial mon:stdio -drive file=$<,format=raw
 
 # Specific recipes
-$(BUILD)/boot.o: arch/$(ARCH)/boot.S deps/.$(TARGET)-gcc | $(BUILD)
+$(BUILD)/boot.o: arch/$(ARCH)/boot.S | $(BUILD)
 	@printf '%s\n' "  AS      core/$(@:$(BUILD)/%=%)"
 	@$(CC) $(CFLAGS) -c $< -o $@
 $(BUILD)/boot.scr: $(BUILD)/arch/u-boot.cmd | $(BUILD)

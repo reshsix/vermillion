@@ -1,30 +1,31 @@
 # Vermillion
 **Status: 1.0 γ**
 
-## Depends on
-```sh
-gcc make git rsync g++ bison flex texinfo libncurses-dev
-kconfig-frontends moreutils swig python3-dev bc
-u-boot-tools dialog mtools qemu-system-arm gdb-multiarch
-```
-
-## Configuration
+## Devices
 - nanopi\_neo\_defconfig (NanoPi NEO)
 - orangepi\_one\_defconfig (OrangePi One)
 
-## Compilation
+## Assembling
 
-Created in `build`
+| Stage       | Dependencies                   |
+|-------------|--------------------------------|
+| Versioning  | git                            |
+| Compilation | gcc-arm-none-eabi              |
+| Build       | make moreutils bc              |
+| Formatting  | mtools                         |
+| U-Boot      | bison flex swig u-boot-tools   |
+| Debug       | qemu-system-arm gdb-multiarch  |
+
 ```sh
-make -f core.mk nanopi_neo_defconfig
-
-make -f deps.mk all
-make -f core.mk all
-
-make -f core.mk debug
+make nanopi_neo_defconfig
+make all
+make debug
+dd if=build/vermillion.img of=/dev/mmcblk0
 ```
 
 ## Writing programs
+
+`struct vrm` is defined in `<vermillion/vrm.h>`
 
 ```c
 #include <vermillion/entry.h>
@@ -41,7 +42,6 @@ vrm_entry(struct vrm *v, const char **args, int count)
 ```
 
 ```sh
-PATH=$PATH:$(realpath deps/tools/bin)
 CFLAGS="-shared -fPIE -fPIC -ffreestanding -nostdlib -Wl,-evrm_entry -Wl,-z,defs"
 arm-none-eabi-gcc -Iinclude $CFLAGS prog.c -o root/init.elf
 ```

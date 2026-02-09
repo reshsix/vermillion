@@ -16,7 +16,6 @@ BUILD ?= build
 CONFIG ?= .config
 
 -include $(CONFIG)
-export PATH += :$(shell pwd)/deps/tools/bin
 
 # -------------------------------- Parameters -------------------------------- #
 
@@ -59,7 +58,7 @@ HOST = $(shell printf '%s\n' "$$MACHTYPE" | sed 's/-[^-]*/-cross/')
 # --------------------------------- Recipes  --------------------------------- #
 
 # Helper recipes
-.PHONY: all objs image clean debug uart
+.PHONY: all image clean debug uart
 all: image
 clean:
 	@printf '%s\n' "  RM      $(shell basename $(BUILD))"
@@ -70,7 +69,8 @@ uart: $(UART_DEVICE)
 	@sudo screen $< 115200
 
 # Folder creation
-FOLDERS := $(BUILD) $(BUILD)/arch $(BUILD)/src
+FOLDERS += deps
+FOLDERS += $(BUILD) $(BUILD)/arch $(BUILD)/src
 FOLDERS += $(BUILD)/src/general
 FOLDERS += $(BUILD)/src/hal/generic
 FOLDERS += $(BUILD)/src/hal/classes
@@ -100,15 +100,15 @@ $(BUILD)/vermillion.img: build/root root/
 	@sudo cp -r build/root/* $(BUILD)/mount/
 
 # Generic recipes
-$(BUILD)/%.o: %.c deps/.$(TARGET)-gcc | $(FOLDERS)
+$(BUILD)/%.o: %.c | $(FOLDERS)
 	@printf '%s\n' "  CC      $(@:$(BUILD)/%=%)"
 	@$(CC) $(CFLAGS) -c $< -o $@
-$(BUILD)/%.a: deps/.$(TARGET)-binutils
+$(BUILD)/%.a: | $(FOLDERS)
 	@printf '%s\n' "  AR      $(@:$(BUILD)/%=%)"
 	@chronic $(TARGET)-ar ruv $@ $^
 	@printf '%s\n' "  RANLIB  $(@:$(BUILD)/%=%)"
 	@$(TARGET)-ranlib $@
-$(BUILD)/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
+$(BUILD)/arch/%: arch/$(ARCH)/% | $(FOLDERS)
 	@printf '%s\n' "  CC      $(@:$(BUILD)/%=%)"
 	@$(CC) $(CFLAGS) -xc $< -E -P | grep -v '^#' > $@
 %_defconfig: config/%_defconfig
@@ -165,6 +165,7 @@ OBJS += $(PREFIX)/uart.o
 endif
 
 -include arch/$(ARCH)/core.mk
+
 OBJS := $(addprefix $(BUILD)/, $(OBJS))
 
 # --------------------------------- Recipes  --------------------------------- #
