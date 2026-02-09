@@ -35,8 +35,9 @@ enum
 
 extern void *__ivt[8];
 
-#define interrupt(type) \
-    [[gnu::target("general-regs-only")]] [[gnu::isr(#type)]] \
+#define INTERRUPT(type) \
+    __attribute__((target("general-regs-only"))) \
+    __attribute__((isr(#type))) \
     static void
 
 #define ICCICR(cpu)  *(volatile u32*)(cpu + 0x0)
@@ -82,42 +83,42 @@ static inline void
 arm_disable_irq(void)
 {
     u32 cpsr = 0;
-    asm volatile ("mrs %0, cpsr\n" : "=r" (cpsr));
+    __asm__ __volatile__ ("mrs %0, cpsr\n" : "=r" (cpsr));
     cpsr |= 0x80;
-    asm volatile ("msr cpsr, %0\n" : : "r" (cpsr));
+    __asm__ __volatile__ ("msr cpsr, %0\n" : : "r" (cpsr));
 }
 
 static inline void
 arm_enable_irq(void)
 {
     u32 cpsr = 0;
-    asm volatile ("mrs %0, cpsr\n" : "=r" (cpsr));
+    __asm__ __volatile__ ("mrs %0, cpsr\n" : "=r" (cpsr));
     cpsr &= 0xFFFFFF7F;
-    asm volatile ("msr cpsr, %0\n" : : "r" (cpsr));
+    __asm__ __volatile__ ("msr cpsr, %0\n" : : "r" (cpsr));
 }
 
 static inline void
 arm_disable_fiq(void)
 {
     u32 cpsr = 0;
-    asm volatile ("mrs %0, cpsr\n" : "=r" (cpsr));
+    __asm__ __volatile__ ("mrs %0, cpsr\n" : "=r" (cpsr));
     cpsr |= 0x40;
-    asm volatile ("msr cpsr, %0\n" : : "r" (cpsr));
+    __asm__ __volatile__ ("msr cpsr, %0\n" : : "r" (cpsr));
 }
 
 static inline void
 arm_enable_fiq(void)
 {
     u32 cpsr = 0;
-    asm volatile ("mrs %0, cpsr\n" : "=r" (cpsr));
+    __asm__ __volatile__ ("mrs %0, cpsr\n" : "=r" (cpsr));
     cpsr &= 0xFFFFFFBF;
-    asm volatile ("msr cpsr, %0\n" : : "r" (cpsr));
+    __asm__ __volatile__ ("msr cpsr, %0\n" : : "r" (cpsr));
 }
 
 static inline void
 arm_wait_interrupts(void)
 {
-    asm volatile ("wfi");
+    __asm__ __volatile__ ("wfi");
 }
 
 static inline void
@@ -207,14 +208,14 @@ struct gic
 };
 static struct gic *gic = NULL;
 
-interrupt(undef) handler_undef(void)
+INTERRUPT(undef) handler_undef(void)
 {
     syslog_string("Undefined Instruction");
     for (;;)
         arm_wait_interrupts();
 }
 
-interrupt(swi) handler_swi(void)
+INTERRUPT(swi) handler_swi(void)
 {
     if (gic)
     {
@@ -230,21 +231,21 @@ interrupt(swi) handler_swi(void)
     }
 }
 
-interrupt(abort) handler_prefetch(void)
+INTERRUPT(abort) handler_prefetch(void)
 {
     syslog_string("Prefetch Abort");
     for (;;)
         arm_wait_interrupts();
 }
 
-interrupt(abort) handler_data(void)
+INTERRUPT(abort) handler_data(void)
 {
     syslog_string("Data Abort");
     for (;;)
         arm_wait_interrupts();
 }
 
-interrupt(irq) handler_irq(void)
+INTERRUPT(irq) handler_irq(void)
 {
     if (gic)
     {
@@ -258,7 +259,7 @@ interrupt(irq) handler_irq(void)
     }
 }
 
-interrupt(fiq) handler_fiq(void)
+INTERRUPT(fiq) handler_fiq(void)
 {
     if (gic)
     {
@@ -269,15 +270,15 @@ interrupt(fiq) handler_fiq(void)
     }
 }
 
-static void [[gnu::naked]]
+static void __attribute__((naked))
 stack_irq(void *addr)
 {
     (void)addr;
 
-    asm volatile ("msr CPSR_c, #0b11010010");
-    asm volatile ("mov sp, r0");
+    __asm__ __volatile__ ("msr CPSR_c, #0b11010010");
+    __asm__ __volatile__ ("mov sp, r0");
 
-    asm volatile ("msr CPSR_c, #0b11010011");
+    __asm__ __volatile__ ("msr CPSR_c, #0b11010011");
 }
 
 static bool
@@ -488,7 +489,7 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
                 {
                     gic->swi_id = block;
                     mem_copy(&(gic->swi_data), buffer, sizeof(void *));
-                    asm volatile ("svc #0x0");
+                    __asm__ __volatile__ ("svc #0x0");
                 }
         }
     }

@@ -35,14 +35,14 @@ enum pic_level
     PIC_EDGE_H, PIC_EDGE_L, PIC_LEVEL_H, PIC_LEVEL_L, PIC_DOUBLE
 };
 
-struct [[gnu::packed]] pic_irq
+struct pic_irq
 {
     bool enabled;
     void (*handler)(void *), *arg;
     enum pic_level level;
 };
 
-struct [[gnu::packed]] pic_swi
+struct pic_swi
 {
     bool enabled;
     void (*handler)(void *, void *), *arg;

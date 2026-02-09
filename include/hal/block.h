@@ -23,7 +23,7 @@ enum block_index
     BLOCK_COMMON
 };
 
-typedef struct [[gnu::packed]]
+typedef struct
 {
     void *init, (*clean)(void *);
     bool (*stat) (void *ctx, u32 idx, u32 *width, u32 *length);
@@ -31,7 +31,7 @@ typedef struct [[gnu::packed]]
     bool (*write)(void *ctx, u32 idx, void *buffer, u32 block);
 } drv_block;
 
-typedef struct [[gnu::packed]]
+typedef struct
 {
     const drv_block *driver;
     void *context;

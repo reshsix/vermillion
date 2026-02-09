@@ -45,13 +45,13 @@ enum gpio_level
     GPIO_EDGE_H, GPIO_EDGE_L, GPIO_LEVEL_H, GPIO_LEVEL_L, GPIO_DOUBLE
 };
 
-struct [[gnu::packed]] gpio_pin
+struct gpio_pin
 {
     enum gpio_role role;
     enum gpio_pull pull;
 };
 
-struct [[gnu::packed]] gpio_intr
+struct gpio_intr
 {
     bool enabled;
     void (*handler)(void *), *arg;
