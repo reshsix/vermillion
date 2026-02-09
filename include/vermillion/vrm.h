@@ -124,6 +124,8 @@ struct vrm
         bool (*set)(const char *id, void *data);
     } vars;
 
+    /* Main-adjacent functions */
+
     struct
     {
         uint8_t * (*prog)(const char *path, uint32_t *entry);

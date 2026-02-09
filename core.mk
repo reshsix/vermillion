@@ -59,8 +59,7 @@ HOST = $(shell printf '%s\n' "$$MACHTYPE" | sed 's/-[^-]*/-cross/')
 # --------------------------------- Recipes  --------------------------------- #
 
 # Helper recipes
-.PHONY: all objs image clean debug uart \
-        config menuconfig xconfig
+.PHONY: all objs image clean debug uart
 all: image
 clean:
 	@printf '%s\n' "  RM      $(shell basename $(BUILD))"
@@ -69,15 +68,6 @@ uart: $(UART_DEVICE)
 	@printf '%s\n' "  SCREEN  $<"
 	@sudo stty -F $< 115200 cs8 -parenb -cstopb -crtscts
 	@sudo screen $< 115200
-config:
-	@KCONFIG_CONFIG="$(CONFIG)" kconfig-conf Kconfig
-	@rm -rf $(BUILD) .config.old
-menuconfig:
-	@KCONFIG_CONFIG="$(CONFIG)" kconfig-mconf Kconfig
-	@rm -rf $(BUILD) .config.old
-xconfig:
-	@KCONFIG_CONFIG="$(CONFIG)" kconfig-qconf Kconfig
-	@rm -rf $(BUILD) .config.old
 
 # Folder creation
 FOLDERS := $(BUILD) $(BUILD)/arch $(BUILD)/src
@@ -123,8 +113,6 @@ $(BUILD)/arch/%: arch/$(ARCH)/% deps/.$(TARGET)-gcc | $(FOLDERS)
 	@$(CC) $(CFLAGS) -xc $< -E -P | grep -v '^#' > $@
 %_defconfig: config/%_defconfig
 	@cp $< $(CONFIG)
-	@KCONFIG_CONFIG="$(CONFIG)" kconfig-conf --olddefconfig Kconfig
-	@rm -rf $(BUILD) .config.old
 
 # --------------------------------- Objects  --------------------------------- #
 
