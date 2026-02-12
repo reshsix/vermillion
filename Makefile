@@ -30,7 +30,7 @@ else
 endif
 CC = $(TARGET)-gcc
 LD = $(TARGET)-ld
-CFLAGS += -I. -Iinclude -Iarch/$(ARCH)/include
+CFLAGS += -I. -Iinclude
 CFLAGS += -std=c99 -nostdlib -ffreestanding
 CFLAGS += -Wall -Wextra -Wno-attributes
 CFLAGS += $(shell echo $(CONFIG_CFLAGS_ARCH))
@@ -45,79 +45,23 @@ CFLAGS += -D__VERMILLION__="\"$(VERSION)\""
 CFLAGS += -D__COMPILATION__="\"$(COMPILATION)\""
 CFLAGS += $(KCONFIG_FLAGS)
 
-# Helper parameters
-UART_DEVICE ?= /dev/ttyUSB0
-
 # Dependency versions
-BINUTILS = binutils-2.39
-GCC = gcc-12.2.0
+UBOOT = v2020.04
 
 # Dependency parameters
-HOST = $(shell printf '%s\n' "$$MACHTYPE" | sed 's/-[^-]*/-cross/')
+UBOOT_IMAGE  = $(shell echo $(CONFIG_UBOOT_IMAGE))
+UBOOT_CONFIG = $(shell echo $(CONFIG_UBOOT_CONFIG))
 
-# --------------------------------- Recipes  --------------------------------- #
-
-# Helper recipes
-.PHONY: all image clean debug uart
-all: image
-clean:
-	@printf '%s\n' "  RM      $(shell basename $(BUILD))"
-	@rm -rf $(BUILD)
-uart: $(UART_DEVICE)
-	@printf '%s\n' "  SCREEN  $<"
-	@sudo stty -F $< 115200 cs8 -parenb -cstopb -crtscts
-	@sudo screen $< 115200
-
-# Folder creation
-FOLDERS += deps
-FOLDERS += $(BUILD) $(BUILD)/arch $(BUILD)/src
-FOLDERS += $(BUILD)/src/general
-FOLDERS += $(BUILD)/src/hal/generic
-FOLDERS += $(BUILD)/src/hal/classes
-FOLDERS += $(BUILD)/src/system
-FOLDERS += $(BUILD)/drivers
-FOLDERS += $(BUILD)/drivers/fs
-FOLDERS += $(BUILD)/drivers/arm
-FOLDERS += $(BUILD)/drivers/arm/sunxi
-$(FOLDERS):
-	@mkdir -p $@
-
-# Image creation
-DISK_SIZE=$(shell echo "x=l(($$(du -b root | tail -n1 | cut -f1) \
-                            /1000000) + 16)/l(2); \
-            scale=0; 2^((x+1)/1)" | bc -l)
-$(BUILD)/vermillion.img: build/root root/
-	@printf '%s\n' "  BUILD   $(@:$(BUILD)/%=%)"
-	@dd if=/dev/zero of=$@ bs=1M count=$(DISK_SIZE) status=none
-	@sudo losetup /dev/loop0 $@
-	@printf 'start=2048, type=0c, bootable\n' \
-     | sudo chronic sfdisk -q /dev/loop0
-	@sudo partx -a /dev/loop0
-	@sudo chronic mkfs.vfat -F32 /dev/loop0p1
-	@mkdir -p $(BUILD)/mount/
-	@sudo mount -t vfat /dev/loop0p1 $(BUILD)/mount
-	@sudo cp -r root/* $(BUILD)/mount/
-	@sudo cp -r build/root/* $(BUILD)/mount/
-
-# Generic recipes
-$(BUILD)/%.o: %.c | $(FOLDERS)
-	@printf '%s\n' "  CC      $(@:$(BUILD)/%=%)"
-	@$(CC) $(CFLAGS) -c $< -o $@
-$(BUILD)/%.a: | $(FOLDERS)
-	@printf '%s\n' "  AR      $(@:$(BUILD)/%=%)"
-	@chronic $(TARGET)-ar ruv $@ $^
-	@printf '%s\n' "  RANLIB  $(@:$(BUILD)/%=%)"
-	@$(TARGET)-ranlib $@
-$(BUILD)/arch/%: arch/$(ARCH)/% | $(FOLDERS)
-	@printf '%s\n' "  CC      $(@:$(BUILD)/%=%)"
-	@$(CC) $(CFLAGS) -xc $< -E -P | grep -v '^#' > $@
-%_defconfig: config/%_defconfig
-	@cp $< $(CONFIG)
+# Helper parameters
+QEMU_MACHINE = $(shell echo $(CONFIG_QEMU_MACHINE))
+UART_DEVICE ?= /dev/ttyUSB0
 
 # --------------------------------- Objects  --------------------------------- #
 
+OBJS := boot.o
+
 PREFIX = src/general
-OBJS := $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/dict.o $(PREFIX)/path.o
+OBJS += $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/dict.o $(PREFIX)/path.o
 
 PREFIX = src/hal
 OBJS += $(PREFIX)/block.o $(PREFIX)/stream.o
@@ -164,27 +108,138 @@ ifdef CONFIG_SERIAL_SUNXI_UART
 OBJS += $(PREFIX)/uart.o
 endif
 
--include arch/$(ARCH)/core.mk
-
 OBJS := $(addprefix $(BUILD)/, $(OBJS))
+
+# --------------------------------- Programs --------------------------------- #
+
+PREFIX = root/prog
+
+PROGS = $(PREFIX)/init.elf
+
+PROGS := $(addprefix $(BUILD)/, $(PROGS))
 
 # --------------------------------- Recipes  --------------------------------- #
 
-objs: $(OBJS)
+DEPS = deps
+ROOT = $(BUILD)/root
+BOOT = $(ROOT)/boot
+
+# Helper recipes
+.PHONY: all image clean debug test uart
+all: image
+image: $(BUILD)/vermillion.img
+clean:
+	@printf '%s\n' "  RM      $(shell basename $(BUILD))"
+	@rm -rf $(BUILD)
+debug: $(BUILD)/vermillion.img scripts/debug.gdb
+	@printf '%s\n' "  QEMU    $(<:$(BUILD)/%=%)"
+	@qemu-system-arm -s -S -M $(QEMU_MACHINE) -drive file=$<,format=raw &
+	@gdb-multiarch --command=scripts/debug.gdb
+test: $(BUILD)/vermillion.img
+	@printf '%s\n' "  TEST    $(<:$(BUILD)/%=%)"
+	@qemu-system-arm -M $(QEMU_MACHINE) \
+		-nographic -serial mon:stdio -drive file=$<,format=raw
+uart: $(UART_DEVICE)
+	@printf '%s\n' "  SCREEN  $<"
+	@sudo stty -F $< 115200 cs8 -parenb -cstopb -crtscts
+	@sudo screen $< 115200
+
+# Folder creation
+FOLDERS += $(DEPS)
+FOLDERS += $(BUILD)
+FOLDERS += $(BUILD)/src
+FOLDERS += $(BUILD)/src/general
+FOLDERS += $(BUILD)/src/hal/generic
+FOLDERS += $(BUILD)/src/hal/classes
+FOLDERS += $(BUILD)/src/system
+FOLDERS += $(BUILD)/drivers
+FOLDERS += $(BUILD)/drivers/fs
+FOLDERS += $(BUILD)/drivers/arm
+FOLDERS += $(BUILD)/drivers/arm/sunxi
+FOLDERS += $(ROOT)
+FOLDERS += $(ROOT)/prog
+FOLDERS += $(BOOT)
+$(FOLDERS):
+	@mkdir -p $@
+
+# U-boot compilation
+$(DEPS)/$(UBOOT_CONFIG)_u-boot.bin: $(DEPS)/.$(UBOOT_CONFIG)_u-boot-step3
+$(DEPS)/u-boot: | deps
+	cd $| && git clone https://gitlab.denx.de/u-boot/u-boot.git
+$(DEPS)/.u-boot-step1: | $(DEPS)/u-boot
+	cd $| && git checkout tags/$(UBOOT)
+	touch $@
+$(DEPS)/.$(UBOOT_CONFIG)_u-boot-step1: $(DEPS)/.u-boot-step1 | $(DEPS)/u-boot
+	cd $| && make ARCH=$(ARCH) CROSS_COMPILE=$(TARGET)- $(UBOOT_CONFIG)
+	touch $@
+$(DEPS)/.$(UBOOT_CONFIG)_u-boot-step2: $(DEPS)/.$(UBOOT_CONFIG)_u-boot-step1 | \
+                                    $(DEPS)/u-boot
+	cd $| && make ARCH=$(ARCH) CROSS_COMPILE=$(TARGET)-
+	touch $@
+$(DEPS)/.$(UBOOT_CONFIG)_u-boot-step3: $(DEPS)/.$(UBOOT_CONFIG)_u-boot-step2 | \
+                                    $(DEPS)/u-boot
+	cp $|/$(UBOOT_IMAGE) $(DEPS)/$(UBOOT_CONFIG)_u-boot.bin
+	touch $@
+
+# Generic recipes
+
+%_defconfig: config/%_defconfig
+	@cp $< $(CONFIG)
+$(BUILD)/%.o: %.c | $(FOLDERS)
+	@printf '%s\n' "  CC      $(@:$(BUILD)/%=%)"
+	@$(CC) $(CFLAGS) -c $< -o $@
+$(ROOT)/prog/%.elf: prog/%.c | $(FOLDERS)
+	@printf '%s\n' "  CC      $(@:$(ROOT)/%=%)"
+	@$(CC) $(CFLAGS) -shared -fPIE -fPIC -Wl,-evrm_entry -Wl,-z,defs $< -o $@
 
 # Specific recipes
+
 $(BUILD)/devtree.o: $(shell echo $(CONFIG_DEVICE_TREE))
 	@printf '%s\n' "  CC      $(@:$(BUILD)/%=%)"
 	@$(CC) $(CFLAGS) -c $< -o $@
-ifneq ($(wildcard arch/$(ARCH)/linker.ld),)
-$(BUILD)/kernel.elf: $(BUILD)/arch/linker.ld $(OBJS)
+$(BUILD)/boot.o: boot/boot.S | $(BUILD)
+	@printf '%s\n' "  AS      $(@:$(BUILD)/%=%)"
+	@$(CC) $(CFLAGS) -c $< -o $@
+$(BUILD)/u-boot.cmd: boot/u-boot.cmd | $(FOLDERS)
+	@printf '%s\n' "  CC      $(@:$(BUILD)/%=%)"
+	@$(CC) $(CFLAGS) -xc $< -E -P | grep -v '^#' > $@
+$(BOOT)/boot.scr: $(BUILD)/u-boot.cmd | $(BUILD)
+	@printf '%s\n' "  MKIMAGE $(@:$(ROOT)/%=%)"
+	@chronic mkimage -C none -A $(ARCH) -T script -d $< $@
+
+$(BUILD)/linker.ld: boot/linker.ld | $(FOLDERS)
+	@printf '%s\n' "  CC      $(@:$(BUILD)/%=%)"
+	@$(CC) $(CFLAGS) -xc $< -E -P | grep -v '^#' > $@
+$(BUILD)/kernel.elf: $(BUILD)/linker.ld $(OBJS)
 	@printf '%s\n' "  LD      $(@:$(BUILD)/%=%)"
 	@$(CC) $(CFLAGS) -T $^ -o $@ -lgcc
-else
-$(BUILD)/kernel.elf: $(OBJS)
-	@printf '%s\n' "  LD      $(@:$(BUILD)/%=%)"
-	@$(CC) $(CFLAGS) $^ -o $@ -lgcc
-endif
-$(BUILD)/kernel.bin: $(BUILD)/kernel.elf | $(BUILD)
-	@printf '%s\n' "  OBJCOPY $(@:$(BUILD)/%=%)"
+$(BOOT)/kernel.bin: $(BUILD)/kernel.elf | $(BUILD)
+	@printf '%s\n' "  OBJCOPY $(@:$(ROOT)/%=%)"
 	@$(TARGET)-objcopy $< -O binary $@
+
+# Image creation
+
+DISK_SIZE=$(shell echo "x=l(($$(du -b root | tail -n1 | cut -f1) \
+                            /1000000) + 16)/l(2); \
+            scale=0; 2^((x+1)/1)" | bc -l)
+$(BUILD)/vermillion.img: $(BOOT)/kernel.bin $(BOOT)/boot.scr $(PROGS)
+	@printf '%s\n' "  BUILD   $(@:$(BUILD)/%=%)"
+	@dd if=/dev/zero of=$@ bs=1M count=$(DISK_SIZE) status=none
+	@sudo losetup /dev/loop0 $@
+	@printf 'start=2048, type=0c, bootable\n' \
+     | sudo chronic sfdisk -q /dev/loop0
+	@sudo partx -a /dev/loop0
+	@sudo chronic mkfs.vfat -F32 /dev/loop0p1
+	@mkdir -p $(BUILD)/mount/
+	@sudo mount -t vfat /dev/loop0p1 $(BUILD)/mount
+	@sudo cp -r root/* $(BUILD)/mount/
+	@sudo cp -r build/root/* $(BUILD)/mount/
+	@sudo umount $(BUILD)/mount
+	@sudo losetup -d /dev/loop0
+image: $(BUILD)/vermillion.img $(DEPS)/$(UBOOT_CONFIG)_u-boot.bin
+	@sudo losetup /dev/loop0 $<
+	@printf '%s\n' "  UBOOT   $(<:$(BUILD)/%=%)"
+	@sudo dd if=$(DEPS)/$(UBOOT_CONFIG)_u-boot.bin \
+             of=/dev/loop0 bs=1024 seek=8 status=none
+	@sleep 1
+	@sudo losetup -d /dev/loop0

@@ -111,7 +111,7 @@ main(void)
                 comm_write0(buf[i]);
         }
 
-        const char *path = "/init.elf";
+        const char *path = "/prog/init.elf";
 
         u32 entry = 0;
         u8 *mem = loader_prog(path, &entry);
