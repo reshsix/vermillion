@@ -114,7 +114,7 @@ OBJS := $(addprefix $(BUILD)/, $(OBJS))
 
 PREFIX = root/prog
 
-PROGS = $(PREFIX)/init.elf
+PROGS = $(PREFIX)/init.elf $(PREFIX)/list.elf
 
 PROGS := $(addprefix $(BUILD)/, $(PROGS))
 

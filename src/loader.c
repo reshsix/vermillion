@@ -104,7 +104,7 @@ fdpic_loader(const char *path, u32 *entry)
 
         if (ret && pheader.type == 1)
         {
-            syslog_string("    Prog ");
+            syslog_string("Prog ");
             syslog_unsigned(i);
             syslog_string(" [");
             if (pheader.flags & 4)
