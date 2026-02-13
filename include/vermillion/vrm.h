@@ -103,8 +103,7 @@ struct vrm
         bool (*rename)(vrm_disk_f *f, const char *name);
         bool (*resize)(vrm_disk_f *f, uint32_t size);
 
-        bool (*mkfile)(const char *path);
-        bool (*mkdir)(const char *path);
+        bool (*create)(const char *path, bool dir);
         bool (*remove)(const char *path);
     } disk;
 

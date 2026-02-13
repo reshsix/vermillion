@@ -44,6 +44,5 @@ bool disk_flush(disk_f *f);
 bool disk_rename(disk_f *f, const char *name);
 bool disk_resize(disk_f *f, u32 size);
 
-bool disk_mkfile(const char *path);
-bool disk_mkdir(const char *path);
+bool disk_create(const char *path, bool dir);
 bool disk_remove(const char *path);

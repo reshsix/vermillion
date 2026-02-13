@@ -63,10 +63,6 @@ struct fat32e
     u32 cluster;
     size_t size;
 
-    u32 created;
-    u32 accessed;
-    u32 modified;
-
     struct
     {
         struct fat32e *data;
@@ -90,24 +86,6 @@ struct fat32
 alignas(32) static u8 fat32_buf[0x200];
 
 /* Helper functions */
-
-static u32
-fat32t_to_unix(u16 time, u16 date)
-{
-    u32 ret = 0;
-
-    u8 year = ((date >> 9) & 0x7f) + 10;
-    u8 day = (date & 0x1f) - 1;
-    u8 month = ((date >> 5) & 0xf) - 1;
-    ret += ((year * 36525 / 100) + (month * 36525 / 1200) + day) * 86400;
-
-    u8 seconds = (time & 0x1f) * 2;
-    u8 minutes = (time >> 5) & 0x3f;
-    u8 hours = (time >> 11) & 0x1f;
-    ret += seconds + (minutes * 60) + (hours * 3600);
-
-    return ret;
-}
 
 static u32
 utf8_to_unicode(u8 **buf)
@@ -289,6 +267,8 @@ lfn_checksum(u8 *buf)
     return ret;
 }
 
+/* Cluster functions */
+
 enum
 {
     CLUSTER_FREE = 0x0,
@@ -361,17 +341,6 @@ fat32e_init(struct fat32e *fe, const char *name, u8 *entry, u32 location)
     {
         fe->location = location;
         fe->attributes = entry[11];
-
-        u16 time, date;
-        mem_copy(&time, &(entry[14]), 2);
-        mem_copy(&date, &(entry[16]), 2);
-        fe->created = fat32t_to_unix(time, date);
-        mem_copy(&date, &(entry[18]), 2);
-        fe->accessed = fat32t_to_unix(0, date);
-        mem_copy(&time, &(entry[22]), 2);
-        mem_copy(&date, &(entry[24]), 2);
-        fe->modified = fat32t_to_unix(time, date);
-
         mem_copy(&(fe->size), &(entry[28]), 4);
 
         u16 cluster_l, cluster_h;
@@ -1117,19 +1086,11 @@ stat(void *ctx, u32 idx, u32 *width, u32 *length)
                 }
             }
             break;
-        case FS_FIND:
-            *width = sizeof(char *);
-            *length = 1;
-            break;
         case FS_CACHE:
             *width = sizeof(void *);
             *length = 1;
             break;
-        case FS_SWITCH:
-            *width = sizeof(void *);
-            *length = 1;
-            break;
-        case FS_WALK:
+        case FS_LIST:
             *width = sizeof(u32);
             *length = 1;
             break;
@@ -1152,34 +1113,34 @@ read(void *ctx, u32 idx, void *data, u32 block)
     bool ret = false;
 
     struct fat32 *f = ctx;
+
+    ret = (f->current);
     switch (idx)
     {
         case BLOCK_COMMON:
-            ret = fat32_rw(f, f->current, block, data, false);
+            if (ret)
+                ret = fat32_rw(f, f->current, block, data, false);
             break;
         case FS_CACHE:
-            ret = true;
-            mem_copy(data, &(f->current), sizeof(void *));
+            if (ret)
+                mem_copy(data, &(f->current), sizeof(void *));
             break;
         case FS_TYPE:
-            ret = (f->current);
-            enum fs_type ft = (f->current->attributes & 0x10) ?
-                              FS_DIRECTORY : FS_REGULAR;
-            mem_copy(data, &ft, sizeof(enum fs_type));
-            break;
-        case FS_NAME:
-            ret = (f->current);
-            mem_copy(data, &(f->current->name), sizeof(char *));
-            break;
-        case FS_SIZE:
-            ret = (f->current);
             if (ret)
             {
-                u32 size = 0;
-                if (f->current->attributes & 0x10)
-                    size = f->current->files.count;
-                else
-                    size = f->current->size;
+                enum fs_type ft = (f->current->attributes & 0x10) ?
+                                  FS_DIRECTORY : FS_REGULAR;
+                mem_copy(data, &ft, sizeof(enum fs_type));
+            }
+            break;
+        case FS_NAME:
+            if (ret)
+                mem_copy(data, &(f->current->name), sizeof(char *));
+            break;
+        case FS_SIZE:
+            if (ret)
+            {
+                u32 size = f->current->size;
                 mem_copy(data, &size, sizeof(u32));
             }
             break;
@@ -1194,23 +1155,23 @@ write(void *ctx, u32 idx, void *data, u32 block)
     bool ret = false;
 
     struct fat32 *f = ctx;
+
     switch (idx)
     {
         case BLOCK_COMMON:
-            ret = fat32_rw(f, f->current, block, data, true);
+            if (f->current)
+                ret = fat32_rw(f, f->current, block, data, true);
             break;
-        case FS_FIND:;
-            char *buf = NULL;
-            mem_copy(&buf, data, sizeof(char *));
-            f->current = fat32_find(f, buf);
-            ret = (f->current);
-            break;
-        case FS_SWITCH:
+        case FS_CACHE:
             ret = true;
             mem_copy(&(f->current), data, sizeof(void *));
             break;
-        case FS_WALK:
-            ret = (f->current && f->current->attributes & 0x10);
+        case FS_ROOT:
+            ret = true;
+            f->current = &(f->root);
+            break;
+        case FS_LIST:
+            ret = (f->current && (f->current->attributes & 0x10));
             if (ret)
             {
                 u32 index = 0;
@@ -1247,48 +1208,23 @@ write(void *ctx, u32 idx, void *data, u32 block)
             break;
         case FS_MKFILE:
         case FS_MKDIR:
-            char *buf2 = NULL;
-            mem_copy(&buf2, data, sizeof(char *));
-
-            struct fat32e *fe = fat32_find(f, buf2);
-            if (!fe)
+            ret = (f->current && (f->current->attributes & 0x10));
+            if (ret)
             {
-                char *dir = path_dirname(buf2);
-                char *name = path_filename(buf2);
-                ret = (dir && name);
-
-                struct fat32e *target = NULL;
-                if (ret)
-                {
-                    target = fat32_find(f, dir);
-                    ret = (target);
-                }
-
-                if (ret)
-                    ret = fat32_create(f, target, name,
-                                       (idx == FS_MKDIR), 0, 0);
-
-                mem_del(dir);
-                mem_del(name);
-            }
-            else
-            {
-                if (((fe->attributes & 0x10) && idx == FS_MKFILE) ||
-                    (!(fe->attributes & 0x10) && idx == FS_MKDIR))
-                    ret = false;
+                char *name = NULL;
+                mem_copy(&name, data, sizeof(char *));
+                ret = fat32_create(f, f->current, name,
+                                   (idx == FS_MKDIR), 0, 0);
             }
             break;
         case FS_REMOVE:
-            ret = true;
-
-            char *buf3 = NULL;
-            mem_copy(&buf3, data, sizeof(char *));
-            struct fat32e *target = fat32_find(f, buf3);
-            if (target == &(f->root))
+            if ((f->current != &(f->root)) && f->current->files.count == 0)
+                ret = fat32_remove(f, f->current, true);
+            else
                 ret = false;
 
-            if (ret && target)
-                ret = fat32_remove(f, target, true);
+            if (ret)
+                f->current = NULL;
             break;
     }
 

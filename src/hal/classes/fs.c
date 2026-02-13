@@ -28,28 +28,49 @@ fs_open(dev_fs *df, const char *path)
 
     char *cpath = NULL;
     if (ret)
+        cpath = path_cleanup(path);
+
+    bool success = false;
+    if (cpath && block_write(df, FS_ROOT, NULL, 0))
     {
-        if (path)
-            cpath = path_cleanup(path);
-        if (!cpath)
-            ret = mem_del(ret);
+        char *path2 = str_dupl(cpath, 0), *state = NULL;
+
+        void *cur = NULL;
+        if (block_read(df, FS_CACHE, &cur, 0))
+        {
+            success = true;
+            for (char *token = str_token(path2, "/", &state); token;
+                       token = str_token(NULL,  "/", &state))
+            {
+                success = false;
+                for (size_t i = 0;
+                     block_write(df, FS_CACHE, &cur, 0)  &&
+                     block_write(df, FS_LIST,  &i,   0); i++)
+                {
+                    char *name = NULL;
+                    if (block_read((dev_block *)df, FS_NAME, &name, 0) &&
+                        str_comp(name, token, 0) == 0)
+                    {
+                        success = block_read(df, FS_CACHE, &cur, 0);
+                        break;
+                    }
+                }
+            }
+        }
+
+        mem_del(path2);
     }
 
-    if (ret)
+    if (success)
     {
-        bool success = false;
-        success = block_write((dev_block *)df, FS_FIND,  &cpath,        0) &&
-                  block_read ((dev_block *)df, FS_CACHE, &(ret->cache), 0) &&
-                  block_read ((dev_block *)df, FS_TYPE,  &(ret->type),  0) &&
-                  block_read ((dev_block *)df, FS_NAME,  &(ret->name),  0) &&
-                  block_read ((dev_block *)df, FS_SIZE,  &(ret->size),  0) &&
-                  block_stat ((dev_block *)df, BLOCK_COMMON,
-                              &(ret->width), NULL);
-        if (!success)
-            ret = mem_del(ret);
+        success = block_read(df, FS_CACHE,     &(ret->cache), 0) &&
+                  block_read(df, FS_TYPE,      &(ret->type),  0) &&
+                  block_read(df, FS_NAME,      &(ret->name),  0) &&
+                  block_read(df, FS_SIZE,      &(ret->size),  0) &&
+                  block_stat(df, BLOCK_COMMON, &(ret->width), NULL);
     }
 
-    if (ret)
+    if (success)
     {
         ret->df = df;
         if (ret->type == FS_REGULAR)
@@ -63,6 +84,8 @@ fs_open(dev_fs *df, const char *path)
                 ret = mem_del(ret);
         }
     }
+    else
+        ret = mem_del(ret);
 
     return ret;
 }
@@ -71,10 +94,7 @@ extern struct fs_file *
 fs_close(struct fs_file *f)
 {
     if (f)
-    {
-        fs_flush(f);
         mem_del(f->buffer);
-    }
 
     return mem_del(f);
 }
@@ -102,17 +122,17 @@ fs_walk(struct fs_file *f, u32 index,
         enum fs_type *type, char **name, u32 *size)
 {
     bool ret = (f && f->type == FS_DIRECTORY) &&
-               block_write((dev_block *)f->df, FS_SWITCH, &(f->cache), 0) &&
-               block_write((dev_block *)f->df, FS_WALK, &index, 0);
+               block_write(f->df, FS_CACHE, &(f->cache), 0) &&
+               block_write(f->df, FS_LIST, &index, 0);
 
     enum fs_type t = FS_REGULAR;
     char *n = NULL;
     u32 s = 0;
 
     if (ret)
-        ret = block_read((dev_block *)f->df, FS_TYPE, &t, 0) &&
-              block_read((dev_block *)f->df, FS_NAME, &n, 0) &&
-              block_read((dev_block *)f->df, FS_SIZE, &s, 0);
+        ret = block_read(f->df, FS_TYPE, &t, 0) &&
+              block_read(f->df, FS_NAME, &n, 0) &&
+              block_read(f->df, FS_SIZE, &s, 0);
 
     if (ret)
     {
@@ -181,8 +201,8 @@ fs_rw(struct fs_file *f, void *buffer, u32 bytes, bool write)
             if (needed > f->size)
             {
                 (void)
-                (block_write((dev_block *)f->df, FS_SWITCH, &(f->cache), 0) &&
-                 block_write((dev_block *)f->df, FS_SIZE, &needed, 0));
+                (block_write(f->df, FS_CACHE, &(f->cache), 0) &&
+                 block_write(f->df, FS_SIZE, &needed, 0));
             }
         }
 
@@ -190,13 +210,12 @@ fs_rw(struct fs_file *f, void *buffer, u32 bytes, bool write)
         {
             if (f->pos / f->width != f->block)
             {
-                if (!(block_write((dev_block *)f->df, FS_SWITCH,
-                                  &(f->cache), 0)))
+                if (!(block_write(f->df, FS_CACHE, &(f->cache), 0)))
                     break;
 
                 if (f->flush)
                 {
-                    if (block_write((dev_block *)f->df, BLOCK_COMMON,
+                    if (block_write(f->df, BLOCK_COMMON,
                                     f->buffer, f->block))
                         f->flush = false;
                     else
@@ -204,7 +223,7 @@ fs_rw(struct fs_file *f, void *buffer, u32 bytes, bool write)
                 }
 
                 f->block = f->pos / f->width;
-                if (!block_read((dev_block *)f->df, BLOCK_COMMON,
+                if (!block_read(f->df, BLOCK_COMMON,
                                 f->buffer, f->block))
                     break;
             }
@@ -251,9 +270,8 @@ extern bool
 fs_flush(struct fs_file *f)
 {
     if (f && f->flush)
-        f->flush = !(block_write((dev_block *)f->df, FS_SWITCH,
-                                  &(f->cache), 0) &&
-                      block_write((dev_block *)f->df, BLOCK_COMMON,
+        f->flush = !(block_write(f->df, FS_CACHE, &(f->cache), 0) &&
+                      block_write(f->df, BLOCK_COMMON,
                                   f->buffer, f->block));
 
     return (f && !(f->flush));
@@ -262,14 +280,14 @@ fs_flush(struct fs_file *f)
 extern bool
 fs_rename(struct fs_file *f, const char *name)
 {
-    bool ret = (f && block_write((dev_block *)f->df, FS_SWITCH,
+    bool ret = (f && block_write((dev_block *)f->df, FS_CACHE,
                                  &(f->cache), 0));
 
     if (ret)
-        ret = block_write((dev_block *)f->df, FS_NAME, &name, 0) &&
-              block_read((dev_block *)f->df, FS_NAME, &(f->name), 0) &&
-              block_read((dev_block *)f->df, FS_CACHE, &(f->cache), 0) &&
-              block_read((dev_block *)f->df, FS_NAME,  &(f->name),  0);
+        ret = block_write(f->df, FS_NAME, &name, 0) &&
+              block_read(f->df, FS_NAME, &(f->name), 0) &&
+              block_read(f->df, FS_CACHE, &(f->cache), 0) &&
+              block_read(f->df, FS_NAME,  &(f->name),  0);
 
     return ret;
 }
@@ -278,45 +296,47 @@ extern bool
 fs_resize(struct fs_file *f, u32 size)
 {
     bool ret = (f && f->type == FS_REGULAR) &&
-               block_write((dev_block *)f->df, FS_SWITCH, &(f->cache), 0);
+               block_write(f->df, FS_CACHE, &(f->cache), 0);
 
     if (ret)
-        ret = block_write((dev_block *)f->df, FS_SIZE, &size, 0) &&
-              block_read((dev_block *)f->df, FS_SIZE, &(f->size), 0);
-
-    return ret;
-}
-
-static bool
-fs_pathop(dev_fs *df, enum fs_index op, const char *path)
-{
-    bool ret = (df && path);
-
-    char *cpath = NULL;
-    if (ret)
-        cpath = path_cleanup(path);
-
-    if (ret && cpath)
-        ret = block_write((dev_block *)df, op, &cpath, 0);
-    mem_del(cpath);
+        ret = block_write(f->df, FS_SIZE, &size, 0) &&
+              block_read(f->df, FS_SIZE, &(f->size), 0);
 
     return ret;
 }
 
 extern bool
-fs_mkfile(dev_fs *df, const char *path)
+fs_create(struct fs_file *f, const char *name, bool dir)
 {
-    return fs_pathop(df, FS_MKFILE, path);
+    bool ret = (f && f->type == FS_DIRECTORY &&
+                block_write(f->df, FS_CACHE, &(f->cache), 0));
+
+    if (ret)
+    {
+        char *name2 = path_filename(name);
+
+        if (str_comp(name, name2, str_length(name)) == 0)
+            ret = block_write(f->df, (dir) ? FS_MKDIR : FS_MKFILE, name, 0);
+        else
+            ret = false;
+
+        mem_del(name2);
+    }
+
+    return ret;
 }
 
 extern bool
-fs_mkdir(dev_fs *df, const char *path)
+fs_remove(struct fs_file *f)
 {
-    return fs_pathop(df, FS_MKDIR, path);
-}
+    bool ret = (f && block_write(f->df, FS_CACHE,  &(f->cache), 0) &&
+                     block_write(f->df, FS_REMOVE, NULL,        0) );
 
-extern bool
-fs_remove(dev_fs *df, const char *path)
-{
-    return fs_pathop(df, FS_REMOVE, path);
+    if (ret)
+    {
+        mem_del(f->buffer);
+        mem_del(f);
+    }
+
+    return ret;
 }

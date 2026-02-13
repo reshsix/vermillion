@@ -28,10 +28,9 @@ enum fs_type
 
 enum fs_index
 {
-    FS_FIND = BLOCK_COMMON + 1,
-    FS_CACHE,
-    FS_SWITCH,
-    FS_WALK,
+    FS_CACHE = BLOCK_COMMON + 1,
+    FS_ROOT,
+    FS_LIST,
 
     FS_TYPE, FS_NAME, FS_SIZE,
 
@@ -81,6 +80,5 @@ bool fs_flush(struct fs_file *f);
 bool fs_rename(struct fs_file *f, const char *name);
 bool fs_resize(struct fs_file *f, u32 size);
 
-bool fs_mkfile(dev_fs *df, const char *path);
-bool fs_mkdir(dev_fs *df, const char *path);
-bool fs_remove(dev_fs *df, const char *path);
+bool fs_create(struct fs_file *f, const char *name, bool dir);
+bool fs_remove(struct fs_file *f);

@@ -14,6 +14,8 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <general/mem.h>
+#include <general/path.h>
 #include <general/types.h>
 
 #include <hal/classes/fs.h>
@@ -113,19 +115,38 @@ disk_resize(disk_f *f, u32 size)
 }
 
 extern bool
-disk_mkfile(const char *path)
+disk_create(const char *path, bool dir)
 {
-    return fs_mkfile(disk, path);
-}
+    bool ret = false;
 
-extern bool
-disk_mkdir(const char *path)
-{
-    return fs_mkdir(disk, path);
+    char *dir2 = path_dirname(path);
+    if (dir2)
+    {
+        disk_f *f = fs_open(disk, dir2);
+
+        if (f)
+        {
+            char *name = path_filename(path);
+            ret = fs_create(f, name, dir);
+            mem_del(name);
+        }
+
+        fs_close(f);
+    }
+    mem_del(dir2);
+
+    return ret;
 }
 
 extern bool
 disk_remove(const char *path)
 {
-    return fs_remove(disk, path);
+    bool ret = false;
+
+    disk_f *f = fs_open(disk, path);
+    ret = fs_remove(f);
+    if (!ret)
+        fs_close(f);
+
+    return ret;
 }

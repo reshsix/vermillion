@@ -23,7 +23,7 @@ vrm_entry(struct vrm *v, const char **args, int count)
 
     if (count == 2)
     {
-        if (v->disk.mkdir(args[1]))
+        if (v->disk.create(args[1], true))
             ret = true;
         else
             v->syslog.string("ERROR: Creation failed\r\n");
