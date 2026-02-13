@@ -115,6 +115,8 @@ OBJS := $(addprefix $(BUILD)/, $(OBJS))
 PREFIX = root/prog
 
 PROGS = $(PREFIX)/init.elf $(PREFIX)/list.elf
+PROGS += $(PREFIX)/mkfile.elf $(PREFIX)/mkdir.elf $(PREFIX)/remove.elf
+PROGS += $(PREFIX)/rename.elf
 
 PROGS := $(addprefix $(BUILD)/, $(PROGS))
 
