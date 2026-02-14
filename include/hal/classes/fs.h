@@ -77,8 +77,7 @@ u32 fs_read(struct fs_file *f, void *buffer, u32 bytes);
 u32 fs_write(struct fs_file *f, void *buffer, u32 bytes);
 bool fs_flush(struct fs_file *f);
 
-bool fs_rename(struct fs_file *f, const char *name);
 bool fs_resize(struct fs_file *f, u32 size);
 
-bool fs_create(struct fs_file *f, const char *name, bool dir);
-bool fs_remove(struct fs_file *f);
+bool fs_create(dev_fs *df, const char *path, bool dir);
+bool fs_remove(dev_fs *df, const char *path);

@@ -41,7 +41,6 @@ u32 disk_read(disk_f *f, void *buffer, u32 bytes);
 u32 disk_write(disk_f *f, void *buffer, u32 bytes);
 bool disk_flush(disk_f *f);
 
-bool disk_rename(disk_f *f, const char *name);
 bool disk_resize(disk_f *f, u32 size);
 
 bool disk_create(const char *path, bool dir);

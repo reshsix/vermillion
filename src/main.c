@@ -76,7 +76,6 @@ main(void)
                     .disk.read   = disk_read,
                     .disk.write  = disk_write,
                     .disk.flush  = disk_flush,
-                    .disk.rename = disk_rename,
                     .disk.resize = disk_resize,
                     .disk.create = disk_create,
                     .disk.remove = disk_remove,

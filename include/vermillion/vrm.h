@@ -100,7 +100,6 @@ struct vrm
         uint32_t (*write)(vrm_disk_f *f, void *buffer, uint32_t bytes);
         bool (*flush)(vrm_disk_f *f);
 
-        bool (*rename)(vrm_disk_f *f, const char *name);
         bool (*resize)(vrm_disk_f *f, uint32_t size);
 
         bool (*create)(const char *path, bool dir);

@@ -62,13 +62,6 @@ struct fat32e
 
     u32 cluster;
     size_t size;
-
-    struct
-    {
-        struct fat32e *data;
-        size_t count;
-        size_t length;
-    } files;
 };
 
 struct fat32
@@ -317,13 +310,7 @@ static bool
 fat32e_clean(struct fat32e *fe)
 {
     if (fe)
-    {
-        for (size_t i = 0; i < fe->files.count; i++)
-            fat32e_clean(&(fe->files.data[i]));
-
         mem_del(fe->name);
-        mem_del(fe->files.data);
-    }
 
     return false;
 }
@@ -347,35 +334,6 @@ fat32e_init(struct fat32e *fe, const char *name, u8 *entry, u32 location)
         mem_copy(&cluster_l, &(entry[26]), 2);
         mem_copy(&cluster_h, &(entry[20]), 2);
         fe->cluster = cluster_l | (cluster_h << 16);
-
-        if (fe->attributes & 0x10)
-        {
-            fe->files.length = 16;
-            fe->files.data = mem_new(fe->files.length * sizeof(struct fat32e));
-            if (!(fe->files.data))
-                ret = fat32e_clean(fe);
-        }
-    }
-
-    return ret;
-}
-
-static bool
-fat32e_grow(struct fat32e *fe)
-{
-    bool ret = true;
-
-    if ((fe->files.count + 1) >= fe->files.length)
-    {
-        void *new = mem_renew(fe->files.data,
-                              sizeof(struct fat32e) * fe->files.length * 2);
-        if (new != NULL)
-        {
-            fe->files.data = new;
-            fe->files.length *= 2;
-        }
-        else
-            ret = false;
     }
 
     return ret;
@@ -404,16 +362,18 @@ fat32_fsector(struct fat32 *f, u32 cluster)
 }
 
 static bool
-fat32_directory(struct fat32 *f, u32 cluster, struct fat32e *out)
+fat32_entry(struct fat32 *f, u32 cluster, u32 index, struct fat32e *out)
 {
     bool ret = true;
-
-    u32 firstsect = 0;
 
     static char name[(255 * 4) + 1] = {0};
     static u16 lfn[255] = {0};
     static u8 lfn_last = 0;
     mem_fill(lfn, 0xFF, sizeof(lfn));
+
+    bool found = false;
+    u32 count = 0;
+    u32 firstsect = 0;
     for (u32 i = 0x200 * f->br.sectspercluster; ret; i += 32)
     {
         if (i >= (0x200 * f->br.sectspercluster))
@@ -424,6 +384,8 @@ fat32_directory(struct fat32 *f, u32 cluster, struct fat32e *out)
                 for (u8 k = 0; ret && k < f->br.sectspercluster; k++)
                     ret = block_read(f->storage, BLOCK_COMMON,
                                      &(f->buffer[0x200 * k]), firstsect + k);
+                if (!ret)
+                    break;
                 i = 0;
             }
             else
@@ -437,7 +399,7 @@ fat32_directory(struct fat32 *f, u32 cluster, struct fat32e *out)
         if (f->buffer[i] == 0x05 || f->buffer[i] == 0xE5)
             continue;
 
-        if (f->buffer[i + 11] == 0xF)
+        if (f->buffer[i + 11] == 0x0F)
         {
             u16 idx = f->buffer[i] & 0x1F;
             if (idx > 0 && idx < 256)
@@ -469,36 +431,17 @@ fat32_directory(struct fat32 *f, u32 cluster, struct fat32e *out)
         else
             id83_to_string(&(f->buffer[i]), name);
 
-        if (str_comp(name, ".", 0) != 0 && str_comp(name, "..", 0) != 0)
+        if (count == index)
         {
-            if (fat32e_grow(out))
-            {
-                struct fat32e *fe = &(out->files.data[out->files.count++]);
-                ret = fat32e_init(fe, name, &(f->buffer[i]),
-                                  (firstsect * 0x200) + i);
-            }
+            ret = fat32e_init(out, name, &(f->buffer[i]),
+                              (firstsect * 0x200) + i);
+            found = true;
+            break;
         }
+        count++;
     }
 
-    return ret;
-}
-
-static bool
-fat32_transverse(struct fat32 *f, u32 cluster, struct fat32e *out)
-{
-    bool ret = true;
-
-    ret = fat32_directory(f, cluster, out);
-    for (size_t i = 0; ret && i < out->files.count; i++)
-    {
-        if (out->files.data[i].attributes & 0x10)
-        {
-            ret = fat32_transverse(f, out->files.data[i].cluster,
-                                   &(out->files.data[i]));
-        }
-    }
-
-    return ret;
+    return found;
 }
 
 /* Internal interface */
@@ -553,63 +496,14 @@ fat32_new(dev_block *storage)
 
     if (ret)
     {
-        ret->root.files.length = 16;
-        ret->root.files.data = mem_new(ret->root.files.length *
-                                       sizeof(struct fat32e));
-        if (!(ret->root.files.data))
-            ret = fat32_del(ret);
-    }
-
-    if (ret)
-    {
-        if (fat32_transverse(ret, ret->br.rootcluster, &(ret->root)))
-        {
-            ret->root.attributes = 0x10;
-            ret->root.cluster = ret->br.rootcluster;
-
-            ret->root.name = str_dupl("/", 0);
-            if (!(ret->root.name))
-                ret = fat32_del(ret);
-        }
-        else
+        ret->root.attributes = 0x10;
+        ret->root.cluster = ret->br.rootcluster;
+        ret->root.name = str_dupl("/", 0);
+        if (!(ret->root.name))
             ret = fat32_del(ret);
     }
 
     return ret;
-}
-
-static struct fat32e *
-fat32_find(struct fat32 *f, char *path)
-{
-    bool found = true;
-
-    struct fat32e *cur = &(f->root);
-    char *path2 = str_dupl(path, 0), *state = NULL;
-    if (path2)
-    {
-        for (char *token = str_token(path2, "/", &state); token;
-                   token = str_token(NULL, "/", &state))
-        {
-            found = false;
-            for (size_t i = 0; i < cur->files.count; i++)
-            {
-                if (cur->files.data[i].unused)
-                    continue;
-
-                if (str_comp(cur->files.data[i].name, token, 0) == 0)
-                {
-                    found = true;
-                    cur = &(cur->files.data[i]);
-                    break;
-                }
-            }
-        }
-        mem_del(path2);
-    }
-    else
-        found = false;
-
-    return (found) ? cur : NULL;
 }
 
 static bool
@@ -897,10 +791,10 @@ directory_dots(struct fat32 *f, u32 cluster, u32 pcluster)
 }
 
 static bool
-fat32_create(struct fat32 *f, struct fat32e *fe, const char *name, bool dir,
-             u32 cluster, u32 size)
+fat32_create(struct fat32 *f, u32 pcluster,
+             bool dir, const char *name, u32 cluster)
 {
-    bool ret = (f && fe && fe->attributes & 0x10 && name);
+    bool ret = (f && name);
 
     u32 entries = 0;
     if (ret)
@@ -916,7 +810,6 @@ fat32_create(struct fat32 *f, struct fat32e *fe, const char *name, bool dir,
     {
         u16 pos = 0;
         bool found = false;
-        u32 pcluster = fe->cluster;
         u32 sector = fat32_fsector(f, pcluster), sector_idx = 0;
         u16 unused_st = 0, unused_c = 0;
         while (!found)
@@ -988,22 +881,6 @@ fat32_create(struct fat32 *f, struct fat32e *fe, const char *name, bool dir,
             }
             if (ret)
                 ret = table_update(f);
-
-            if (ret && fat32e_grow(fe))
-            {
-                u32 location = ((fat32_fsector(f, pcluster) +
-                                 sector_idx) * 0x200) + pos;
-                struct fat32e *new = &(fe->files.data[fe->files.count++]);
-                if (new)
-                    ret = fat32e_init(new, name,
-                                      &(fat32_buf[(entries - 1) * 32]),
-                                      location);
-                else
-                    ret = false;
-
-                if (ret)
-                    new->size = size;
-            }
         }
         else
             ret = false;
@@ -1036,30 +913,6 @@ fat32_remove(struct fat32 *f, struct fat32e *fe, bool clusters)
     return ret;
 }
 
-static bool
-fat32_rename(struct fat32 *f, struct fat32e *fe, char *path)
-{
-    bool ret = true;
-
-    char *dir = path_dirname(path);
-    char *name = path_filename(path);
-    ret = (dir && name);
-
-    struct fat32e *target = NULL;
-    if (ret)
-    {
-        target = fat32_find(f, dir);
-        ret = (target);
-    }
-
-    if (ret)
-        ret = fat32_remove(f, fe, false) &&
-              fat32_create(f, target, name, fe->attributes & 0x10,
-                           fe->cluster, fe->size);
-
-    return ret;
-}
-
 /* Driver definition */
 
 static bool
@@ -1071,19 +924,11 @@ stat(void *ctx, u32 idx, u32 *width, u32 *length)
     switch (idx)
     {
         case BLOCK_COMMON:
-            ret = (f->current);
+            ret = (f->current && !(f->current->attributes & 0x10));
             if (ret)
             {
-                if (f->current->attributes & 0x10)
-                {
-                    *width = 0;
-                    *length = f->current->files.count;
-                }
-                else
-                {
-                    *width = 0x200;
-                    *length = f->current->size / 0x200;
-                }
+                *width = 0x200;
+                *length = f->current->size / 0x200;
             }
             break;
         case FS_CACHE:
@@ -1113,37 +958,33 @@ read(void *ctx, u32 idx, void *data, u32 block)
     bool ret = false;
 
     struct fat32 *f = ctx;
-
-    ret = (f->current);
-    switch (idx)
+    if (f->current)
     {
-        case BLOCK_COMMON:
-            if (ret)
-                ret = fat32_rw(f, f->current, block, data, false);
-            break;
-        case FS_CACHE:
-            if (ret)
+        ret = true;
+
+        switch (idx)
+        {
+            case BLOCK_COMMON:
+                ret = !(f->current->attributes & 0x10);
+                if (ret)
+                    ret = fat32_rw(f, f->current, block, data, false);
+                break;
+            case FS_CACHE:
                 mem_copy(data, &(f->current), sizeof(void *));
-            break;
-        case FS_TYPE:
-            if (ret)
-            {
+                break;
+            case FS_TYPE:
                 enum fs_type ft = (f->current->attributes & 0x10) ?
                                   FS_DIRECTORY : FS_REGULAR;
                 mem_copy(data, &ft, sizeof(enum fs_type));
-            }
-            break;
-        case FS_NAME:
-            if (ret)
+                break;
+            case FS_NAME:
                 mem_copy(data, &(f->current->name), sizeof(char *));
-            break;
-        case FS_SIZE:
-            if (ret)
-            {
+                break;
+            case FS_SIZE:
                 u32 size = f->current->size;
                 mem_copy(data, &size, sizeof(u32));
-            }
-            break;
+                break;
+        }
     }
 
     return ret;
@@ -1155,7 +996,6 @@ write(void *ctx, u32 idx, void *data, u32 block)
     bool ret = false;
 
     struct fat32 *f = ctx;
-
     switch (idx)
     {
         case BLOCK_COMMON:
@@ -1163,38 +1003,28 @@ write(void *ctx, u32 idx, void *data, u32 block)
                 ret = fat32_rw(f, f->current, block, data, true);
             break;
         case FS_CACHE:
-            ret = true;
             mem_copy(&(f->current), data, sizeof(void *));
+            ret = true;
             break;
         case FS_ROOT:
-            ret = true;
             f->current = &(f->root);
+            ret = true;
             break;
         case FS_LIST:
-            ret = (f->current && (f->current->attributes & 0x10));
+            ret = (f->current && f->current->attributes & 0x10);
             if (ret)
             {
                 u32 index = 0;
                 mem_copy(&index, data, sizeof(u32));
-                if (f->current->files.count > index)
-                    f->current = &(f->current->files.data[index]);
-                else
-                    ret = false;
-            }
-            break;
-        case FS_NAME:
-            ret = (f->current && f->current != &(f->root));
-            if (ret)
-            {
-                char *name = NULL;
-                mem_copy(&name, data, sizeof(char *));
-                if (name)
-                    ret = fat32_rename(f, f->current, name);
+
+                struct fat32e *new = mem_new(sizeof(struct fat32e));
+                if (f->current)
+                    ret = fat32_entry(f, f->current->cluster, index, new);
+
                 if (ret)
-                {
-                    f->current = fat32_find(f, name);
-                    ret = (f->current);
-                }
+                    f->current = new;
+                else
+                    mem_del(new);
             }
             break;
         case FS_SIZE:
@@ -1213,12 +1043,12 @@ write(void *ctx, u32 idx, void *data, u32 block)
             {
                 char *name = NULL;
                 mem_copy(&name, data, sizeof(char *));
-                ret = fat32_create(f, f->current, name,
-                                   (idx == FS_MKDIR), 0, 0);
+                ret = fat32_create(f, f->current->cluster,
+                                   (idx == FS_MKDIR), name, 0);
             }
             break;
         case FS_REMOVE:
-            if ((f->current != &(f->root)) && f->current->files.count == 0)
+            if (f->current && (f->current != &(f->root)))
                 ret = fat32_remove(f, f->current, true);
             else
                 ret = false;

@@ -103,12 +103,6 @@ disk_flush(disk_f *f)
 }
 
 extern bool
-disk_rename(disk_f *f, const char *name)
-{
-    return fs_rename(f, name);
-}
-
-extern bool
 disk_resize(disk_f *f, u32 size)
 {
     return fs_resize(f, size);
@@ -117,36 +111,11 @@ disk_resize(disk_f *f, u32 size)
 extern bool
 disk_create(const char *path, bool dir)
 {
-    bool ret = false;
-
-    char *dir2 = path_dirname(path);
-    if (dir2)
-    {
-        disk_f *f = fs_open(disk, dir2);
-
-        if (f)
-        {
-            char *name = path_filename(path);
-            ret = fs_create(f, name, dir);
-            mem_del(name);
-        }
-
-        fs_close(f);
-    }
-    mem_del(dir2);
-
-    return ret;
+    return fs_create(disk, path, dir);
 }
 
 extern bool
 disk_remove(const char *path)
 {
-    bool ret = false;
-
-    disk_f *f = fs_open(disk, path);
-    ret = fs_remove(f);
-    if (!ret)
-        fs_close(f);
-
-    return ret;
+    return fs_remove(disk, path);
 }
