@@ -17,7 +17,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <vermillion/entry.h>
 
 #define FG_WHITE "\033[37m"
-#define FG_RED   "\033[31m"
 #define FG_CYAN  "\033[36m"
 
 extern bool
@@ -31,32 +30,31 @@ vrm_entry(struct vrm *v, const char **args, int count)
         if (f)
         {
             bool dir = false;
-            if (v->disk.stat(f, &dir, NULL, NULL) && dir)
+            uint32_t size = 0;
+            if (v->disk.stat(f, &dir, NULL, &size))
             {
-                char *name = NULL;
-                uint32_t size = 0;
-
-                size_t count = 0;
-                while (v->disk.walk(f, count, &dir, &name, &size))
+                if (dir)
                 {
-                    v->syslog.string((dir) ? FG_CYAN : "");
-                    v->syslog.string(name);
+                    v->syslog.string("Type: " FG_CYAN "directory");
                     v->syslog.string(FG_WHITE "\r\n");
-                    count++;
                 }
-
-                v->syslog.signed_(count);
-                v->syslog.string(" files\r\n\r\n");
+                else
+                {
+                    v->syslog.string("Type: file\r\n");
+                    v->syslog.string("Size: ");
+                    v->syslog.signed_(size);
+                    v->syslog.string("\r\n");
+                }
                 ret = true;
             }
             else
-                v->syslog.string("ERROR: Not a directory\r\n");
+                v->syslog.string("ERROR: File stat failed\r\n");
         }
         else
-            v->syslog.string("ERROR: Directory not found\r\n");
+            v->syslog.string("ERROR: File not found\r\n");
     }
     else
-        v->syslog.string("USAGE: list [directory]\r\n");
+        v->syslog.string("USAGE: stat file\r\n");
 
     return ret;
 }

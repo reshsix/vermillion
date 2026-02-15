@@ -33,23 +33,50 @@ vrm_entry(struct vrm *v, const char **args, int count)
 
         if (f)
         {
-            vrm_disk_f *f2 = v->disk.open(args[2]);
-            if (!f2)
+            bool dir = false;
+            uint32_t size = 0;
+            if (v->disk.stat(f, &dir, NULL, &size))
             {
-                if (v->disk.create(args[2], false))
-                {
-                    f2 = v->disk.open(args[2]);
-                    if (!f2)
-                        v->syslog.string("ERROR: Failed to open file2\r\n");
-                }
+                if (!dir)
+                    ret = true;
                 else
-                    v->syslog.string("ERROR: File2 creation failed\r\n");
+                    v->syslog.string("ERROR: File is a directory\r\n");
+            }
+            else
+                v->syslog.string("ERROR: File stat failed\r\n");
+
+            vrm_disk_f *f2 = NULL;
+            if (ret)
+            {
+                ret = false;
+
+                f2 = v->disk.open(args[2]);
+                if (f2)
+                    ret = true;
+                else
+                {
+                    if (v->disk.create(args[2], false))
+                    {
+                        f2 = v->disk.open(args[2]);
+                        if (f2)
+                            ret = true;
+                        else
+                            v->syslog.string("ERROR: Failed to open file2\r\n");
+                    }
+                    else
+                        v->syslog.string("ERROR: File2 creation failed\r\n");
+                }
             }
 
-            if (f2)
+            if (ret)
             {
-                ret = true;
+                ret = v->disk.resize(f2, size);
+                if (!ret)
+                    v->syslog.string("ERROR: Failed to resize file2\r\n");
+            }
 
+            if (ret)
+            {
                 while (ret)
                 {
                     uint32_t read = v->disk.read(f, buffer, sizeof(buffer));

@@ -116,6 +116,7 @@ PREFIX = root/prog
 
 PROGS = $(PREFIX)/init.elf $(PREFIX)/list.elf
 PROGS += $(PREFIX)/create.elf $(PREFIX)/remove.elf
+PROGS += $(PREFIX)/stat.elf $(PREFIX)/show.elf
 PROGS += $(PREFIX)/copy.elf
 
 PROGS := $(addprefix $(BUILD)/, $(PROGS))

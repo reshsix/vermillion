@@ -853,8 +853,21 @@ fat32_create(struct fat32 *f, u32 pcluster,
                 sector += 1;
             else
             {
+                u32 prev = pcluster;
                 pcluster = fat32_next(f, pcluster);
-                if (!cluster_eof(pcluster))
+                if (cluster_eof(pcluster))
+                {
+                    pcluster = cluster_find(f, CLUSTER_FREE);
+                    if (pcluster && !cluster_eof(pcluster))
+                    {
+                        cluster_set(&(f->table[prev]),     pcluster);
+                        cluster_set(&(f->table[pcluster]), CLUSTER_EOF);
+                    }
+                    else
+                        ret = false;
+                }
+
+                if (ret)
                 {
                     sector = fat32_fsector(f, pcluster);
                     sector_idx = 0;
