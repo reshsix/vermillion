@@ -595,11 +595,14 @@ fat32_resize(struct fat32 *f, struct fat32e *fe, u32 size)
 {
     bool ret = true;
 
-    u32 cluster_n = (fe->size / 0x200) / f->br.sectspercluster;
+    u32 cluster_n = 0;
+    for (u32 c = fe->cluster; !cluster_eof(c); c = fat32_next(f, c))
+        cluster_n++;
+
     u32 cluster_n2 = (size / 0x200) / f->br.sectspercluster;
     if (cluster_n != cluster_n2)
     {
-        if (size < fe->size)
+        if (cluster_n2 < cluster_n)
         {
             u32 cluster = fe->cluster;
             for (u32 i = 0; i <= cluster_n && !cluster_eof(cluster); i++)
@@ -614,7 +617,7 @@ fat32_resize(struct fat32 *f, struct fat32e *fe, u32 size)
             }
             fe->size = size;
         }
-        else if (size > fe->size)
+        else if (cluster_n2 > cluster_n)
         {
             u32 cluster = fe->cluster;
             for (u32 i = 0; i <= cluster_n2; i++)
@@ -626,8 +629,8 @@ fat32_resize(struct fat32 *f, struct fat32e *fe, u32 size)
                     cluster = cluster_find(f, CLUSTER_FREE);
                     if (cluster && !cluster_eof(cluster))
                     {
-                        cluster_set(&(f->table[prev]), cluster);
-                        fe->size += f->br.sectspercluster * 0x200;
+                        cluster_set(&(f->table[prev]),    cluster);
+                        cluster_set(&(f->table[cluster]), CLUSTER_EOF);
                     }
                     else
                     {

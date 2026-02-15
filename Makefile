@@ -26,7 +26,7 @@ TARGET = $(shell echo $(CONFIG_TARGET))
 ifeq ($(NDEBUG), 1)
     CFLAGS = -O2 -DNDEBUG=1
 else
-    CFLAGS = -O1 -ggdb3
+    CFLAGS = -O0 -ggdb3
 endif
 CC = $(TARGET)-gcc
 LD = $(TARGET)-ld
@@ -115,7 +115,8 @@ OBJS := $(addprefix $(BUILD)/, $(OBJS))
 PREFIX = root/prog
 
 PROGS = $(PREFIX)/init.elf $(PREFIX)/list.elf
-PROGS += $(PREFIX)/mkfile.elf $(PREFIX)/mkdir.elf $(PREFIX)/remove.elf
+PROGS += $(PREFIX)/create.elf $(PREFIX)/remove.elf
+PROGS += $(PREFIX)/copy.elf
 
 PROGS := $(addprefix $(BUILD)/, $(PROGS))
 

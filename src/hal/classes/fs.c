@@ -200,9 +200,9 @@ fs_rw(struct fs_file *f, void *buffer, u32 bytes, bool write)
             u32 needed = f->pos + bytes;
             if (needed > f->size)
             {
-                (void)
-                (block_write(f->df, FS_CACHE, &(f->cache), 0) &&
-                 block_write(f->df, FS_SIZE, &needed, 0));
+                if (block_write(f->df, FS_CACHE, &(f->cache), 0) &&
+                    block_write(f->df, FS_SIZE,  &needed, 0))
+                    f->size = needed;
             }
         }
 

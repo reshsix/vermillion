@@ -21,15 +21,24 @@ vrm_entry(struct vrm *v, const char **args, int count)
 {
     bool ret = false;
 
-    if (count == 2)
+    bool dir = false;
+    if (count == 3)
     {
-        if (v->disk.create(args[1], true))
-            ret = true;
-        else
+        ret = true;
+        if (v->str.comp(args[1], "dir", 3) == 0)
+            dir = true;
+        else if (v->str.comp(args[1], "file", 4) != 0)
+            ret = false;
+    }
+
+    if (ret)
+    {
+        ret = v->disk.create(args[2], dir);
+        if (!ret)
             v->syslog.string("ERROR: Creation failed\r\n");
     }
     else
-        v->syslog.string("USAGE: mkdir [directory]\r\n");
+        v->syslog.string("USAGE: create file/dir name\r\n");
 
     return ret;
 }
