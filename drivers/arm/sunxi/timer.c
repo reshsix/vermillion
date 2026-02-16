@@ -39,6 +39,8 @@ struct timer
     struct timer_cb cb;
 };
 
+struct timer timers[2] = {0};
+
 static void
 handler(void *arg)
 {
@@ -142,21 +144,23 @@ static const drv_timer sunxi_timer =
 /* Device creation */
 
 extern dev_timer
-sunxi_timer_init(u32 base, u8 id, dev_pic *pic, u16 irq)
+sunxi_timer_init(u8 id, dev_pic *pic, u16 irq)
 {
-    struct timer *ret = mem_new(sizeof(struct timer));
+    struct timer *ret = NULL;
 
-    if (ret)
+    if (id < 2)
     {
-        ret->base = base;
+        ret = &(timers[id]);
+
+        ret->base = 0x01c20c00;
         ret->id = id;
         ret->pic = pic;
         ret->irq = irq;
 
-        TMR_INTV(base, id) = 0xFFFFFFFF;
-        TMR_CTRL(base, id) = 1 << 2;
-        TMR_IRQ_STA(base) |= 1 << id;
-        TMR_IRQ_EN(base)  |= 1 << id;
+        TMR_INTV(ret->base, id) = 0xFFFFFFFF;
+        TMR_CTRL(ret->base, id) = 1 << 2;
+        TMR_IRQ_STA(ret->base) |= 1 << id;
+        TMR_IRQ_EN(ret->base)  |= 1 << id;
 
         pic_config(pic, ret->irq, true, handler, ret, PIC_EDGE_L);
     }
@@ -173,7 +177,6 @@ sunxi_timer_clean(dev_timer *t)
 
         pic_config(tmr->pic, tmr->irq, false, NULL, NULL, PIC_EDGE_L);
         tmr->base = 0;
-        mem_del(tmr);
 
         t->context = NULL;
     }

@@ -16,5 +16,5 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-extern dev_uart sunxi_uart_init(u32 port);
+extern dev_uart sunxi_uart_init(u8 id);
 extern void sunxi_uart_clean(dev_uart *u);

@@ -206,7 +206,9 @@ struct gic
     u8 swi_id;
     void *swi_data;
 };
+
 static struct gic *gic = NULL;
+static struct gic gics[1] = {0};
 
 INTERRUPT(undef) handler_undef(void)
 {
@@ -286,42 +288,37 @@ stat(void *ctx, u32 idx, u32 *width, u32 *length)
 {
     bool ret = true;
 
-    if (ctx == gic)
+    switch (idx)
     {
-        switch (idx)
-        {
-            case PIC_STATE:
-                *width = sizeof(bool);
-                *length = 1;
-                break;
+        case PIC_STATE:
+            *width = sizeof(bool);
+            *length = 1;
+            break;
 
-            case PIC_CONFIG_IRQ:
-                *width = sizeof(struct pic_irq);
-                *length = 256;
-                break;
+        case PIC_CONFIG_IRQ:
+            *width = sizeof(struct pic_irq);
+            *length = 256;
+            break;
 
-            case PIC_CONFIG_SWI:
-                *width = sizeof(struct pic_swi);
-                *length = 256;
-                break;
+        case PIC_CONFIG_SWI:
+            *width = sizeof(struct pic_swi);
+            *length = 256;
+            break;
 
-            case PIC_WAIT:
-                *width = 0;
-                *length = 1;
-                break;
+        case PIC_WAIT:
+            *width = 0;
+            *length = 1;
+            break;
 
-            case PIC_SYSCALL:
-                *width = sizeof(void *);
-                *length = 256;
-                break;
+        case PIC_SYSCALL:
+            *width = sizeof(void *);
+            *length = 256;
+            break;
 
-            default:
-                ret = false;
-                break;
-        }
+        default:
+            ret = false;
+            break;
     }
-    else
-        ret = false;
 
     return ret;
 }
@@ -331,40 +328,37 @@ read(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx == gic)
+    switch (idx)
     {
-        switch (idx)
-        {
-            case PIC_STATE:
-                ret = (block == 0);
+        case PIC_STATE:
+            ret = (block == 0);
 
-                if (ret)
-                    mem_copy(buffer, &(gic->enabled), sizeof(bool));
-                break;
+            if (ret)
+                mem_copy(buffer, &(gic->enabled), sizeof(bool));
+            break;
 
-            case PIC_CONFIG_IRQ:
-                ret = (block < 256);
+        case PIC_CONFIG_IRQ:
+            ret = (block < 256);
 
-                if (ret)
-                    mem_copy(buffer, &(gic->irqs[block]),
-                             sizeof(struct pic_irq));
-                break;
+            if (ret)
+                mem_copy(buffer, &(gic->irqs[block]),
+                         sizeof(struct pic_irq));
+            break;
 
-            case PIC_CONFIG_SWI:
-                ret = (block < 256);
+        case PIC_CONFIG_SWI:
+            ret = (block < 256);
 
-                if (ret)
-                    mem_copy(buffer, &(gic->swis[block]),
-                             sizeof(struct pic_swi));
-                break;
+            if (ret)
+                mem_copy(buffer, &(gic->swis[block]),
+                         sizeof(struct pic_swi));
+            break;
 
-            case PIC_WAIT:
-                ret = (block == 0);
+        case PIC_WAIT:
+            ret = (block == 0);
 
-                if (ret)
-                    arm_wait_interrupts();
-                break;
-        }
+            if (ret)
+                arm_wait_interrupts();
+            break;
     }
 
     return ret;
@@ -375,123 +369,120 @@ write(void *ctx, u32 idx, void *buffer, u32 block)
 {
     bool ret = false;
 
-    if (ctx == gic)
+    switch (idx)
     {
-        switch (idx)
-        {
-            case PIC_STATE:
-                ret = (block == 0);
+        case PIC_STATE:
+            ret = (block == 0);
+
+            if (ret)
+            {
+                mem_copy(&(gic->enabled), buffer, sizeof(bool));
+                if (gic->enabled)
+                {
+                    gic_enable(gic->cpu);
+                    gic_enable_dist(gic->dist);
+                    arm_enable_irq();
+                }
+                else
+                {
+                    arm_disable_irq();
+                    gic_disable_dist(gic->dist);
+                    gic_disable(gic->cpu);
+                }
+            }
+            break;
+
+        case PIC_CONFIG_IRQ:
+            ret = (block < 256);
+
+            if (ret)
+            {
+                struct pic_irq irq = {0};
+                mem_copy(&irq, buffer, sizeof(struct pic_irq));
+
+                if (gic->enabled)
+                {
+                    arm_disable_irq();
+                    gic_disable_dist(gic->dist);
+                    gic_disable(gic->cpu);
+                }
+
+                gic_intr_target(gic->dist, block, INTR_CORE_NONE);
+                gic_intr_activity(gic->dist, block, false);
+                gic_intr_priority(gic->dist, block, 0);
+
+                switch (irq.level)
+                {
+                    case PIC_LEVEL_L:
+                        gic_intr_sensitivity(gic->dist, block,
+                                             false, false);
+                        break;
+
+                    case PIC_LEVEL_H:
+                        gic_intr_sensitivity(gic->dist, block,
+                                             false, true);
+                        break;
+
+                    case PIC_EDGE_L:
+                        gic_intr_sensitivity(gic->dist, block,
+                                             true, false);
+                        break;
+
+                    case PIC_EDGE_H:
+                        gic_intr_sensitivity(gic->dist, block,
+                                             true, true);
+                        break;
+
+                    default:
+                        ret = false;
+                        break;
+                }
 
                 if (ret)
                 {
-                    mem_copy(&(gic->enabled), buffer, sizeof(bool));
-                    if (gic->enabled)
+                    mem_copy(&(gic->irqs[block]), &irq,
+                             sizeof(struct pic_irq));
+
+                    if (irq.enabled)
                     {
-                        gic_enable(gic->cpu);
-                        gic_enable_dist(gic->dist);
-                        arm_enable_irq();
-                    }
-                    else
-                    {
-                        arm_disable_irq();
-                        gic_disable_dist(gic->dist);
-                        gic_disable(gic->cpu);
+                        gic_intr_activity(gic->dist, block, true);
+                        gic_intr_target(gic->dist, block, gic->cpu);
                     }
                 }
-                break;
 
-            case PIC_CONFIG_IRQ:
-                ret = (block < 256);
-
-                if (ret)
+                if (gic->enabled)
                 {
-                    struct pic_irq irq = {0};
-                    mem_copy(&irq, buffer, sizeof(struct pic_irq));
-
-                    if (gic->enabled)
-                    {
-                        arm_disable_irq();
-                        gic_disable_dist(gic->dist);
-                        gic_disable(gic->cpu);
-                    }
-
-                    gic_intr_target(gic->dist, block, INTR_CORE_NONE);
-                    gic_intr_activity(gic->dist, block, false);
-                    gic_intr_priority(gic->dist, block, 0);
-
-                    switch (irq.level)
-                    {
-                        case PIC_LEVEL_L:
-                            gic_intr_sensitivity(gic->dist, block,
-                                                 false, false);
-                            break;
-
-                        case PIC_LEVEL_H:
-                            gic_intr_sensitivity(gic->dist, block,
-                                                 false, true);
-                            break;
-
-                        case PIC_EDGE_L:
-                            gic_intr_sensitivity(gic->dist, block,
-                                                 true, false);
-                            break;
-
-                        case PIC_EDGE_H:
-                            gic_intr_sensitivity(gic->dist, block,
-                                                 true, true);
-                            break;
-
-                        default:
-                            ret = false;
-                            break;
-                    }
-
-                    if (ret)
-                    {
-                        mem_copy(&(gic->irqs[block]), &irq,
-                                 sizeof(struct pic_irq));
-
-                        if (irq.enabled)
-                        {
-                            gic_intr_activity(gic->dist, block, true);
-                            gic_intr_target(gic->dist, block, gic->cpu);
-                        }
-                    }
-
-                    if (gic->enabled)
-                    {
-                        gic_enable(gic->cpu);
-                        gic_enable_dist(gic->dist);
-                        arm_enable_irq();
-                    }
+                    gic_enable(gic->cpu);
+                    gic_enable_dist(gic->dist);
+                    arm_enable_irq();
                 }
-                break;
+            }
+            break;
 
-            case PIC_CONFIG_SWI:
-                ret = (block < 256);
+        case PIC_CONFIG_SWI:
+            ret = (block < 256);
 
-                if (ret)
-                    mem_copy(&(gic->swis[block]), buffer,
-                             sizeof(struct pic_swi));
-                break;
+            if (ret)
+                mem_copy(&(gic->swis[block]), buffer,
+                         sizeof(struct pic_swi));
+            break;
 
-            case PIC_WAIT:
-                ret = (block == 0);
+        case PIC_WAIT:
+            ret = (block == 0);
 
-                if (ret)
-                    arm_wait_interrupts();
-                break;
+            if (ret)
+                arm_wait_interrupts();
+            break;
 
-            case PIC_SYSCALL:
-                ret = (block < 256);
+        case PIC_SYSCALL:
+            ret = (block < 256);
 
-                if (ret)
-                {
-                    gic->swi_id = block;
-                    mem_copy(&(gic->swi_data), buffer, sizeof(void *));
-                    __asm__ __volatile__ ("svc #0x0");
-                }
-        }
+            if (ret)
+            {
+                gic->swi_id = block;
+                mem_copy(&(gic->swi_data), buffer, sizeof(void *));
+                __asm__ __volatile__ ("svc #0x0");
+            }
     }
 
     return ret;
@@ -509,7 +500,7 @@ arm_gic_init(u32 cpu, u32 dist)
 {
     if (!gic)
     {
-        gic = mem_new(sizeof(struct gic));
+        gic = &(gics[0]);
         if (gic)
         {
             gic->cpu = cpu;
@@ -534,7 +525,7 @@ arm_gic_init(u32 cpu, u32 dist)
 extern void
 arm_gic_clean(dev_pic *p)
 {
-    if (p->context == gic)
+    if (p)
     {
         arm_disable_irq();
         gic_disable_dist(gic->dist);
@@ -547,6 +538,6 @@ arm_gic_clean(dev_pic *p)
         __ivt[IVT_IRQ]      = NULL;
         __ivt[IVT_FIQ]      = NULL;
 
-        p->context = mem_del(gic);
+        p->context = NULL;
     }
 }

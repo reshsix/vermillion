@@ -43,6 +43,10 @@ struct serial
     struct uart_cfg cfg;
 };
 
+struct serial serials[5] = {0};
+static const u32 ports[5] = {0x01c28000, 0x01c28400,
+                             0x01c28800, 0x01c28c00, 0x01f02800};
+
 static bool
 stat(void *ctx, u32 idx, u32 *width)
 {
@@ -173,12 +177,15 @@ static const drv_uart sunxi_uart =
 /* Device creation */
 
 extern dev_uart
-sunxi_uart_init(u32 port)
+sunxi_uart_init(u8 id)
 {
-    struct serial *ret = mem_new(sizeof(struct serial));
+    struct serial *ret = NULL;
 
-    if (ret)
-        ret->port = port;
+    if (id < (sizeof(serials) / sizeof(struct serial)))
+    {
+        ret = &(serials[id]);
+        ret->port = ports[id];
+    }
 
     return (dev_uart){.driver = &sunxi_uart, .context = ret};
 }
@@ -187,5 +194,5 @@ extern void
 sunxi_uart_clean(dev_uart *u)
 {
     if (u)
-        u->context = mem_del(u->context);
+        u->context = NULL;
 }

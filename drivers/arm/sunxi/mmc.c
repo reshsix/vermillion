@@ -42,6 +42,8 @@ struct card
     bool mmc;
 };
 
+struct card cards[3] = {0};
+
 static bool
 stat(void *ctx, u32 idx, u32 *width, u32 *depth)
 {
@@ -135,13 +137,27 @@ static const drv_block sunxi_mmc =
 /* Device creation */
 
 extern dev_block
-sunxi_mmc_init(u32 base)
+sunxi_mmc_init(u8 id)
 {
-    struct card *ret = mem_new(sizeof(struct card));
+    struct card *ret = NULL;
 
-    if (ret)
+    if (id < 3)
     {
-        ret->base = base;
+        ret = &(cards[id]);
+
+        switch (id)
+        {
+            case 0:
+                ret->base = 0x01c0f000;
+                break;
+            case 1:
+                ret->base = 0x01c10000;
+                break;
+            case 2:
+                ret->base = 0x01c11000;
+                break;
+        }
+
         while (SD_CMD(ret->base) & (1 << 31));
         SD_ARG(ret->base) = 0x0;
         SD_CMD(ret->base) = 1 << 31 | 1 << 6 | 58;
@@ -157,5 +173,5 @@ extern void
 sunxi_mmc_clean(dev_block *b)
 {
     if (b)
-        b->context = mem_del(b->context);
+        b->context = NULL;
 }

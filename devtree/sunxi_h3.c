@@ -58,11 +58,11 @@ devtree_init(void)
     APB0_GATE = 1;
 
     /* Serial */
-    tty0 = sunxi_uart_init(0x01c28000);
-    tty1 = sunxi_uart_init(0x01c28400);
-    tty2 = sunxi_uart_init(0x01c28800);
-    tty3 = sunxi_uart_init(0x01c28c00);
-    tty4 = sunxi_uart_init(0x01f02800);
+    tty0 = sunxi_uart_init(0);
+    tty1 = sunxi_uart_init(1);
+    tty2 = sunxi_uart_init(2);
+    tty3 = sunxi_uart_init(3);
+    tty4 = sunxi_uart_init(4);
     uart_config(&tty0, 115200, UART_8B, UART_NOPARITY, UART_1S);
     uart_config(&tty1, 115200, UART_8B, UART_NOPARITY, UART_1S);
 
@@ -86,11 +86,11 @@ devtree_init(void)
     }
 
     /* Timers */
-    timer0 = sunxi_timer_init(0x01c20c00, 0, &pic, 50);
-    timer1 = sunxi_timer_init(0x01c20c00, 1, &pic, 51);
+    timer0 = sunxi_timer_init(0, &pic, 50);
+    timer1 = sunxi_timer_init(1, &pic, 51);
 
     /* Storage */
-    mmcblk0 = sunxi_mmc_init(0x01c0f000);
+    mmcblk0 = sunxi_mmc_init(0);
     mmcblk0p1 = mbr_init(&mmcblk0, 1);
     root = fat32_init(&mmcblk0p1);
 

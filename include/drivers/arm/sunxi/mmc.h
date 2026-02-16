@@ -16,5 +16,5 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-extern dev_block sunxi_mmc_init(u32 base);
+extern dev_block sunxi_mmc_init(u8 id);
 extern void sunxi_mmc_clean(dev_block *b);
