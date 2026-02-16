@@ -31,6 +31,8 @@ static char buffer[2048] = {0};
 extern bool
 vrm_entry(struct vrm *v, const char **args, int count)
 {
+    bool ret = false;
+
     (void)args;
     (void)count;
 
@@ -60,28 +62,53 @@ vrm_entry(struct vrm *v, const char **args, int count)
                     list_c++;
             }
 
-            /* Make path */
-            v->mem.fill(buffer, '\0', sizeof(buffer));
-            v->str.copy(buffer, "/prog/", 6);
-            v->str.concat(buffer, list[0], v->str.length(list[0]));
-            v->str.concat(buffer, ".elf", 4);
-
-            /* Run program */
-            if (list_c)
+            /* Try built-ins */
+            if (v->str.comp(list[0], "exit", 0) == 0)
             {
-                uint32_t entry = 0;
-                uint8_t *mem = v->loader.prog(buffer, &entry);
-                if (mem)
+                ret = true;
+                break;
+            }
+            else if (v->str.comp(list[0], "clock", 0) == 0)
+            {
+                if (list_c == 1)
                 {
-                    vrm_entry_t f = (void *)&(mem[entry]);
-                    v->syslog.string(f(v, list, list_c) ?
-                                     FG_GREEN "Success\r\n" :
-                                     FG_RED   "Failure\r\n");
-                    v->syslog.string(FG_WHITE);
+                    uint64_t ms = v->time.clock0();
+                    uint64_t secs = v->time.clock1();
+                    uint64_t dec = ms - (secs * 100);
+
+                    v->syslog.signed_(secs);
+                    v->syslog.string(".");
+                    v->syslog.signed_(dec);
+                    v->syslog.string(" seconds since boot\r\n");
                 }
                 else
-                    v->syslog.string("ERROR: Program not found\r\n");
-                v->mem.del(mem);
+                    v->syslog.string("USAGE: clock\r\n");
+            }
+            else
+            {
+                /* Make path */
+                v->mem.fill(buffer, '\0', sizeof(buffer));
+                v->str.copy(buffer, "/prog/", 6);
+                v->str.concat(buffer, list[0], v->str.length(list[0]));
+                v->str.concat(buffer, ".elf", 4);
+
+                /* Run program */
+                if (list_c)
+                {
+                    uint32_t entry = 0;
+                    uint8_t *mem = v->loader.prog(buffer, &entry);
+                    if (mem)
+                    {
+                        vrm_entry_t f = (void *)&(mem[entry]);
+                        v->syslog.string(f(v, list, list_c) ?
+                                         FG_GREEN "Success\r\n" :
+                                         FG_RED   "Failure\r\n");
+                        v->syslog.string(FG_WHITE);
+                    }
+                    else
+                        v->syslog.string("ERROR: Program not found\r\n");
+                    v->mem.del(mem);
+                }
             }
 
             /* Cleanup */
@@ -119,5 +146,5 @@ vrm_entry(struct vrm *v, const char **args, int count)
         }
     }
 
-    return false;
+    return ret;
 }

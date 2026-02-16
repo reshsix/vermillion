@@ -21,8 +21,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <system/time.h>
 
-#define TIME_OUTER_US 10000
-#define TIME_INNER_US 10
+#define TIME_OUTER_US 1000000
+#define TIME_INNER_US 10000
 
 enum time_depth
 {

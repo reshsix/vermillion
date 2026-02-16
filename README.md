@@ -1,5 +1,5 @@
 # Vermillion
-**Status: 1.1α**
+**Status: 1.1β**
 
 ## Devices
 - nanopi\_neo\_defconfig (NanoPi NEO)
