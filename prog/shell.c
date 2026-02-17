@@ -14,7 +14,7 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <vermillion/entry.h>
+#include <vermillion/prog.h>
 
 static char line[1024] = {0};
 static size_t line_c = 0;
@@ -29,7 +29,7 @@ static char buffer[2048] = {0};
 #define FG_GREEN "\033[32m"
 
 extern bool
-vrm_entry(struct vrm *v, const char **args, int count)
+vrm_prog(struct vrm *v, const char **args, int count)
 {
     bool ret = false;
 
@@ -72,14 +72,8 @@ vrm_entry(struct vrm *v, const char **args, int count)
             {
                 if (list_c == 1)
                 {
-                    uint64_t ms = v->time.clock0();
-                    uint64_t secs = v->time.clock1();
-                    uint64_t dec = ms - (secs * 100);
-
-                    v->syslog.signed_(secs);
-                    v->syslog.string(".");
-                    v->syslog.signed_(dec);
-                    v->syslog.string(" seconds since boot\r\n");
+                    v->syslog.signed_(v->time.clock0());
+                    v->syslog.string(" cs\r\n");
                 }
                 else
                     v->syslog.string("USAGE: clock\r\n");
@@ -99,7 +93,7 @@ vrm_entry(struct vrm *v, const char **args, int count)
                     uint8_t *mem = v->loader.prog(buffer, &entry);
                     if (mem)
                     {
-                        vrm_entry_t f = (void *)&(mem[entry]);
+                        vrm_prog_t f = (void *)&(mem[entry]);
                         v->syslog.string(f(v, list, list_c) ?
                                          FG_GREEN "Success\r\n" :
                                          FG_RED   "Failure\r\n");
@@ -131,7 +125,7 @@ vrm_entry(struct vrm *v, const char **args, int count)
                 line[--line_c] = '\0';
             }
         }
-        else
+        else if (c >= 32 && c <= 126)
         {
             if (line_c < sizeof(line))
             {

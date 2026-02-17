@@ -14,10 +14,10 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <vermillion/entry.h>
+#include <vermillion/prog.h>
 
 extern bool
-vrm_entry(struct vrm *v, const char **args, int count)
+vrm_prog(struct vrm *v, const char **args, int count)
 {
     bool ret = false;
 
@@ -25,9 +25,9 @@ vrm_entry(struct vrm *v, const char **args, int count)
     if (count == 3)
     {
         ret = true;
-        if (v->str.comp(args[1], "dir", 3) == 0)
+        if (v->str.comp(args[1], "dir", 0) == 0)
             dir = true;
-        else if (v->str.comp(args[1], "file", 4) != 0)
+        else if (v->str.comp(args[1], "file", 0) != 0)
             ret = false;
     }
 

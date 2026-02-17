@@ -299,6 +299,7 @@ fs_create(dev_fs *df, const char *path, bool dir)
     if (ret)
     {
         struct fs_file *check = fs_open(df, path);
+
         if (!check)
         {
             str_copy(fs_buffer, path, 0);
@@ -318,6 +319,9 @@ fs_create(dev_fs *df, const char *path, bool dir)
 
             fs_close(f);
         }
+        else
+            ret = false;
+
         fs_close(check);
     }
 

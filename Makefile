@@ -114,7 +114,7 @@ OBJS := $(addprefix $(BUILD)/, $(OBJS))
 
 PREFIX = root/prog
 
-PROGS = $(PREFIX)/init.elf $(PREFIX)/list.elf
+PROGS = $(PREFIX)/shell.elf $(PREFIX)/list.elf
 PROGS += $(PREFIX)/create.elf $(PREFIX)/remove.elf
 PROGS += $(PREFIX)/stat.elf $(PREFIX)/show.elf
 PROGS += $(PREFIX)/copy.elf
@@ -193,7 +193,7 @@ $(BUILD)/%.o: %.c | $(FOLDERS)
 	@$(CC) $(CFLAGS) -c $< -o $@
 $(ROOT)/prog/%.elf: prog/%.c | $(FOLDERS)
 	@printf '%s\n' "  CC      $(@:$(ROOT)/%=%)"
-	@$(CC) $(CFLAGS) -shared -fPIE -fPIC -Wl,-evrm_entry -Wl,-z,defs $< -o $@
+	@$(CC) $(CFLAGS) -shared -fPIE -fPIC -Wl,-evrm_prog -Wl,-z,defs $< -o $@
 
 # Specific recipes
 

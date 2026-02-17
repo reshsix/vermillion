@@ -14,7 +14,7 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <vermillion/entry.h>
+#include <vermillion/prog.h>
 
 #define FG_WHITE "\033[37m"
 #define FG_RED   "\033[31m"
@@ -23,7 +23,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 static uint8_t buffer[1024] = {0};
 
 extern bool
-vrm_entry(struct vrm *v, const char **args, int count)
+vrm_prog(struct vrm *v, const char **args, int count)
 {
     bool ret = false;
 

@@ -30,7 +30,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #define VERMILLION_INTERNALS
 #include <vermillion/vrm.h>
-#include <vermillion/entry.h>
+#include <vermillion/prog.h>
 
 extern void
 main(void)
@@ -110,17 +110,17 @@ main(void)
                 comm_write0(buf[i]);
         }
 
-        const char *path = "/prog/init.elf";
+        const char *path = "/prog/shell.elf";
 
         u32 entry = 0;
         u8 *mem = loader_prog(path, &entry);
         if (mem)
         {
-            vrm_entry_t f = (void *)&(mem[entry]);
+            vrm_prog_t f = (void *)&(mem[entry]);
             syslog_string(f(&v, &path, 1) ? "Success" : "Failure");
         }
         else
-            syslog_string("init.elf missing\r\n");
+            syslog_string("shell.elf missing\r\n");
         mem_del(mem);
     }
     else

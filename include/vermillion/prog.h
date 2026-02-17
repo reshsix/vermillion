@@ -20,5 +20,5 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <vermillion/vrm.h>
 
-typedef int (*vrm_entry_t)(struct vrm *v, const char **args, int count);
-bool vrm_entry(struct vrm *v, const char **args, int count);
+typedef int (*vrm_prog_t)(struct vrm *v, const char **args, int count);
+bool vrm_prog(struct vrm *v, const char **args, int count);
