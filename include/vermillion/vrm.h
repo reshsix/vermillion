@@ -68,9 +68,10 @@ struct vrm
 
     struct
     {
-        char * (*cleanup)(const char *path);
-        char * (*dirname)(const char *path);
-        char * (*filename)(const char *path);
+        bool (*validate)(const char *path);
+        void (*cleanup)(char *path);
+        void (*dirname)(char *path);
+        void (*filename)(char *path);
     } path;
 
     /* System functions */

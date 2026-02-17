@@ -59,6 +59,7 @@ main(void)
                     .dict.del      = dict_del,
                     .dict.get      = dict_get,
                     .dict.set      = dict_set,
+                    .path.validate = path_validate,
                     .path.cleanup  = path_cleanup,
                     .path.dirname  = path_dirname,
                     .path.filename = path_filename,

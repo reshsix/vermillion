@@ -19,83 +19,71 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/str.h>
 #include <general/path.h>
 
-extern char *
-path_cleanup(const char *path)
+static char path_buffer[PATH_MAX] = {0};
+
+extern bool
+path_validate(const char *path)
 {
-    u32 length = str_length(path);
-    char *ret = mem_new(length + 2);
+    return (str_length(path) < PATH_MAX);
+}
 
-    if (ret)
+extern void
+path_cleanup(char *path)
+{
+    path_buffer[0] = '/';
+    if (path[0] == '/')
+        str_copy(&(path_buffer[1]), &(path[1]), 0);
+    else
+        str_copy(&(path_buffer[1]), path, 0);
+
+    char *next = path_buffer;
+    do
     {
-        ret[0] = '/';
-        if (path[0] == '/')
-            str_copy(&(ret[1]), &(path[1]), 0);
-        else
-            str_copy(&(ret[1]), path, 0);
-
-        char *next = ret;
-        do
+        u32 move = 0;
+        next = str_find_l(next, '/');
+        if (next)
         {
-            u32 move = 0;
-            next = str_find_l(next, '/');
-            if (next)
-            {
-                while (next[1 + move] == '/')
-                    move++;
+            while (next[1 + move] == '/')
+                move++;
 
-                if (move)
-                    str_copy(next, &(next[move]), 0);
+            if (move)
+                str_copy(next, &(next[move]), 0);
 
-                if (next[1] == '\0')
-                    next = NULL;
-                else
-                    next = &(next[1]);
-            }
+            if (next[1] == '\0')
+                next = NULL;
+            else
+                next = &(next[1]);
         }
-        while (next);
-
-        length = str_length(ret);
-        if (ret[length - 1] == '/')
-            ret[length - 1] = '\0';
-
-        if (ret[0] == '\0')
-            str_copy(ret, "/", 0);
     }
+    while (next);
 
-    return ret;
+    u32 length = str_length(path_buffer);
+    if (path_buffer[length - 1] == '/')
+        path_buffer[length - 1] = '\0';
+
+    if (path_buffer[0] == '\0')
+        str_copy(path_buffer, "/", 0);
+
+    str_copy(path, path_buffer, 0);
 }
 
-extern char *
-path_dirname(const char *path)
+extern void
+path_dirname(char *path)
 {
-    char *ret = str_dupl(path, 0);
+    char *last = str_find_r(path, '/');
+    if (last)
+        last[0] = '\0';
+    else
+        str_copy(path, "/", 0);
 
-    if (ret)
-    {
-        char *last = str_find_r(ret, '/');
-        if (last)
-            last[0] = '\0';
-        else
-            str_copy(ret, "/", 0);
-
-        if (ret[0] == '\0')
-            str_copy(ret, "/", 0);
-    }
-
-    return ret;
+    if (path[0] == '\0')
+        str_copy(path, "/", 0);
 }
 
-extern char *
-path_filename(const char *path)
+extern void
+path_filename(char *path)
 {
-    char *ret = str_dupl(path, 0);
-
-    if (ret)
-    {
-        char *last = str_find_r(ret, '/');
-        if (last)
-            str_copy(ret, &(last[1]), 0);
-    }
-
-    return ret;
+    char *last = str_find_r(path, '/');
+    if (last)
+        str_copy(path, &(last[1]), 0);
 }

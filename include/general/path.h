@@ -18,6 +18,9 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <general/types.h>
 
-char *path_cleanup(const char *path);
-char *path_dirname(const char *path);
-char *path_filename(const char *path);
+#define PATH_MAX 256
+
+bool path_validate(const char *path);
+void path_cleanup(char *path);
+void path_dirname(char *path);
+void path_filename(char *path);

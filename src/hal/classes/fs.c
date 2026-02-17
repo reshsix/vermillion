@@ -21,26 +21,29 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/classes/fs.h>
 
+static char fs_buffer[PATH_MAX] = {0};
+
 extern struct fs_file *
 fs_open(dev_fs *df, const char *path)
 {
     struct fs_file *ret = mem_new(sizeof(struct fs_file));
 
-    char *cpath = NULL;
-    if (ret)
-        cpath = path_cleanup(path);
-
     bool success = false;
-    if (cpath && block_write(df, FS_ROOT, NULL, 0))
+    if (ret && path_validate(path) && block_write(df, FS_ROOT, NULL, 0))
     {
-        char *path2 = str_dupl(cpath, 0), *state = NULL;
+        success = false;
+
+        str_copy(fs_buffer, path, 0);
+        path_cleanup(fs_buffer);
+
+        char *state = NULL;
 
         void *cur = NULL;
         if (block_read(df, FS_CACHE, &cur, 0))
         {
             success = true;
-            for (char *token = str_token(path2, "/", &state); token;
-                       token = str_token(NULL,  "/", &state))
+            for (char *token = str_token(fs_buffer, "/", &state); token;
+                       token = str_token(NULL,      "/", &state))
             {
                 success = false;
                 for (size_t i = 0;
@@ -57,8 +60,6 @@ fs_open(dev_fs *df, const char *path)
                 }
             }
         }
-
-        mem_del(path2);
     }
 
     if (success)
@@ -293,29 +294,32 @@ fs_resize(struct fs_file *f, u32 size)
 extern bool
 fs_create(dev_fs *df, const char *path, bool dir)
 {
-    bool ret = false;
+    bool ret = path_validate(path);
 
-    struct fs_file *check = fs_open(df, path);
-    if (!check)
+    if (ret)
     {
-        char *dir2 = path_dirname(path);
-        if (dir2)
+        struct fs_file *check = fs_open(df, path);
+        if (!check)
         {
-            struct fs_file *f = fs_open(df, dir2);
+            str_copy(fs_buffer, path, 0);
+            path_dirname(fs_buffer);
+
+            struct fs_file *f = fs_open(df, fs_buffer);
 
             if (f && f->type == FS_DIRECTORY &&
                 block_write(f->df, FS_CACHE, &(f->cache), 0))
             {
-                char *name = path_filename(path);
+                str_copy(fs_buffer, path, 0);
+                path_filename(fs_buffer);
+
+                char *name = &(fs_buffer);
                 ret = block_write(df, (dir) ? FS_MKDIR : FS_MKFILE, &name, 0);
-                mem_del(name);
             }
 
             fs_close(f);
         }
-        mem_del(dir2);
+        fs_close(check);
     }
-    fs_close(check);
 
     return ret;
 }

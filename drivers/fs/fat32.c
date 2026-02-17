@@ -54,7 +54,7 @@ struct __attribute__((packed)) fat32br
 
 struct fat32e
 {
-    char *name;
+    char name[256];
     u8 attributes;
 
     u32 location;
@@ -304,39 +304,22 @@ cluster_find(struct fat32 *f, u32 value)
     return ret;
 }
 
-/* Entry constructor/destructor */
-
-static bool
-fat32e_clean(struct fat32e *fe)
-{
-    if (fe)
-        mem_del(fe->name);
-
-    return false;
-}
+/* Entry constructor */
 
 static bool
 fat32e_init(struct fat32e *fe, const char *name, u8 *entry, u32 location)
 {
-    bool ret = true;
+    str_copy(fe->name, name, 0);
+    fe->location = location;
+    fe->attributes = entry[11];
+    mem_copy(&(fe->size), &(entry[28]), 4);
 
-    fe->name = str_dupl(name, 0);
-    if (!(fe->name))
-        ret = fat32e_clean(fe);
+    u16 cluster_l, cluster_h;
+    mem_copy(&cluster_l, &(entry[26]), 2);
+    mem_copy(&cluster_h, &(entry[20]), 2);
+    fe->cluster = cluster_l | (cluster_h << 16);
 
-    if (ret)
-    {
-        fe->location = location;
-        fe->attributes = entry[11];
-        mem_copy(&(fe->size), &(entry[28]), 4);
-
-        u16 cluster_l, cluster_h;
-        mem_copy(&cluster_l, &(entry[26]), 2);
-        mem_copy(&cluster_h, &(entry[20]), 2);
-        fe->cluster = cluster_l | (cluster_h << 16);
-    }
-
-    return ret;
+    return true;
 }
 
 /* Parsing functions */
@@ -433,9 +416,9 @@ fat32_entry(struct fat32 *f, u32 cluster, u32 index, struct fat32e *out)
 
         if (count == index)
         {
-            ret = fat32e_init(out, name, &(f->buffer[i]),
-                              (firstsect * 0x200) + i);
+            fat32e_init(out, name, &(f->buffer[i]), (firstsect * 0x200) + i);
             found = true;
+            ret = true;
             break;
         }
         count++;
@@ -451,7 +434,6 @@ fat32_del(struct fat32 *f)
 {
     if (f)
     {
-        fat32e_clean(&(f->root));
         mem_del(f->buffer);
         mem_del(f);
     }
@@ -498,9 +480,7 @@ fat32_new(dev_block *storage)
     {
         ret->root.attributes = 0x10;
         ret->root.cluster = ret->br.rootcluster;
-        ret->root.name = str_dupl("/", 0);
-        if (!(ret->root.name))
-            ret = fat32_del(ret);
+        str_copy(ret->root.name, "/", 0);
     }
 
     return ret;
@@ -994,7 +974,8 @@ read(void *ctx, u32 idx, void *data, u32 block)
                 mem_copy(data, &ft, sizeof(enum fs_type));
                 break;
             case FS_NAME:
-                mem_copy(data, &(f->current->name), sizeof(char *));
+                char *name = &(f->current->name);
+                mem_copy(data, &name, sizeof(char *));
                 break;
             case FS_SIZE:
                 u32 size = f->current->size;
