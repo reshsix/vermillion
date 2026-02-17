@@ -26,9 +26,6 @@ void time_config(dev_timer *timer);
 
 /* For external usage */
 
-bool time_event0(void (*handler)(void *), void *arg, u8 jiffies);
-bool time_event1(void (*handler)(void *), void *arg, u8 jiffies);
-void time_sleep0(u8 jiffies);
-void time_sleep1(u8 jiffies);
-u64 time_clock0(void);
-u64 time_clock1(void);
+bool time_event(void (*handler)(void *), void *arg, u8 cs);
+void time_sleep(u8 cs);
+u64 time_clock(void);

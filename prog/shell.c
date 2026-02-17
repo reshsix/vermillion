@@ -72,7 +72,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
             {
                 if (list_c == 1)
                 {
-                    v->syslog.signed_(v->time.clock0());
+                    v->syslog.signed_(v->time.clock());
                     v->syslog.string(" cs\r\n");
                 }
                 else

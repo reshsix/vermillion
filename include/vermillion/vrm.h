@@ -109,12 +109,9 @@ struct vrm
 
     struct
     {
-        bool (*event0)(void (*handler)(void *), void *arg, uint8_t jiffies);
-        bool (*event1)(void (*handler)(void *), void *arg, uint8_t jiffies);
-        void (*sleep0)(uint8_t jiffies);
-        void (*sleep1)(uint8_t jiffies);
-        uint64_t (*clock0)(void);
-        uint64_t (*clock1)(void);
+        bool (*event)(void (*handler)(void *), void *arg, uint8_t jiffies);
+        void (*sleep)(uint8_t jiffies);
+        uint64_t (*clock)(void);
     } time;
 
     struct
