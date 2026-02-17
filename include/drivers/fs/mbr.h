@@ -16,5 +16,5 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-extern dev_block mbr_init(dev_block *storage, u8 partition);
+extern dev_block mbr_init(u8 id, dev_block *storage, u8 partition);
 extern void mbr_clean(dev_block *b);

@@ -55,16 +55,7 @@ struct vrm
         char * (*token)(char *str, const char *chars, char **saveptr);
         void (*copy)(char *dest, const char *src, size_t length);
         void (*concat)(char *dest, const char *src, size_t length);
-        char * (*dupl)(const char *str, size_t length);
     } str;
-
-    struct
-    {
-        vrm_dict * (*new)(size_t type);
-        vrm_dict * (*del)(vrm_dict *d);
-        bool (*get)(vrm_dict *d, const char *id, void *data);
-        bool (*set)(vrm_dict *d, const char *id, void *data);
-    } dict;
 
     struct
     {
@@ -113,12 +104,6 @@ struct vrm
         void (*sleep)(uint8_t jiffies);
         uint64_t (*clock)(void);
     } time;
-
-    struct
-    {
-        void * (*get)(const char *id);
-        bool (*set)(const char *id, void *data);
-    } vars;
 
     /* Main-adjacent functions */
 

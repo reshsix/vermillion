@@ -28,4 +28,3 @@ char *str_find_s(const char *str, const char *str2);
 char *str_token(char *str, const char *chars, char **saveptr);
 void str_copy(char *dest, const char *src, size_t length);
 void str_concat(char *dest, const char *src, size_t length);
-char *str_dupl(const char *str, size_t length);

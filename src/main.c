@@ -16,13 +16,11 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <general/mem.h>
 #include <general/str.h>
-#include <general/dict.h>
 #include <general/path.h>
 
 #include <system/comm.h>
 #include <system/disk.h>
 #include <system/time.h>
-#include <system/vars.h>
 
 #include <loader.h>
 #include <syslog.h>
@@ -54,11 +52,6 @@ main(void)
                     .str.token     = str_token,
                     .str.copy      = str_copy,
                     .str.concat    = str_concat,
-                    .str.dupl      = str_dupl,
-                    .dict.new      = dict_new,
-                    .dict.del      = dict_del,
-                    .dict.get      = dict_get,
-                    .dict.set      = dict_set,
                     .path.validate = path_validate,
                     .path.cleanup  = path_cleanup,
                     .path.dirname  = path_dirname,
@@ -83,8 +76,6 @@ main(void)
                     .time.event  = time_event,
                     .time.sleep  = time_sleep,
                     .time.clock  = time_clock,
-                    .vars.get    = vars_get,
-                    .vars.set    = vars_set,
 
                     .loader.prog      = loader_prog,
                     .syslog.char_     = syslog_char,

@@ -144,7 +144,7 @@ static const drv_timer sunxi_timer =
 /* Device creation */
 
 extern dev_timer
-sunxi_timer_init(u8 id, dev_pic *pic, u16 irq)
+sunxi_timer_init(u8 id, dev_pic *pic)
 {
     struct timer *ret = NULL;
 
@@ -155,7 +155,15 @@ sunxi_timer_init(u8 id, dev_pic *pic, u16 irq)
         ret->base = 0x01c20c00;
         ret->id = id;
         ret->pic = pic;
-        ret->irq = irq;
+        switch (id)
+        {
+            case 0:
+                ret->irq = 50;
+                break;
+            case 1:
+                ret->irq = 51;
+                break;
+        }
 
         TMR_INTV(ret->base, id) = 0xFFFFFFFF;
         TMR_CTRL(ret->base, id) = 1 << 2;

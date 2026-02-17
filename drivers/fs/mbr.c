@@ -29,6 +29,8 @@ struct mbr
     u32 width, depth;
 };
 
+static struct mbr mbrs[1] = {0};
+
 static bool
 stat(void *ctx, u32 idx, u32 *width, u32 *depth)
 {
@@ -97,15 +99,16 @@ static const drv_block mbr =
 /* Device creation */
 
 extern dev_block
-mbr_init(dev_block *storage, u8 partition)
+mbr_init(u8 id, dev_block *storage, u8 partition)
 {
     struct mbr *ret = NULL;
 
-    if (storage && partition > 0 && partition < 5)
-        ret = mem_new(sizeof(struct mbr));
+    if (id < (sizeof(mbrs) / sizeof(struct mbr)) &&
+        storage && partition > 0 && partition < 5)
+        ret = &(mbrs[id]);
 
     if (ret && !block_stat(storage, BLOCK_COMMON, &(ret->width), &(ret->depth)))
-        ret = mem_del(ret);
+        ret = NULL;
 
     if (ret)
     {
@@ -120,7 +123,7 @@ mbr_init(dev_block *storage, u8 partition)
             ret->storage = storage;
         }
         else
-            ret = mem_del(ret);
+            ret = NULL;
 
         mem_del(buffer);
     }

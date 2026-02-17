@@ -61,7 +61,7 @@ UART_DEVICE ?= /dev/ttyUSB0
 OBJS := boot.o
 
 PREFIX = src/general
-OBJS += $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/dict.o $(PREFIX)/path.o
+OBJS += $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/path.o
 
 PREFIX = src/hal
 OBJS += $(PREFIX)/block.o $(PREFIX)/stream.o
@@ -71,7 +71,7 @@ OBJS += $(PREFIX)/fs.o $(PREFIX)/gpio.o $(PREFIX)/pic.o \
         $(PREFIX)/timer.o $(PREFIX)/uart.o
 
 PREFIX = src/system
-OBJS += $(PREFIX)/comm.o $(PREFIX)/disk.o $(PREFIX)/time.o $(PREFIX)/vars.o
+OBJS += $(PREFIX)/comm.o $(PREFIX)/disk.o $(PREFIX)/time.o
 
 OBJS += devtree.o src/loader.o src/syslog.o src/main.o
 

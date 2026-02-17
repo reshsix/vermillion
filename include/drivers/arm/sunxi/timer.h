@@ -16,5 +16,5 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-extern dev_timer sunxi_timer_init(u8 id, dev_pic *pic, u16 irq);
+extern dev_timer sunxi_timer_init(u8 id, dev_pic *pic);
 extern void sunxi_timer_clean(dev_timer *t);

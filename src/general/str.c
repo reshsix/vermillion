@@ -201,19 +201,3 @@ str_concat(char *dest, const char *src, size_t length)
     else
         str_copy(&(dest[l]), src, 0);
 }
-
-extern char *
-str_dupl(const char *str, size_t length)
-{
-    char *ret = NULL;
-
-    length = (length == 0) ? str_length(str) : length;
-
-    if ((ret = mem_new(length + 1)))
-    {
-        mem_copy(ret, str, length + 1);
-        ret[length] = '\0';
-    }
-
-    return ret;
-}

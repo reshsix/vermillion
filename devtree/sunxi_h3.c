@@ -28,7 +28,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <system/comm.h>
 #include <system/disk.h>
 #include <system/time.h>
-#include <system/vars.h>
 
 #include <drivers/fs/mbr.h>
 #include <drivers/fs/fat32.h>
@@ -70,8 +69,8 @@ devtree_init(void)
     pic = arm_gic_init(0x01c82000, 0x01c81000);
 
     /* GPIO initialization */
-    gpio0 = sunxi_gpio_init(0x01c20800, 6, 2, &pic, (u16[]){43, 49});
-    gpio1 = sunxi_gpio_init(0x01f02c00, 1, 1, &pic, (u16[]){77});
+    gpio0 = sunxi_gpio_init(0, &pic);
+    gpio1 = sunxi_gpio_init(1, &pic);
     switch (CONFIG_SUNXI_BOARD)
     {
         case ORANGEPI_ONE:
@@ -86,12 +85,12 @@ devtree_init(void)
     }
 
     /* Timers */
-    timer0 = sunxi_timer_init(0, &pic, 50);
-    timer1 = sunxi_timer_init(1, &pic, 51);
+    timer0 = sunxi_timer_init(0, &pic);
+    timer1 = sunxi_timer_init(1, &pic);
 
     /* Storage */
     mmcblk0 = sunxi_mmc_init(0);
-    mmcblk0p1 = mbr_init(&mmcblk0, 1);
+    mmcblk0p1 = mbr_init(0, &mmcblk0, 1);
     root = fat32_init(&mmcblk0p1);
 
     /* Systems */
@@ -99,13 +98,11 @@ devtree_init(void)
     disk_config(&root);
     time_config(&timer0);
     pic_state(&pic, true);
-    vars_init();
 }
 
 extern void
 devtree_clean(void)
 {
-    vars_clean();
     pic_state(&pic, false);
 
     gpio_set(&gpio1, 10, false);

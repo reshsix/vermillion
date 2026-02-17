@@ -50,9 +50,11 @@ struct gpio
     u8 int_ports;
 
     dev_pic *pic;
-    u16 *irqs;
-    void (**handlers)(void *), **args;
+    u16 irqs[2];
+    void (*handlers[64])(void *), *args[64];
 };
+
+static struct gpio gpios[2] = {0};
 
 static void
 handler(void *arg)
@@ -288,32 +290,36 @@ static const drv_gpio sunxi_gpio =
 /* Device creation */
 
 extern dev_gpio
-sunxi_gpio_init(u32 base, u8 io_ports, u8 int_ports, dev_pic *pic, u16 *irqs)
+sunxi_gpio_init(u8 id, dev_pic *pic, u16 *irqs)
 {
-    struct gpio *ret = mem_new(sizeof(struct gpio));
+    struct gpio *ret = NULL;
 
-    if (ret && int_ports)
+    if (id < sizeof(gpios) / sizeof(struct gpio))
     {
-        ret->handlers = mem_new(int_ports * 32 * sizeof(void (*)(void *)));
-        ret->args = mem_new(int_ports * 32 * sizeof(void *));
-        if (!ret->handlers || !ret->args)
+        ret = &(gpios[id]);
+        switch (id)
         {
-            mem_del(ret->handlers);
-            mem_del(ret->args);
-            ret = mem_del(ret);
+            case 0:
+                ret->base      = 0x01c20800;
+                ret->io_ports  = 6;
+                ret->int_ports = 2;
+                ret->irqs[0]   = 43;
+                ret->irqs[1]   = 49;
+                break;
+            case 1:
+                ret->base      = 0x01f02c00;
+                ret->io_ports  = 1;
+                ret->int_ports = 1;
+                ret->irqs[0]   = 77;
+                break;
         }
     }
 
     if (ret)
     {
-        ret->base = base;
-        ret->io_ports = io_ports;
-        ret->int_ports = int_ports;
-
         ret->pic = pic;
-        ret->irqs = irqs;
-        for (int i = 0; i < int_ports; i++)
-            pic_config(pic, irqs[i], true, handler, ret, PIC_EDGE_L);
+        for (int i = 0; i < ret->int_ports; i++)
+            pic_config(pic, ret->irqs[i], true, handler, ret, PIC_EDGE_L);
     }
 
     return (dev_gpio){.driver = &sunxi_gpio, .context = ret};
@@ -329,10 +335,6 @@ sunxi_gpio_clean(dev_gpio *g)
         for (u8 i = 0; i < gpio->int_ports; i++)
             pic_config(gpio->pic, gpio->irqs[i], false,
                        NULL, NULL, PIC_EDGE_L);
-
-        mem_del(gpio->handlers);
-        mem_del(gpio->args);
-        mem_del(gpio);
 
         g->context = NULL;
     }
