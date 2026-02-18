@@ -276,15 +276,16 @@ cluster_eof(u32 cluster)
 }
 
 static void
-cluster_set(u32 *cluster, u32 value)
+cluster_set(struct fat32 *f, u32 cluster, u32 value)
 {
-    *cluster = (*cluster & ~CLUSTER_MASK) | (value & CLUSTER_MASK);
+    u32 org = f->table[cluster];
+    f->table[cluster] = (org & ~CLUSTER_MASK) | (value & CLUSTER_MASK);
 }
 
 static u32
-cluster_get(u32 *cluster)
+cluster_get(struct fat32 *f, u32 cluster)
 {
-    return *cluster & CLUSTER_MASK;
+    return f->table[cluster] & CLUSTER_MASK;
 }
 
 static u32
@@ -294,7 +295,7 @@ cluster_find(struct fat32 *f, u32 value)
 
     for (u32 i = 2; i < 0x200 * f->br.sectspertable / 4; i++)
     {
-        if (cluster_get(&(f->table[i])) == value)
+        if (cluster_get(f, i) == value)
         {
             ret = i;
             break;
@@ -331,7 +332,7 @@ fat32_next(struct fat32 *f, u32 cluster)
 
     u32 length = (f->br.sectsvolume) ? f->br.sectsvolume : f->br.sectsvolume32;
     if (cluster < length)
-        ret = cluster_get(&(f->table[cluster]));
+        ret = cluster_get(f, cluster);
 
     return ret;
 }
@@ -425,6 +426,53 @@ fat32_entry(struct fat32 *f, u32 cluster, u32 index, struct fat32e *out)
     }
 
     return found;
+}
+
+/* Allocation functions */
+
+static u32
+fat32_alloc(struct fat32 *f)
+{
+    u32 ret = cluster_find(f, CLUSTER_FREE);
+
+    if (ret)
+        cluster_set(f, ret, CLUSTER_EOF);
+
+    return ret;
+}
+
+static u32
+fat32_alloc2(struct fat32 *f, u32 cluster)
+{
+    u32 ret = fat32_next(f, cluster);
+
+    if (cluster_eof(ret))
+    {
+        u32 cluster2 = cluster_find(f, CLUSTER_FREE);
+        if (cluster2 && !cluster_eof(cluster))
+        {
+            cluster_set(f, cluster,  cluster2);
+            cluster_set(f, cluster2, CLUSTER_EOF);
+            ret = cluster2;
+        }
+    }
+
+    return ret;
+}
+
+static void
+fat32_free(struct fat32 *f, u32 cluster, u32 depth)
+{
+    for (u32 i = 0; !cluster_eof(cluster); i++)
+    {
+        u32 prev = cluster;
+        cluster = fat32_next(f, cluster);
+
+        if ((i + 1) == depth)
+            cluster_set(f, prev, CLUSTER_EOF);
+        else if ((i + 1) > depth)
+            cluster_set(f, prev, CLUSTER_FREE);
+    }
 }
 
 /* Internal interface */
@@ -584,47 +632,21 @@ fat32_resize(struct fat32 *f, struct fat32e *fe, u32 size)
     {
         if (cluster_n2 < cluster_n)
         {
-            u32 cluster = fe->cluster;
-            for (u32 i = 0; i <= cluster_n && !cluster_eof(cluster); i++)
-            {
-                u32 prev = cluster;
-                cluster = fat32_next(f, cluster);
-
-                if (i == cluster_n2)
-                    cluster_set(&(f->table[prev]), CLUSTER_EOF);
-                else if (i > cluster_n2)
-                    cluster_set(&(f->table[prev]), CLUSTER_FREE);
-            }
+            fat32_free(f, fe->cluster, cluster_n2 + 1);
             fe->size = size;
         }
         else if (cluster_n2 > cluster_n)
         {
             u32 cluster = fe->cluster;
-            for (u32 i = 0; i <= cluster_n2; i++)
+            for (u32 i = 0; ret && i <= cluster_n2; i++)
             {
-                u32 prev = cluster;
-                cluster = fat32_next(f, cluster);
+                cluster = fat32_alloc2(f, cluster);
                 if (cluster_eof(cluster))
-                {
-                    cluster = cluster_find(f, CLUSTER_FREE);
-                    if (cluster && !cluster_eof(cluster))
-                    {
-                        cluster_set(&(f->table[prev]),    cluster);
-                        cluster_set(&(f->table[cluster]), CLUSTER_EOF);
-                    }
-                    else
-                    {
-                        ret = false;
-                        break;
-                    }
-                }
+                    ret = false;
             }
 
             if (ret)
-            {
-                cluster_set(&(f->table[cluster]), CLUSTER_EOF);
                 fe->size = size;
-            }
         }
     }
     else
@@ -721,14 +743,10 @@ chain_write(struct fat32 *f, u8 *buf, u32 cluster, u32 sector_idx,
             if (sector_idx >= f->br.sectspercluster)
             {
                 sector_idx = 0;
-                cluster = fat32_next(f, cluster);
+
+                cluster = fat32_alloc2(f, cluster);
                 if (cluster_eof(cluster))
-                {
-                    u32 new = cluster_find(f, CLUSTER_FREE);
-                    cluster_set(&(f->table[cluster]), new);
-                    cluster_set(&(f->table[new]), CLUSTER_EOF);
-                    cluster = new;
-                }
+                    ret = false;
             }
         }
     }
@@ -834,26 +852,18 @@ fat32_create(struct fat32 *f, u32 pcluster,
             else
             {
                 u32 prev = pcluster;
-                pcluster = fat32_next(f, pcluster);
-                if (cluster_eof(pcluster))
-                {
-                    pcluster = cluster_find(f, CLUSTER_FREE);
-                    if (pcluster && !cluster_eof(pcluster))
-                    {
-                        cluster_set(&(f->table[prev]),     pcluster);
-                        cluster_set(&(f->table[pcluster]), CLUSTER_EOF);
-                    }
-                    else
-                        ret = false;
-                }
 
-                if (ret)
+                pcluster = fat32_alloc2(f, pcluster);
+                if (!cluster_eof(pcluster))
                 {
                     sector = fat32_fsector(f, pcluster);
                     sector_idx = 0;
                 }
                 else
+                {
+                    ret = false;
                     break;
+                }
             }
         }
 
@@ -861,11 +871,14 @@ fat32_create(struct fat32 *f, u32 pcluster,
         {
             if (ret && cluster == 0)
             {
-                u32 new = cluster_find(f, CLUSTER_FREE);
-                cluster_set(&(f->table[new]), CLUSTER_EOF);
-                cluster = new;
-                if (dir)
-                    ret = directory_dots(f, new, pcluster);
+                cluster = fat32_alloc(f);
+                if (cluster)
+                {
+                    if (dir)
+                        ret = directory_dots(f, cluster, pcluster);
+                }
+                else
+                    ret = false;
             }
 
             if (ret)
@@ -891,17 +904,7 @@ fat32_remove(struct fat32 *f, struct fat32e *fe, bool clusters)
     bool ret = true;
 
     if (clusters)
-    {
-        u32 cluster_n = (fe->size / 0x200) / f->br.sectspercluster;
-
-        u32 cluster = fe->cluster;
-        for (u32 i = 0; i <= cluster_n && !cluster_eof(cluster); i++)
-        {
-            u32 prev = cluster;
-            cluster = fat32_next(f, cluster);
-            cluster_set(&(f->table[prev]), CLUSTER_FREE);
-        }
-    }
+        fat32_free(f, fe->cluster, 0);
     fe->size = 0;
     fe->unused = true;
     ret = entry_update(f, fe) && table_update(f);
