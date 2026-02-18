@@ -70,13 +70,13 @@ struct fat32
 
     struct fat32br br;
     u8 *buffer;
-    u32 *table;
     struct fat32e root;
 
     struct fat32e *current;
 };
 
-alignas(32) static u8 fat32_buf[0x200];
+static u32 fat32_buf[0x80];
+s64 fat32_buf_n = -1;
 
 /* Helper functions */
 
@@ -275,17 +275,47 @@ cluster_eof(u32 cluster)
     return (cluster & 0x0FFFFFFF) >= 0x0FFFFFF8;
 }
 
-static void
+static bool
 cluster_set(struct fat32 *f, u32 cluster, u32 value)
 {
-    u32 org = f->table[cluster];
-    f->table[cluster] = (org & ~CLUSTER_MASK) | (value & CLUSTER_MASK);
+    bool ret = true;
+
+    u32 idx = f->br.reservedsects + (cluster / 0x80);
+    for (u32 i = 0; ret && i < f->br.tablecount; i++)
+    {
+        if ((fat32_buf_n == idx) || block_read(f->storage, BLOCK_COMMON,
+                                               fat32_buf, idx))
+        {
+            u32 org = fat32_buf[cluster % 0x80];
+            u32 value2 = (org & ~CLUSTER_MASK) | (value & CLUSTER_MASK);
+            fat32_buf[cluster % 0x80] = value2;
+
+            ret = block_write(f->storage, BLOCK_COMMON, fat32_buf, idx);
+            fat32_buf_n = idx;
+        }
+        else
+            ret = false;
+
+        idx += f->br.sectspertable;
+    }
+
+    return ret;
 }
 
 static u32
 cluster_get(struct fat32 *f, u32 cluster)
 {
-    return f->table[cluster] & CLUSTER_MASK;
+    u32 ret = CLUSTER_EOF;
+
+    u32 idx = f->br.reservedsects + (cluster / 0x80);
+    if ((fat32_buf_n == idx) || block_read(f->storage, BLOCK_COMMON,
+                                           fat32_buf, idx))
+    {
+        ret = fat32_buf[cluster % 0x80] & CLUSTER_MASK;
+        fat32_buf_n = idx;
+    }
+
+    return ret;
 }
 
 static u32
@@ -436,7 +466,8 @@ fat32_alloc(struct fat32 *f)
     u32 ret = cluster_find(f, CLUSTER_FREE);
 
     if (ret)
-        cluster_set(f, ret, CLUSTER_EOF);
+        if (!cluster_set(f, ret, CLUSTER_EOF))
+            ret = CLUSTER_EOF;
 
     return ret;
 }
@@ -451,28 +482,34 @@ fat32_alloc2(struct fat32 *f, u32 cluster)
         u32 cluster2 = cluster_find(f, CLUSTER_FREE);
         if (cluster2 && !cluster_eof(cluster))
         {
-            cluster_set(f, cluster,  cluster2);
-            cluster_set(f, cluster2, CLUSTER_EOF);
-            ret = cluster2;
+            if (cluster_set(f, cluster,  cluster2) &&
+                cluster_set(f, cluster2, CLUSTER_EOF))
+                ret = cluster2;
+            else
+                ret = CLUSTER_EOF;
         }
     }
 
     return ret;
 }
 
-static void
+static bool
 fat32_free(struct fat32 *f, u32 cluster, u32 depth)
 {
-    for (u32 i = 0; !cluster_eof(cluster); i++)
+    bool ret = true;
+
+    for (u32 i = 0; ret && !cluster_eof(cluster); i++)
     {
         u32 prev = cluster;
         cluster = fat32_next(f, cluster);
 
         if ((i + 1) == depth)
-            cluster_set(f, prev, CLUSTER_EOF);
+            ret = cluster_set(f, prev, CLUSTER_EOF);
         else if ((i + 1) > depth)
-            cluster_set(f, prev, CLUSTER_FREE);
+            ret = cluster_set(f, prev, CLUSTER_FREE);
     }
+
+    return ret;
 }
 
 /* Internal interface */
@@ -507,20 +544,7 @@ fat32_new(dev_block *storage)
         mem_copy(&(ret->br), fat32_buf, sizeof(struct fat32br));
 
         ret->buffer = mem_new(0x200 * ret->br.sectspercluster);
-        ret->table = mem_new(0x200 * ret->br.sectspertable);
-        if (!(ret->buffer && ret->table))
-            ret = fat32_del(ret);
-    }
-
-    if (ret)
-    {
-        bool success = true;
-        for (u32 i = 0; success && i < ret->br.sectspertable; i++)
-            success = block_read(ret->storage, BLOCK_COMMON,
-                                 &(((u8*)(ret->table))[0x200 * i]),
-                                 ret->br.reservedsects + i);
-
-        if (!success)
+        if (!(ret->buffer))
             ret = fat32_del(ret);
     }
 
@@ -552,23 +576,6 @@ fat32_rw(struct fat32 *f, struct fat32e *fe, u32 sector, u8 *data, bool write)
         u32 firstsect = fat32_fsector(f, cluster);
         ret = ((write) ? block_write : block_read)(f->storage, BLOCK_COMMON,
                                                    data, firstsect + sector_n);
-    }
-
-    return ret;
-}
-
-static bool
-table_update(struct fat32 *f)
-{
-    bool ret = true;
-
-    for (u32 i = 0; ret && i < f->br.tablecount; i++)
-    {
-        for (u32 j = 0; ret && j < f->br.sectspertable; j++)
-            ret = block_write(f->storage, BLOCK_COMMON,
-                              &(((u8*)(f->table))[0x200 * j]),
-                              f->br.reservedsects + j +
-                              (i * f->br.sectspertable));
     }
 
     return ret;
@@ -632,7 +639,7 @@ fat32_resize(struct fat32 *f, struct fat32e *fe, u32 size)
     {
         if (cluster_n2 < cluster_n)
         {
-            fat32_free(f, fe->cluster, cluster_n2 + 1);
+            ret = fat32_free(f, fe->cluster, cluster_n2 + 1);
             fe->size = size;
         }
         else if (cluster_n2 > cluster_n)
@@ -653,7 +660,7 @@ fat32_resize(struct fat32 *f, struct fat32e *fe, u32 size)
         fe->size = size;
 
     if (ret)
-        ret = entry_update(f, fe) && table_update(f);
+        ret = entry_update(f, fe);
 
     return ret;
 }
@@ -884,12 +891,12 @@ fat32_create(struct fat32 *f, u32 pcluster,
             if (ret)
             {
                 fill_entry(fat32_buf, name, dir, entries, cluster);
+                fat32_buf_n = -1;
+
                 u32 bytes = (entries * 32) + ((unused_st != pos) ? 32 : 0);
                 ret = chain_write(f, fat32_buf, pcluster,
                                   sector_idx, pos, bytes);
             }
-            if (ret)
-                ret = table_update(f);
         }
         else
             ret = false;
@@ -904,10 +911,14 @@ fat32_remove(struct fat32 *f, struct fat32e *fe, bool clusters)
     bool ret = true;
 
     if (clusters)
-        fat32_free(f, fe->cluster, 0);
-    fe->size = 0;
-    fe->unused = true;
-    ret = entry_update(f, fe) && table_update(f);
+        ret = fat32_free(f, fe->cluster, 0);
+
+    if (ret)
+    {
+        fe->size = 0;
+        fe->unused = true;
+        ret = entry_update(f, fe);
+    }
 
     return ret;
 }
