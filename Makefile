@@ -71,7 +71,7 @@ OBJS += $(PREFIX)/fs.o $(PREFIX)/gpio.o $(PREFIX)/pic.o \
         $(PREFIX)/timer.o $(PREFIX)/uart.o
 
 PREFIX = src/system
-OBJS += $(PREFIX)/comm.o $(PREFIX)/disk.o $(PREFIX)/time.o
+OBJS += $(PREFIX)/comm.o $(PREFIX)/disk.o $(PREFIX)/libs.o $(PREFIX)/time.o
 
 OBJS += devtree.o src/loader.o src/syslog.o src/main.o
 
@@ -118,8 +118,17 @@ PROGS = $(PREFIX)/shell.elf $(PREFIX)/list.elf
 PROGS += $(PREFIX)/create.elf $(PREFIX)/remove.elf
 PROGS += $(PREFIX)/stat.elf $(PREFIX)/show.elf
 PROGS += $(PREFIX)/copy.elf
+PROGS += $(PREFIX)/libs.elf
 
 PROGS := $(addprefix $(BUILD)/, $(PROGS))
+
+# --------------------------------- Programs --------------------------------- #
+
+PREFIX = root/lib
+
+LIBS += $(PREFIX)/test.elf
+
+LIBS := $(addprefix $(BUILD)/, $(LIBS))
 
 # --------------------------------- Recipes  --------------------------------- #
 
@@ -161,6 +170,7 @@ FOLDERS += $(BUILD)/drivers/arm
 FOLDERS += $(BUILD)/drivers/arm/sunxi
 FOLDERS += $(ROOT)
 FOLDERS += $(ROOT)/prog
+FOLDERS += $(ROOT)/lib
 FOLDERS += $(BOOT)
 $(FOLDERS):
 	@mkdir -p $@
@@ -194,6 +204,9 @@ $(BUILD)/%.o: %.c | $(FOLDERS)
 $(ROOT)/prog/%.elf: prog/%.c | $(FOLDERS)
 	@printf '%s\n' "  CC      $(@:$(ROOT)/%=%)"
 	@$(CC) $(CFLAGS) -shared -fPIE -fPIC -Wl,-evrm_prog -Wl,-z,defs $< -o $@
+$(ROOT)/lib/%.elf: lib/%.c | $(FOLDERS)
+	@printf '%s\n' "  CC      $(@:$(ROOT)/%=%)"
+	@$(CC) $(CFLAGS) -shared -fPIE -fPIC -Wl,-evrm_lib -Wl,-z,defs $< -o $@
 
 # Specific recipes
 
@@ -225,7 +238,7 @@ $(BOOT)/kernel.bin: $(BUILD)/kernel.elf | $(BUILD)
 DISK_SIZE=$(shell echo "x=l(($$(du -b root | tail -n1 | cut -f1) \
                             /1000000) + 16)/l(2); \
             scale=0; 2^((x+1)/1)" | bc -l)
-$(BUILD)/vermillion.img: $(BOOT)/kernel.bin $(BOOT)/boot.scr $(PROGS)
+$(BUILD)/vermillion.img: $(BOOT)/kernel.bin $(BOOT)/boot.scr $(PROGS) $(LIBS)
 	@printf '%s\n' "  BUILD   $(@:$(BUILD)/%=%)"
 	@dd if=/dev/zero of=$@ bs=1M count=$(DISK_SIZE) status=none
 	@sudo losetup /dev/loop0 $@

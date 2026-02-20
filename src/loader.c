@@ -154,7 +154,7 @@ fdpic_loader(const char *path, u32 *entry)
 }
 
 extern u8 *
-loader_prog(const char *path, u32 *entry)
+loader_fdpic(const char *path, u32 *entry)
 {
     u8 *ret = NULL;
 

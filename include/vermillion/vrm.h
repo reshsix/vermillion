@@ -100,6 +100,13 @@ struct vrm
 
     struct
     {
+        bool   (*load)(const char *name, void *pointer, void *memory);
+        bool   (*unload)(const char *name);
+        void * (*pointer)(const char *name);
+    } libs;
+
+    struct
+    {
         bool (*event)(void (*handler)(void *), void *arg, uint8_t jiffies);
         void (*sleep)(uint8_t jiffies);
         uint64_t (*clock)(void);
@@ -109,7 +116,7 @@ struct vrm
 
     struct
     {
-        uint8_t * (*prog)(const char *path, uint32_t *entry);
+        uint8_t * (*fdpic)(const char *path, uint32_t *entry);
     } loader;
 
     struct

@@ -18,4 +18,6 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <general/types.h>
 
-u8 *loader_fdpic(const char *path, u32 *entry);
+bool libs_load(const char *name, void *pointer, void *memory);
+bool libs_unload(const char *name);
+void *libs_pointer(const char *name);

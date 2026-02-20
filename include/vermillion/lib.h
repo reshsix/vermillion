@@ -16,6 +16,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <general/types.h>
+#include <vermillion/vrm.h>
 
-u8 *loader_fdpic(const char *path, u32 *entry);
+typedef void * (*vrm_lib_t)(void);
+void * vrm_lib(void);

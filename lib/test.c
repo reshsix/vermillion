@@ -14,8 +14,27 @@ You should have received a copy of the GNU General Public License
 along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
+#include <vermillion/lib.h>
 
-#include <general/types.h>
+static int
+test(struct vrm *v)
+{
+    const char msg[] = "vrm_lib message\r\n";
+    for (int i = 0; i < sizeof(msg) - 1; i++)
+        v->comm.write0(msg[i]);
 
-u8 *loader_fdpic(const char *path, u32 *entry);
+    return 0;
+}
+
+struct lib
+{
+    int (*test)(struct vrm *v);
+};
+
+extern void *
+vrm_lib(void)
+{
+    static struct lib l = {0};
+    l.test = test;
+    return &l;
+}

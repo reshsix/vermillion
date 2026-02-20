@@ -20,6 +20,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <system/comm.h>
 #include <system/disk.h>
+#include <system/libs.h>
 #include <system/time.h>
 
 #include <loader.h>
@@ -57,27 +58,30 @@ main(void)
                     .path.dirname  = path_dirname,
                     .path.filename = path_filename,
 
-                    .comm.read0  = comm_read0,
-                    .comm.read1  = comm_read1,
-                    .comm.write0 = comm_write0,
-                    .comm.write1 = comm_write1,
-                    .disk.open   = disk_open,
-                    .disk.close  = disk_close,
-                    .disk.stat   = disk_stat,
-                    .disk.walk   = disk_walk,
-                    .disk.seek   = disk_seek,
-                    .disk.tell   = disk_tell,
-                    .disk.read   = disk_read,
-                    .disk.write  = disk_write,
-                    .disk.flush  = disk_flush,
-                    .disk.resize = disk_resize,
-                    .disk.create = disk_create,
-                    .disk.remove = disk_remove,
-                    .time.event  = time_event,
-                    .time.sleep  = time_sleep,
-                    .time.clock  = time_clock,
+                    .comm.read0   = comm_read0,
+                    .comm.read1   = comm_read1,
+                    .comm.write0  = comm_write0,
+                    .comm.write1  = comm_write1,
+                    .disk.open    = disk_open,
+                    .disk.close   = disk_close,
+                    .disk.stat    = disk_stat,
+                    .disk.walk    = disk_walk,
+                    .disk.seek    = disk_seek,
+                    .disk.tell    = disk_tell,
+                    .disk.read    = disk_read,
+                    .disk.write   = disk_write,
+                    .disk.flush   = disk_flush,
+                    .disk.resize  = disk_resize,
+                    .disk.create  = disk_create,
+                    .disk.remove  = disk_remove,
+                    .libs.load    = libs_load,
+                    .libs.unload  = libs_unload,
+                    .libs.pointer = libs_pointer,
+                    .time.event   = time_event,
+                    .time.sleep   = time_sleep,
+                    .time.clock   = time_clock,
 
-                    .loader.prog      = loader_prog,
+                    .loader.fdpic     = loader_fdpic,
                     .syslog.char_     = syslog_char,
                     .syslog.string    = syslog_string,
                     .syslog.unsigned_ = syslog_unsigned,
@@ -101,7 +105,7 @@ main(void)
         const char *path = "/prog/shell.elf";
 
         u32 entry = 0;
-        u8 *mem = loader_prog(path, &entry);
+        u8 *mem = loader_fdpic(path, &entry);
         if (mem)
         {
             vrm_prog_t f = (void *)&(mem[entry]);

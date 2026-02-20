@@ -90,7 +90,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
                 if (list_c)
                 {
                     uint32_t entry = 0;
-                    uint8_t *mem = v->loader.prog(buffer, &entry);
+                    uint8_t *mem = v->loader.fdpic(buffer, &entry);
                     if (mem)
                     {
                         vrm_prog_t f = (void *)&(mem[entry]);

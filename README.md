@@ -1,5 +1,5 @@
 # Vermillion
-**Status: 1.1**
+**Status: 1.2α**
 
 ## Devices
 - nanopi\_neo\_defconfig (NanoPi NEO)
@@ -23,9 +23,11 @@ make debug
 dd if=build/vermillion.img of=/dev/mmcblk0
 ```
 
-## Writing programs
+## Writing
 
 `struct vrm` is defined in `<vermillion/vrm.h>`
+
+### Programs
 
 ```c
 #include <vermillion/prog.h>
@@ -43,5 +45,39 @@ vrm_prog(struct vrm *v, const char **args, int count)
 
 ```sh
 CFLAGS="-shared -fPIE -fPIC -ffreestanding -nostdlib -Wl,-evrm_prog -Wl,-z,defs"
-arm-none-eabi-gcc -Iinclude $CFLAGS prog.c -o root/init.elf
+arm-none-eabi-gcc -Iinclude $CFLAGS prog.c -o root/prog/prog.elf
+```
+
+### Libraries
+
+```c
+#include <vermillion/lib.h>
+
+static int
+test(struct vrm *v)
+{
+    const char msg[] = "vrm_lib message\r\n";
+    for (int i = 0; i < sizeof(msg) - 1; i++)
+        v->comm.write0(msg[i]);
+
+    return 0;
+}
+
+struct lib
+{
+    int (*test)(struct vrm *v);
+};
+
+extern void *
+vrm_lib(void)
+{
+    static struct lib l = {0};
+    l.test = test;
+    return &l;
+}
+```
+
+```sh
+CFLAGS="-shared -fPIE -fPIC -ffreestanding -nostdlib -Wl,-evrm_lib -Wl,-z,defs"
+arm-none-eabi-gcc -Iinclude $CFLAGS lib.c -o root/lib/lib.elf
 ```
