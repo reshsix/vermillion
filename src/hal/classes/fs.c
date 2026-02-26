@@ -95,7 +95,10 @@ extern struct fs_file *
 fs_close(struct fs_file *f)
 {
     if (f)
+    {
+        fs_flush(f);
         mem_del(f->buffer);
+    }
 
     return mem_del(f);
 }

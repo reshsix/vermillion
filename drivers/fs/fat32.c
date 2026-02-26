@@ -77,6 +77,7 @@ struct fat32
 
 static u32 fat32_buf[0x80];
 s64 fat32_buf_n = -1;
+static u8 fat32_buf2[0x200];
 
 /* Helper functions */
 
@@ -735,10 +736,14 @@ chain_write(struct fat32 *f, u8 *buf, u32 cluster, u32 sector_idx,
         if (ret)
         {
             u32 write = (bytes < (0x200 - pos)) ? bytes : (0x200 - pos);
-            mem_copy(&(f->buffer[pos]), &(buf[idx]), write);
-            idx += write;
-            bytes -= write;
-
+            if (pos + bytes <= 0x200)
+            {
+                mem_copy(&(f->buffer[pos]), &(buf[idx]), write);
+                idx += write;
+                bytes -= write;
+            }
+            else
+                mem_fill(&(f->buffer[pos]), 0xE5, write);
             ret = block_write(f->storage, BLOCK_COMMON, f->buffer, sector);
         }
 
@@ -890,11 +895,11 @@ fat32_create(struct fat32 *f, u32 pcluster,
 
             if (ret)
             {
-                fill_entry(fat32_buf, name, dir, entries, cluster);
+                fill_entry(fat32_buf2, name, dir, entries, cluster);
                 fat32_buf_n = -1;
 
                 u32 bytes = (entries * 32) + ((unused_st != pos) ? 32 : 0);
-                ret = chain_write(f, fat32_buf, pcluster,
+                ret = chain_write(f, fat32_buf2, pcluster,
                                   sector_idx, pos, bytes);
             }
         }

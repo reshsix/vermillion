@@ -118,7 +118,7 @@ PROGS = $(PREFIX)/shell.elf $(PREFIX)/list.elf
 PROGS += $(PREFIX)/create.elf $(PREFIX)/remove.elf
 PROGS += $(PREFIX)/stat.elf $(PREFIX)/show.elf
 PROGS += $(PREFIX)/copy.elf
-PROGS += $(PREFIX)/libs.elf
+PROGS += $(PREFIX)/libs.elf $(PREFIX)/package.elf
 
 PROGS := $(addprefix $(BUILD)/, $(PROGS))
 
@@ -245,7 +245,7 @@ $(BUILD)/vermillion.img: $(BOOT)/kernel.bin $(BOOT)/boot.scr $(PROGS) $(LIBS)
 	@printf 'start=2048, type=0c, bootable\n' \
      | sudo chronic sfdisk -q /dev/loop0
 	@sudo partx -a /dev/loop0
-	@sudo chronic mkfs.vfat -F32 /dev/loop0p1
+	@sudo chronic mkfs.vfat -F32 -s 1 /dev/loop0p1
 	@mkdir -p $(BUILD)/mount/
 	@sudo mount -t vfat /dev/loop0p1 $(BUILD)/mount
 	@sudo cp -r root/* $(BUILD)/mount/
