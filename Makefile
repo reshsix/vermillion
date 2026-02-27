@@ -37,7 +37,7 @@ CFLAGS += $(shell echo $(CONFIG_CFLAGS_ARCH))
 CFLAGS += $(shell echo $(CONFIG_CFLAGS_BOARD))
 
 # Extra variables
-VERSION = 0.0a $$(git rev-parse --short HEAD)
+VERSION = 1.2a $$(git rev-parse --short HEAD)
 COMPILATION = $$(LC_ALL=C date "+%b %d %Y - %H:%M:%S %z")
 KCONFIG_FLAGS = $(shell [ -f $(CONFIG) ] && cat $(CONFIG) \
                   | sed '/^$$/d; /^#/d; s/^/ -D/' | tr '\n' ' ')
@@ -114,19 +114,16 @@ OBJS := $(addprefix $(BUILD)/, $(OBJS))
 
 PREFIX = root/prog
 
-PROGS = $(PREFIX)/shell.elf $(PREFIX)/list.elf
-PROGS += $(PREFIX)/create.elf $(PREFIX)/remove.elf
-PROGS += $(PREFIX)/stat.elf $(PREFIX)/show.elf
-PROGS += $(PREFIX)/copy.elf
-PROGS += $(PREFIX)/libs.elf $(PREFIX)/package.elf
+PROGS  = $(PREFIX)/shell.elf $(PREFIX)/libs.elf
+PROGS += $(PREFIX)/package.elf
 
 PROGS := $(addprefix $(BUILD)/, $(PROGS))
 
-# --------------------------------- Programs --------------------------------- #
+# -------------------------------- Libraries --------------------------------- #
 
 PREFIX = root/lib
 
-LIBS += $(PREFIX)/test.elf
+LIBS  =
 
 LIBS := $(addprefix $(BUILD)/, $(LIBS))
 
@@ -137,12 +134,13 @@ ROOT = $(BUILD)/root
 BOOT = $(ROOT)/boot
 
 # Helper recipes
-.PHONY: all image clean debug test uart
+.PHONY: all image clean debug test uart install uninstall
 all: image
 image: $(BUILD)/vermillion.img
 clean:
 	@printf '%s\n' "  RM      $(shell basename $(BUILD))"
 	@rm -rf $(BUILD)
+
 debug: $(BUILD)/vermillion.img scripts/debug.gdb
 	@printf '%s\n' "  QEMU    $(<:$(BUILD)/%=%)"
 	@qemu-system-arm -s -S -M $(QEMU_MACHINE) -drive file=$<,format=raw &
@@ -155,6 +153,12 @@ uart: $(UART_DEVICE)
 	@printf '%s\n' "  SCREEN  $<"
 	@sudo stty -F $< 115200 cs8 -parenb -cstopb -crtscts
 	@sudo screen $< 115200
+
+DESTDIR=/usr/local/
+install: include/vermillion
+	@cp -r $< "$(DESTDIR)/include/vermillion"
+uninstall:
+	@rm -rf $< "$(DESTDIR)/include/vermillion"
 
 # Folder creation
 FOLDERS += $(DEPS)

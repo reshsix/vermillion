@@ -1,6 +1,15 @@
 # Vermillion
 **Status: 1.2α**
 
+## Features
+- [x] Shell/Programs
+- [x] Libraries
+- [x] Packages
+- [ ] Modem
+
+## Packages
+[Antimony](https://github.com/reshsix/antimony) - Core tools
+
 ## Devices
 - nanopi\_neo\_defconfig (NanoPi NEO)
 - orangepi\_one\_defconfig (OrangePi One)
@@ -23,11 +32,11 @@ make debug
 dd if=build/vermillion.img of=/dev/mmcblk0
 ```
 
-## Writing
+## Example
 
 `struct vrm` is defined in `<vermillion/vrm.h>`
 
-### Programs
+### prog/test.c
 
 ```c
 #include <vermillion/prog.h>
@@ -43,12 +52,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
 }
 ```
 
-```sh
-CFLAGS="-shared -fPIE -fPIC -ffreestanding -nostdlib -Wl,-evrm_prog -Wl,-z,defs"
-arm-none-eabi-gcc -Iinclude $CFLAGS prog.c -o root/prog/prog.elf
-```
-
-### Libraries
+### lib/test.c
 
 ```c
 #include <vermillion/lib.h>
@@ -77,7 +81,16 @@ vrm_lib(void)
 }
 ```
 
-```sh
-CFLAGS="-shared -fPIE -fPIC -ffreestanding -nostdlib -Wl,-evrm_lib -Wl,-z,defs"
-arm-none-eabi-gcc -Iinclude $CFLAGS lib.c -o root/lib/lib.elf
+### Makefile
+
+```make
+# Package configuration
+
+PROJECT = test
+PROGS   = test.elf
+LIBS    = test.elf
+
+# Default makefile
+
+-include vermillion/package.mk
 ```
