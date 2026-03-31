@@ -33,6 +33,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <drivers/fs/fat32.h>
 #include <drivers/arm/gic.h>
 #include <drivers/arm/sunxi/mmc.h>
+#include <drivers/arm/sunxi/spi.h>
 #include <drivers/arm/sunxi/gpio.h>
 #include <drivers/arm/sunxi/uart.h>
 #include <drivers/arm/sunxi/timer.h>
@@ -45,6 +46,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 dev_fs root;
 dev_pic pic;
+dev_spi spi0;
 dev_gpio gpio0, gpio1;
 dev_uart tty0, tty1, tty2, tty3, tty4;
 dev_block mmcblk0, mmcblk0p1;
@@ -93,8 +95,11 @@ devtree_init(void)
     mmcblk0p1 = mbr_init(0, &mmcblk0, 1);
     root = fat32_init(&mmcblk0p1);
 
+    /* Peripherals */
+    spi0 = sunxi_spi_init(0);
+
     /* Systems */
-    comm_config(&tty0, &tty0, &tty1, &tty1);
+    comm_setup(&tty0, &tty1, &spi0);
     disk_config(&root);
     time_config(&timer0);
     pic_state(&pic, true);
@@ -122,12 +127,13 @@ devtree_clean(void)
 
     fat32_clean(&root);
 
-    comm_config(NULL, NULL, NULL, NULL);
+    comm_setup(NULL, NULL, NULL);
     sunxi_uart_clean(&tty0);
     sunxi_uart_clean(&tty1);
     sunxi_uart_clean(&tty2);
     sunxi_uart_clean(&tty3);
     sunxi_uart_clean(&tty4);
+    sunxi_spi_clean(&spi0);
 
     arm_gic_clean(&pic);
 

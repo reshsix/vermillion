@@ -68,7 +68,7 @@ OBJS += $(PREFIX)/block.o $(PREFIX)/stream.o
 
 PREFIX = src/hal/classes
 OBJS += $(PREFIX)/fs.o $(PREFIX)/gpio.o $(PREFIX)/pic.o \
-        $(PREFIX)/timer.o $(PREFIX)/uart.o
+        $(PREFIX)/spi.o $(PREFIX)/timer.o $(PREFIX)/uart.o
 
 PREFIX = src/system
 OBJS += $(PREFIX)/comm.o $(PREFIX)/disk.o $(PREFIX)/libs.o $(PREFIX)/time.o
@@ -98,6 +98,10 @@ endif
 
 ifdef CONFIG_STORAGE_SUNXI_MMC
 OBJS += $(PREFIX)/mmc.o
+endif
+
+ifdef CONFIG_SPI_SUNXI_SPI
+OBJS += $(PREFIX)/spi.o
 endif
 
 ifdef CONFIG_TIMER_SUNXI_TIMER

@@ -36,17 +36,18 @@ vrm_prog(struct vrm *v, const char **args, int count)
     (void)args;
     (void)count;
 
-    v->comm.write0('>');
-    v->comm.write0(' ');
+    v->comm.write(VRM_UART0, '>');
+    v->comm.write(VRM_UART0, ' ');
 
     while (true)
     {
-        char c = v->comm.read0();
+        char c = '\0';
+        v->comm.read(VRM_UART0, &c);
         if (c == '\r')
         {
             line[line_c++] = '\0';
-            v->comm.write0('\r');
-            v->comm.write0('\n');
+            v->comm.write(VRM_UART0, '\r');
+            v->comm.write(VRM_UART0, '\n');
 
             /* Parse program */
             char *saveptr = NULL;
@@ -72,11 +73,11 @@ vrm_prog(struct vrm *v, const char **args, int count)
             {
                 if (list_c == 1)
                 {
-                    v->syslog.signed_(v->time.clock());
-                    v->syslog.string(" cs\r\n");
+                    v->syslog.signed_(VRM_UART0, v->time.clock());
+                    v->syslog.string(VRM_UART0, " cs\r\n");
                 }
                 else
-                    v->syslog.string("USAGE: clock\r\n");
+                    v->syslog.string(VRM_UART0, "USAGE: clock\r\n");
             }
             else
             {
@@ -94,13 +95,14 @@ vrm_prog(struct vrm *v, const char **args, int count)
                     if (mem)
                     {
                         vrm_prog_t f = (void *)&(mem[entry]);
-                        v->syslog.string(f(v, list, list_c) ?
+                        v->syslog.string(VRM_UART0, f(v, list, list_c) ?
                                          FG_GREEN "Success\r\n" :
                                          FG_RED   "Failure\r\n");
-                        v->syslog.string(FG_WHITE);
+                        v->syslog.string(VRM_UART0, FG_WHITE);
                     }
                     else
-                        v->syslog.string("ERROR: Program not found\r\n");
+                        v->syslog.string(VRM_UART0,
+                                         "ERROR: Program not found\r\n");
                     v->mem.del(mem);
                 }
             }
@@ -112,16 +114,16 @@ vrm_prog(struct vrm *v, const char **args, int count)
             list_c = 0;
 
             /* Prompt */
-            v->comm.write0('>');
-            v->comm.write0(' ');
+            v->comm.write(VRM_UART0, '>');
+            v->comm.write(VRM_UART0, ' ');
         }
         else if (c == '\b' || c == 0x7F)
         {
             if (line_c > 0)
             {
-                v->comm.write0('\b');
-                v->comm.write0(' ');
-                v->comm.write0('\b');
+                v->comm.write(VRM_UART0, '\b');
+                v->comm.write(VRM_UART0, ' ');
+                v->comm.write(VRM_UART0, '\b');
                 line[--line_c] = '\0';
             }
         }
@@ -129,12 +131,13 @@ vrm_prog(struct vrm *v, const char **args, int count)
         {
             if (line_c < sizeof(line))
             {
-                v->comm.write0(c);
+                v->comm.write(VRM_UART0, c);
                 line[line_c++] = c;
             }
             else
             {
-                v->syslog.string("NOTICE: user is typing too much\r\n");
+                v->syslog.string(VRM_UART0,
+                                 "NOTICE: user is typing too much\r\n");
                 break;
             }
         }

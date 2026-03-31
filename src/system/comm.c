@@ -17,66 +17,131 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/types.h>
 
 #include <hal/stream.h>
+#include <hal/classes/spi.h>
+#include <hal/classes/uart.h>
 
 #include <system/comm.h>
 
-static dev_stream *input0  = NULL;
-static dev_stream *input1  = NULL;
-static dev_stream *output0 = NULL;
-static dev_stream *output1 = NULL;
+static dev_stream *u0  = NULL;
+static dev_stream *u1  = NULL;
+static dev_spi    *spi0 = NULL;
 
 /* For devtree usage */
 
 extern void
-comm_config(dev_stream *in0, dev_stream *out0,
-            dev_stream *in1, dev_stream *out1)
+comm_setup(dev_stream *uart0, dev_stream *uart1,
+           dev_spi *spi)
 {
-    input0  = in0;
-    input1  = in1;
-    output0 = out0;
-    output1 = out1;
+    u0   = uart0;
+    u1   = uart1;
+    spi0 = spi;
 }
 
 /* For external usage */
 
-static char
-comm_read(dev_stream *in)
+extern uint32_t
+comm_flags_uart(uint8_t bits, uint8_t parity, uint8_t stop)
 {
-    char ret = '\0';
+    return bits | (parity << 4) | (stop << 8);
+}
 
-    if (in != NULL)
-        stream_read((dev_stream *)in, STREAM_COMMON, &ret);
+extern uint32_t
+comm_flags_spi(uint8_t mode, bool lsb, bool csp, bool duplex)
+{
+    return mode | (lsb << 4) | (csp << 5) | (duplex << 6);
+}
+
+extern bool
+comm_info(uint8_t id, uint32_t *rate, uint32_t *flags)
+{
+    bool ret = false;
+
+    uint32_t rate2  = 0;
+    uint32_t flags2 = 0;
+    switch (id)
+    {
+        case COMM_UART0:
+        case COMM_UART1:;
+            enum uart_bits   bits;
+            enum uart_parity parity;
+            enum uart_stop   stop;
+
+            ret = uart_info((id == COMM_UART0) ? u0 : u1, &rate2,
+                            &bits, &parity, &stop);
+            if (ret)
+                flags2 = bits | (parity << 4) | (stop << 8);
+            break;
+        case COMM_SPI:
+            enum spi_mode mode;
+            bool lsb, csp, duplex;
+
+            ret = spi_info(spi0, rate, &mode, &lsb, &csp, &duplex);
+            if (ret)
+                flags2 = mode | (lsb << 4) | (csp << 5) | (duplex << 6);
+            break;
+    }
 
     return ret;
 }
 
-extern char
-comm_read0(void)
+extern bool
+comm_config(uint8_t id, uint32_t rate, uint32_t flags)
 {
-    return comm_read(input0);
+    bool ret = false;
+
+    switch (id)
+    {
+        case COMM_UART0:
+        case COMM_UART1:
+            ret = uart_config((id == COMM_UART0) ? u0 : u1, rate,
+                              (flags & 0x0F)   >> 0,
+                              (flags & 0xF0)   >> 4,
+                              (flags & 0x0F00) >> 8);
+            break;
+        case COMM_SPI:
+            ret = spi_config(spi0, rate, flags & 0x0F,
+                             flags & 0x10, flags & 0x20, flags & 0x40);
+            break;
+    }
+
+    return ret;
 }
 
-extern char
-comm_read1(void)
+extern bool
+comm_read(uint8_t id, char *c)
 {
-    return comm_read(input1);
+    bool ret = false;
+
+    switch (id)
+    {
+        case COMM_UART0:
+        case COMM_UART1:
+            ret = stream_read((id == COMM_UART0) ? u0 : u1, STREAM_COMMON, c);
+            break;
+        case COMM_SPI:
+            ret = spi_read(spi0, (u8*)c);
+            break;
+    }
+
+    return ret;
 }
 
-static void
-comm_write(dev_stream *out, char c)
+extern bool
+comm_write(uint8_t id, char c)
 {
-    if (out != NULL)
-        stream_write((dev_stream *)out, STREAM_COMMON, &c);
-}
+    bool ret = false;
 
-extern void
-comm_write0(char c)
-{
-    comm_write(output0, c);
-}
+    switch (id)
+    {
+        case COMM_UART0:
+        case COMM_UART1:
+            ret = stream_write((id == COMM_UART0) ? u0 : u1,
+                               STREAM_COMMON, &c);
+            break;
+        case COMM_SPI:
+            ret = spi_write(spi0, (u8*)&c);
+            break;
+    }
 
-extern void
-comm_write1(char c)
-{
-    comm_write(output1, c);
+    return ret;
 }

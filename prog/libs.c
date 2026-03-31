@@ -50,31 +50,32 @@ vrm_prog(struct vrm *v, const char **args, int count)
 
                 if (!ret)
                 {
-                    v->syslog.string("ERROR: Initialization failed\r\n");
+                    v->syslog.string(VRM_UART0,
+                                     "ERROR: Initialization failed\r\n");
                     v->mem.del(mem);
                 }
             }
             else
-                v->syslog.string("ERROR: Library not found\r\n");
+                v->syslog.string(VRM_UART0, "ERROR: Library not found\r\n");
         }
         else if (v->str.comp(args[1], "unload", 0) == 0)
         {
             if (v->str.comp(args[2], "test", 0) == 0)
             {
                 struct test *t = v->libs.pointer(args[2]);
-                v->syslog.unsigned_(t->test(v));
-                v->syslog.string("\r\n");
+                v->syslog.unsigned_(VRM_UART0, t->test(v));
+                v->syslog.string(VRM_UART0, "\r\n");
             }
 
             ret = v->libs.unload(args[2]);
             if (!ret)
-                v->syslog.string("ERROR: Cleaning up failed\r\n");
+                v->syslog.string(VRM_UART0, "ERROR: Cleaning up failed\r\n");
         }
         else
-            v->syslog.string("USAGE: libs load/unload name\r\n");
+            v->syslog.string(VRM_UART0, "USAGE: libs load/unload name\r\n");
     }
     else
-        v->syslog.string("USAGE: libs load/unload name\r\n");
+        v->syslog.string(VRM_UART0, "USAGE: libs load/unload name\r\n");
 
     return ret;
 }

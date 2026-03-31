@@ -16,9 +16,31 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <general/types.h>
+#include <hal/stream.h>
 
-void syslog_char(u8 id, const char c);
-void syslog_string(u8 id, const char *s);
-void syslog_unsigned(u8 id, const u64 n);
-void syslog_signed(u8 id, s64 n);
+enum spi_index
+{
+    SPI_CONFIG = STREAM_COMMON + 1,
+};
+
+typedef drv_stream drv_spi;
+typedef dev_stream dev_spi;
+
+enum spi_mode
+{
+    SPI_MODE0, SPI_MODE1, SPI_MODE2, SPI_MODE3
+};
+
+bool spi_read(dev_spi *ds, u8 *data);
+bool spi_write(dev_spi *ds, u8 *data);
+bool spi_info(dev_spi *ds, u32 *freq, enum spi_mode *mode,
+              bool *lsb, bool *csp, bool *duplex);
+bool spi_config(dev_spi *ds, u32 freq, enum spi_mode mode,
+                bool lsb, bool csp, bool duplex);
+
+struct spi_cfg
+{
+    u32 freq;
+    enum spi_mode mode;
+    bool lsb, csp, duplex;
+};

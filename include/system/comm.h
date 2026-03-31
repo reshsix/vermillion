@@ -19,15 +19,26 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/types.h>
 
 #include <hal/stream.h>
+#include <hal/classes/spi.h>
 
 /* For devtree usage */
 
-void comm_config(dev_stream *in0, dev_stream *out0,
-                 dev_stream *in1, dev_stream *out1);
+void comm_setup(dev_stream *uart0, dev_stream *uart1,
+                dev_spi *spi0);
 
 /* For external usage */
 
-char comm_read0(void);
-char comm_read1(void);
-void comm_write0(char c);
-void comm_write1(char c);
+enum comm_id
+{
+    COMM_UART0,
+    COMM_UART1,
+    COMM_SPI
+};
+
+uint32_t comm_flags_uart(uint8_t bits, uint8_t parity, uint8_t stop);
+uint32_t comm_flags_spi(uint8_t mode, bool lsb, bool csp, bool duplex);
+
+bool comm_info(u8 id, u32 *rate, u32 *flags);
+bool comm_config(u8 id, u32 rate, u32 flags);
+bool comm_read(u8 id, char *c);
+bool comm_write(u8 id, char c);

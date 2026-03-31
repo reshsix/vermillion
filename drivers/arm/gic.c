@@ -19,6 +19,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/classes/pic.h>
 
+#include <system/comm.h>
+
 #include <syslog.h>
 
 enum
@@ -212,7 +214,7 @@ static struct gic gics[1] = {0};
 
 INTERRUPT(undef) handler_undef(void)
 {
-    syslog_string("Undefined Instruction");
+    syslog_string(COMM_UART0, "Undefined Instruction");
     for (;;)
         arm_wait_interrupts();
 }
@@ -229,20 +231,20 @@ INTERRUPT(swi) handler_swi(void)
                 swi->handler(swi->arg, gic->swi_data);
         }
         else
-            syslog_string("Unhandled supervisor call");
+            syslog_string(COMM_UART0, "Unhandled supervisor call");
     }
 }
 
 INTERRUPT(abort) handler_prefetch(void)
 {
-    syslog_string("Prefetch Abort");
+    syslog_string(COMM_UART0, "Prefetch Abort");
     for (;;)
         arm_wait_interrupts();
 }
 
 INTERRUPT(abort) handler_data(void)
 {
-    syslog_string("Data Abort");
+    syslog_string(COMM_UART0, "Data Abort");
     for (;;)
         arm_wait_interrupts();
 }

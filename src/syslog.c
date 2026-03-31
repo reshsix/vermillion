@@ -21,36 +21,27 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <syslog.h>
 
 extern void
-syslog_char(const char c)
+syslog_char(u8 id, const char c)
 {
-    comm_write0(c);
+    comm_write(id, c);
 }
 
 extern void
-syslog_string(const char *s)
+syslog_string(u8 id, const char *s)
 {
     for (; s[0] != '\0'; s = &(s[1]))
     {
         if (s[0] != '\0')
-            syslog_char(s[0]);
+            syslog_char(id, s[0]);
     }
 }
 
 extern void
-syslog_bool(const bool n)
-{
-    if (n)
-        syslog_string("true");
-    else
-        syslog_string("false");
-}
-
-extern void
-syslog_unsigned(const u64 n)
+syslog_unsigned(u8 id, const u64 n)
 {
     bool started = false;
 
-    syslog_string("0x");
+    syslog_string(id, "0x");
     for (u8 i = 0; i < 16; i++)
     {
         u8 x = (n >> ((15 - i) * 4)) & 0xF;
@@ -60,24 +51,24 @@ syslog_unsigned(const u64 n)
         if (started)
         {
             if (x < 10)
-                syslog_char(x + '0');
+                syslog_char(id, x + '0');
             else
-                syslog_char(x - 10 + 'A');
+                syslog_char(id, x - 10 + 'A');
         }
     }
 
     if (!started)
-        syslog_char('0');
+        syslog_char(id, '0');
 }
 
 extern void
-syslog_signed(s64 n)
+syslog_signed(u8 id, s64 n)
 {
     bool started = false;
 
     if (n < 0)
     {
-        syslog_char('-');
+        syslog_char(id, '-');
         n = -n;
     }
 
@@ -90,7 +81,7 @@ syslog_signed(s64 n)
 
         if (started)
         {
-            syslog_char(d + '0');
+            syslog_char(id, d + '0');
             a -= i * d;
         }
 
@@ -99,5 +90,5 @@ syslog_signed(s64 n)
     }
 
     if (!started)
-        syslog_char('0');
+        syslog_char(id, '0');
 }

@@ -16,9 +16,5 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <general/types.h>
-
-void syslog_char(u8 id, const char c);
-void syslog_string(u8 id, const char *s);
-void syslog_unsigned(u8 id, const u64 n);
-void syslog_signed(u8 id, s64 n);
+extern dev_spi sunxi_spi_init(u8 id);
+extern void sunxi_spi_clean(dev_spi *s);

@@ -84,13 +84,6 @@ fdpic_loader(const char *path, u32 *entry)
               header.hsize == sizeof(struct elf);
     }
 
-    if (ret)
-    {
-        syslog_string("Loading ");
-        syslog_string(path);
-        syslog_string("\r\n");
-    }
-
     size_t buffer_s = 0x400;
     u8 *buffer = mem_new(buffer_s);
     for (u16 i = 0; ret && i < header.progs_n; i++)
@@ -104,21 +97,6 @@ fdpic_loader(const char *path, u32 *entry)
 
         if (ret && pheader.type == 1)
         {
-            syslog_string("Prog ");
-            syslog_unsigned(i);
-            syslog_string(" [");
-            if (pheader.flags & 4)
-                syslog_char('R');
-            if (pheader.flags & 2)
-                syslog_char('W');
-            if (pheader.flags & 1)
-                syslog_char('X');
-            syslog_string("]: ");
-            syslog_unsigned((uintptr_t)&(buffer[pheader.vaddr]));
-            syslog_string(" (");
-            syslog_unsigned(pheader.size_f);
-            syslog_string(")\r\n");
-
             u32 needed = pheader.vaddr + pheader.size_m;
             while (ret && buffer_s <= needed)
             {
@@ -140,7 +118,6 @@ fdpic_loader(const char *path, u32 *entry)
             }
         }
     }
-    syslog_string("\r\n");
 
     if (ret)
         *entry = header.entry;

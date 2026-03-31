@@ -58,35 +58,37 @@ main(void)
                     .path.dirname  = path_dirname,
                     .path.filename = path_filename,
 
-                    .comm.read0   = comm_read0,
-                    .comm.read1   = comm_read1,
-                    .comm.write0  = comm_write0,
-                    .comm.write1  = comm_write1,
-                    .disk.open    = disk_open,
-                    .disk.close   = disk_close,
-                    .disk.stat    = disk_stat,
-                    .disk.walk    = disk_walk,
-                    .disk.seek    = disk_seek,
-                    .disk.tell    = disk_tell,
-                    .disk.read    = disk_read,
-                    .disk.write   = disk_write,
-                    .disk.flush   = disk_flush,
-                    .disk.resize  = disk_resize,
-                    .disk.create  = disk_create,
-                    .disk.remove  = disk_remove,
-                    .libs.load    = libs_load,
-                    .libs.unload  = libs_unload,
-                    .libs.pointer = libs_pointer,
-                    .time.event   = time_event,
-                    .time.sleep   = time_sleep,
-                    .time.clock   = time_clock,
+                    .comm.flags.uart = comm_flags_uart,
+                    .comm.flags.spi  = comm_flags_spi,
+                    .comm.info       = comm_info,
+                    .comm.config     = comm_config,
+                    .comm.read       = comm_read,
+                    .comm.write      = comm_write,
+                    .disk.open       = disk_open,
+                    .disk.close      = disk_close,
+                    .disk.stat       = disk_stat,
+                    .disk.walk       = disk_walk,
+                    .disk.seek       = disk_seek,
+                    .disk.tell       = disk_tell,
+                    .disk.read       = disk_read,
+                    .disk.write      = disk_write,
+                    .disk.flush      = disk_flush,
+                    .disk.resize     = disk_resize,
+                    .disk.create     = disk_create,
+                    .disk.remove     = disk_remove,
+                    .libs.load       = libs_load,
+                    .libs.unload     = libs_unload,
+                    .libs.pointer    = libs_pointer,
+                    .time.event      = time_event,
+                    .time.sleep      = time_sleep,
+                    .time.clock      = time_clock,
 
                     .loader.fdpic     = loader_fdpic,
                     .syslog.char_     = syslog_char,
                     .syslog.string    = syslog_string,
                     .syslog.unsigned_ = syslog_unsigned,
                     .syslog.signed_   = syslog_signed};
-    syslog_string("\033[2J\033[H");
+    syslog_string(COMM_UART0, "\033[2J\033[H");
 
     disk_f *f = disk_open("/NOTICE");
     if (f)
@@ -99,7 +101,7 @@ main(void)
                 break;
 
             for (size_t i = 0; i < read; i++)
-                comm_write0(buf[i]);
+                comm_write(COMM_UART0, buf[i]);
         }
 
         const char *path = "/prog/shell.elf";
@@ -109,14 +111,14 @@ main(void)
         if (mem)
         {
             vrm_prog_t f = (void *)&(mem[entry]);
-            syslog_string(f(&v, &path, 1) ? "Success" : "Failure");
+            syslog_string(COMM_UART0, f(&v, &path, 1) ? "Success" : "Failure");
         }
         else
-            syslog_string("shell.elf missing\r\n");
+            syslog_string(COMM_UART0, "shell.elf missing\r\n");
         mem_del(mem);
     }
     else
-        syslog_string("NOTICE missing\r\n");
+        syslog_string(COMM_UART0, "NOTICE missing\r\n");
     disk_close(f);
 
     devtree_clean();

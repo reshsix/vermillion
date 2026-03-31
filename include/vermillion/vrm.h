@@ -28,6 +28,13 @@ typedef struct vrm_disk_f vrm_disk_f;
 typedef struct vrm_dict   vrm_dict;
 #endif
 
+enum vrm_comm_id
+{
+    VRM_UART0,
+    VRM_UART1,
+    VRM_SPI
+};
+
 struct vrm
 {
     /* General functions */
@@ -69,10 +76,15 @@ struct vrm
 
     struct
     {
-        char (*read0)(void);
-        char (*read1)(void);
-        void (*write0)(char c);
-        void (*write1)(char c);
+        struct
+        {
+            uint32_t (*uart)(uint8_t bits, uint8_t parity, uint8_t stop);
+            uint32_t (*spi)(uint8_t mode, bool lsb, bool csp, bool duplex);
+        } flags;
+        bool (*info)(uint8_t id, uint32_t *rate, uint32_t *flags);
+        bool (*config)(uint8_t id, uint32_t rate, uint32_t flags);
+        bool (*read)(uint8_t id, char *c);
+        bool (*write)(uint8_t id, char c);
     } comm;
 
     struct
@@ -121,10 +133,9 @@ struct vrm
 
     struct
     {
-        void (*char_)(const char c);
-        void (*string)(const char *s);
-        void (*bool_)(const bool n);
-        void (*unsigned_)(const uint64_t n);
-        void (*signed_)(int64_t n);
+        void (*char_)(uint8_t id, const char c);
+        void (*string)(uint8_t id, const char *s);
+        void (*unsigned_)(uint8_t id, const uint64_t n);
+        void (*signed_)(uint8_t id, int64_t n);
     } syslog;
 };

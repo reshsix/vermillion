@@ -45,7 +45,7 @@ exist_or_create(struct vrm *v, bool dir, const char *path, bool *created)
         if (v->disk.stat(f, &dir2, NULL, NULL) && (dir == dir2))
             ret = true;
         else
-            v->syslog.string(": wrong type");
+            v->syslog.string(VRM_UART0, ": wrong type");
     }
     else
     {
@@ -82,9 +82,9 @@ tar_install(struct vrm *v, vrm_disk_f *f, vrm_disk_f *scr,
         ret = exist_or_create(v, dir2, buffer2, &created);
         if (!ret)
         {
-            v->syslog.string("Failed to open or create ");
-            v->syslog.string(buffer2);
-            v->syslog.string("\r\n");
+            v->syslog.string(VRM_UART0, "Failed to open or create ");
+            v->syslog.string(VRM_UART0, buffer2);
+            v->syslog.string(VRM_UART0, "\r\n");
         }
 
         if (ret && created)
@@ -113,13 +113,13 @@ tar_install(struct vrm *v, vrm_disk_f *f, vrm_disk_f *scr,
                 ret = ( v->disk.read(f,  buffer,  512) ==  512) &&
                       (v->disk.write(f2, buffer, frac) == frac);
                 if (!ret)
-                    v->syslog.string("Failed to unpack data\r\n");
+                    v->syslog.string(VRM_UART0, "Failed to unpack data\r\n");
 
                 size -= frac;
             }
         }
         else
-            v->syslog.string("Failed to open file\r\n");
+            v->syslog.string(VRM_UART0, "Failed to open file\r\n");
         v->disk.close(f2);
     }
 
@@ -156,8 +156,8 @@ tar_read(struct vrm *v, vrm_disk_f *f, vrm_disk_f *scr)
                 }
             }
 
-            v->syslog.string(hdr->path);
-            v->syslog.string("\r\n");
+            v->syslog.string(VRM_UART0, hdr->path);
+            v->syslog.string(VRM_UART0, "\r\n");
 
             if (scr)
                 ret = tar_install(v, f, scr, dir, hdr->path, size);
@@ -169,14 +169,14 @@ tar_read(struct vrm *v, vrm_disk_f *f, vrm_disk_f *scr)
                     pos = (pos + size + 511) & ~511;
                     if (!v->disk.seek(f, pos))
                     {
-                        v->syslog.string("ERROR: File seek failed\r\n");
+                        v->syslog.string(VRM_UART0, "ERROR: File seek failed\r\n");
                         ret = false;
                         break;
                     }
                 }
                 else
                 {
-                    v->syslog.string("ERROR: File tell failed\r\n");
+                    v->syslog.string(VRM_UART0, "ERROR: File tell failed\r\n");
                     ret = false;
                     break;
                 }
@@ -184,7 +184,7 @@ tar_read(struct vrm *v, vrm_disk_f *f, vrm_disk_f *scr)
         }
         else
         {
-            v->syslog.string("ERROR: Package contain unsupported files\r\n");
+            v->syslog.string(VRM_UART0, "ERROR: Package contain unsupported files\r\n");
             ret = false;
             break;
         }
@@ -224,30 +224,34 @@ script_read(struct vrm *v, vrm_disk_f *f, bool remove)
                     buffer3[i] = buffer[len - i - 1];
                 buffer3[len] = '\0';
 
-                v->syslog.string(buffer3);
-                v->syslog.string("\r\n");
+                v->syslog.string(VRM_UART0, buffer3);
+                v->syslog.string(VRM_UART0, "\r\n");
 
                 if (!ret)
                 {
                     if (size == 0)
                         ret = true;
                     else
-                        v->syslog.string("ERROR: Failed to read next file\r\n");
+                        v->syslog.string(VRM_UART0,
+                                         "ERROR: Failed to read next file\r\n");
                 }
 
                 if (ret && remove && len > 2)
                 {
                     ret = v->disk.remove(buffer3);
                     if (!ret)
-                        v->syslog.string("ERROR: Failed to remove file\r\n");
+                        v->syslog.string(VRM_UART0,
+                                         "ERROR: Failed to remove file\r\n");
                 }
             }
         }
         else
-            v->syslog.string("ERROR: File is somehow a directory\r\n");
+            v->syslog.string(VRM_UART0,
+                             "ERROR: File is somehow a directory\r\n");
     }
     else
-        v->syslog.string("ERROR: File stat failed\r\n");
+        v->syslog.string(VRM_UART0,
+                         "ERROR: File stat failed\r\n");
 
     return ret;
 }
@@ -302,12 +306,12 @@ vrm_prog(struct vrm *v, const char **args, int count)
                                     if (f2)
                                         ret = tar_read(v, f, f2);
                                     else
-                                        v->syslog.string(
+                                        v->syslog.string(VRM_UART0,
                                             "ERROR: Failed to open file\r\n");
                                     v->disk.close(f2);
                                 }
                                 else
-                                    v->syslog.string(
+                                    v->syslog.string(VRM_UART0,
                                         "ERROR: Package already installed\r\n");
                                 break;
                             case 3:
@@ -322,28 +326,30 @@ vrm_prog(struct vrm *v, const char **args, int count)
 
                                     ret = v->disk.remove(buffer2);
                                     if (!ret)
-                                        v->syslog.string(
+                                        v->syslog.string(VRM_UART0,
                                             "ERROR: Failed to remove file\r\n");
                                 }
                                 break;
                         }
                     }
                     else
-                        v->syslog.string("ERROR: File is a directory\r\n");
+                        v->syslog.string(VRM_UART0,
+                                         "ERROR: File is a directory\r\n");
                 }
                 else
-                    v->syslog.string("ERROR: File stat failed\r\n");
+                    v->syslog.string(VRM_UART0, "ERROR: File stat failed\r\n");
             }
             else
-                v->syslog.string("ERROR: File not found\r\n");
+                v->syslog.string(VRM_UART0, "ERROR: File not found\r\n");
             v->disk.close(f);
         }
         else
-            v->syslog.string(
+            v->syslog.string(VRM_UART0,
                 "USAGE: package prev/install/show/remove file\r\n");
     }
     else
-        v->syslog.string("USAGE: package prev/install/show/remove file\r\n");
+        v->syslog.string(VRM_UART0,
+                         "USAGE: package prev/install/show/remove file\r\n");
 
     return ret;
 }
