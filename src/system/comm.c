@@ -18,26 +18,74 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/stream.h>
 #include <hal/classes/spi.h>
+#include <hal/classes/gpio.h>
 #include <hal/classes/uart.h>
 
 #include <system/comm.h>
 
-static dev_stream *u0  = NULL;
-static dev_stream *u1  = NULL;
-static dev_spi    *spi0 = NULL;
+static dev_stream *u0 = NULL;
+static dev_stream *u1 = NULL;
+static dev_gpio   *g0 = NULL;
+static dev_spi    *s0 = NULL;
+
+static uint16_t pa[32] = {0};
+static uint8_t  pc     = 0;
 
 /* For devtree usage */
 
 extern void
-comm_setup(dev_stream *uart0, dev_stream *uart1,
+comm_setup(dev_uart *uart0, dev_uart *uart1,
+           dev_gpio *gpio, uint16_t *pins, uint8_t pinc,
            dev_spi *spi)
 {
-    u0   = uart0;
-    u1   = uart1;
-    spi0 = spi;
+    u0 = uart0;
+    u1 = uart1;
+    g0 = gpio;
+    s0 = spi;
+
+    if (pinc > 32)
+        pinc = 32;
+
+    pc = pinc;
+    for (uint8_t i = 0; i < pinc; i++)
+        pa[i] = pins[i];
 }
 
 /* For external usage */
+
+extern bool
+comm_dir(uint8_t pin, bool output)
+{
+    bool ret = false;
+
+    if (pin < pc)
+        ret = gpio_config(g0, pa[pin],
+                          (output) ? GPIO_OUT : GPIO_IN, GPIO_PULLOFF);
+
+    return ret;
+}
+
+extern bool
+comm_get(uint8_t pin, bool *state)
+{
+    bool ret = false;
+
+    if (pin < pc)
+        ret = gpio_get(g0, pa[pin], state);
+
+    return ret;
+}
+
+extern bool
+comm_set(uint8_t pin, bool state)
+{
+    bool ret = false;
+
+    if (pin < pc)
+        ret = gpio_set(g0, pa[pin], state);
+
+    return ret;
+}
 
 extern uint32_t
 comm_flags_uart(uint8_t bits, uint8_t parity, uint8_t stop)
@@ -75,7 +123,7 @@ comm_info(uint8_t id, uint32_t *rate, uint32_t *flags)
             enum spi_mode mode;
             bool lsb, csp, duplex;
 
-            ret = spi_info(spi0, rate, &mode, &lsb, &csp, &duplex);
+            ret = spi_info(s0, rate, &mode, &lsb, &csp, &duplex);
             if (ret)
                 flags2 = mode | (lsb << 4) | (csp << 5) | (duplex << 6);
             break;
@@ -99,8 +147,46 @@ comm_config(uint8_t id, uint32_t rate, uint32_t flags)
                               (flags & 0x0F00) >> 8);
             break;
         case COMM_SPI:
-            ret = spi_config(spi0, rate, flags & 0x0F,
+            ret = spi_config(s0, rate, flags & 0x0F,
                              flags & 0x10, flags & 0x20, flags & 0x40);
+            break;
+    }
+
+    return ret;
+}
+
+extern bool
+comm_start(uint8_t id)
+{
+    bool ret = false;
+
+    switch (id)
+    {
+        case COMM_UART0:
+        case COMM_UART1:
+            ret = false;
+            break;
+        case COMM_SPI:
+            ret = spi_start(s0);
+            break;
+    }
+
+    return ret;
+}
+
+extern bool
+comm_stop(uint8_t id)
+{
+    bool ret = false;
+
+    switch (id)
+    {
+        case COMM_UART0:
+        case COMM_UART1:
+            ret = false;
+            break;
+        case COMM_SPI:
+            ret = spi_stop(s0);
             break;
     }
 
@@ -119,7 +205,7 @@ comm_read(uint8_t id, char *c)
             ret = stream_read((id == COMM_UART0) ? u0 : u1, STREAM_COMMON, c);
             break;
         case COMM_SPI:
-            ret = spi_read(spi0, (u8*)c);
+            ret = spi_read(s0, (u8*)c);
             break;
     }
 
@@ -139,7 +225,7 @@ comm_write(uint8_t id, char c)
                                STREAM_COMMON, &c);
             break;
         case COMM_SPI:
-            ret = spi_write(spi0, (u8*)&c);
+            ret = spi_write(s0, (u8*)&c);
             break;
     }
 

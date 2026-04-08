@@ -41,6 +41,11 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #define R_PRCM 0x01F01400
 #define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)
 
+#define CCU 0x01C20000
+#define CLK_SPI0   *(volatile u32*)(CCU + 0xA0)
+#define BUS0_GATE  *(volatile u32*)(CCU + 0x60)
+#define BUS0_RESET *(volatile u32*)(CCU + 0x2C0)
+
 #define ORANGEPI_ONE 0
 #define NANOPI_NEO 1
 
@@ -65,7 +70,6 @@ devtree_init(void)
     tty3 = sunxi_uart_init(3);
     tty4 = sunxi_uart_init(4);
     uart_config(&tty0, 115200, UART_8B, UART_NOPARITY, UART_1S);
-    uart_config(&tty1, 115200, UART_8B, UART_NOPARITY, UART_1S);
 
     /* Interrupts */
     pic = arm_gic_init(0x01c82000, 0x01c81000);
@@ -75,16 +79,27 @@ devtree_init(void)
     gpio1 = sunxi_gpio_init(1, &pic);
     switch (CONFIG_SUNXI_BOARD)
     {
+        /* Green led on PL10 */
         case ORANGEPI_ONE:
             gpio_config(&gpio1, 10, GPIO_OUT, GPIO_PULLOFF);
             gpio_set(&gpio1, 10, true);
             break;
-
+        /* Green led on PA10 */
         case NANOPI_NEO:
             gpio_config(&gpio0, 10, GPIO_OUT, GPIO_PULLOFF);
             gpio_set(&gpio0, 10, true);
             break;
     }
+    /* UART1 on PG6 to PG9 */
+    gpio_config(&gpio0, (6 * 32) + 6, GPIO_CUSTOM + 0, GPIO_PULLOFF);
+    gpio_config(&gpio0, (6 * 32) + 7, GPIO_CUSTOM + 0, GPIO_PULLOFF);
+    gpio_config(&gpio0, (6 * 32) + 8, GPIO_CUSTOM + 0, GPIO_PULLOFF);
+    gpio_config(&gpio0, (6 * 32) + 9, GPIO_CUSTOM + 0, GPIO_PULLOFF);
+    /* SPI0 on PC0 to PC3 */
+    gpio_config(&gpio0, (2 * 32) + 0, GPIO_CUSTOM + 1, GPIO_PULLOFF);
+    gpio_config(&gpio0, (2 * 32) + 1, GPIO_CUSTOM + 1, GPIO_PULLOFF);
+    gpio_config(&gpio0, (2 * 32) + 2, GPIO_CUSTOM + 1, GPIO_PULLOFF);
+    gpio_config(&gpio0, (2 * 32) + 3, GPIO_CUSTOM + 1, GPIO_PULLOFF);
 
     /* Timers */
     timer0 = sunxi_timer_init(0, &pic);
@@ -96,10 +111,14 @@ devtree_init(void)
     root = fat32_init(&mmcblk0p1);
 
     /* Peripherals */
+    CLK_SPI0    = 1 << 31;
+    BUS0_GATE  |= 1 << 20;
+    BUS0_RESET |= 1 << 20;
     spi0 = sunxi_spi_init(0);
+    spi_config(&spi0, 24000000, SPI_MODE0, false, false, false);
 
     /* Systems */
-    comm_setup(&tty0, &tty1, &spi0);
+    comm_setup(&tty0, &tty1, &gpio0, (uint16_t[]){0,1,2,3}, 4, &spi0);
     disk_config(&root);
     time_config(&timer0);
     pic_state(&pic, true);
@@ -127,7 +146,7 @@ devtree_clean(void)
 
     fat32_clean(&root);
 
-    comm_setup(NULL, NULL, NULL);
+    comm_setup(NULL, NULL, NULL, NULL, 0, NULL);
     sunxi_uart_clean(&tty0);
     sunxi_uart_clean(&tty1);
     sunxi_uart_clean(&tty2);

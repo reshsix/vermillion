@@ -21,6 +21,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 enum spi_index
 {
     SPI_CONFIG = STREAM_COMMON + 1,
+    SPI_TRANSFER
 };
 
 typedef drv_stream drv_spi;
@@ -31,6 +32,8 @@ enum spi_mode
     SPI_MODE0, SPI_MODE1, SPI_MODE2, SPI_MODE3
 };
 
+bool spi_start(dev_spi *ds);
+bool spi_stop(dev_spi *ds);
 bool spi_read(dev_spi *ds, u8 *data);
 bool spi_write(dev_spi *ds, u8 *data);
 bool spi_info(dev_spi *ds, u32 *freq, enum spi_mode *mode,

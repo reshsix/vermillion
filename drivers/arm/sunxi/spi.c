@@ -66,6 +66,22 @@ stat(void *ctx, u32 idx, u32 *width)
     return ret;
 }
 
+static void
+spi_select(struct spi *spi, bool on)
+{
+    /* Set SPI mode */
+    SPI_TCR(spi->addr) = (spi->cfg.mode & 0x3) | (spi->cfg.lsb << 12) |
+                         (1 << 6) | (1 << 13);
+
+    /* Manually change CS */
+    bool st = spi->cfg.csp;
+    if (!on)
+        st = !st;
+
+    if (st) SPI_TCR(spi->addr) |=  (1 << 7);
+    else    SPI_TCR(spi->addr) &= ~(1 << 7);
+}
+
 static u8
 spi_transfer(struct spi *spi, u8 byte)
 {
@@ -89,10 +105,6 @@ spi_transfer(struct spi *spi, u8 byte)
     SPI_TCR(spi->addr) = (spi->cfg.mode & 0x3) | (spi->cfg.lsb << 12) |
                          (1 << 6) | (1 << 13);
 
-    /* Manually change CS */
-    if (spi->cfg.csp) SPI_TCR(spi->addr) |=  (1 << 7);
-    else              SPI_TCR(spi->addr) &= ~(1 << 7);
-
     /* Clean ISR */
     SPI_ISR(spi->addr) |= 0xFFFFFFFF;
 
@@ -102,10 +114,6 @@ spi_transfer(struct spi *spi, u8 byte)
     /* Wait for completion */
     while (!(SPI_ISR(spi->addr) & (1 << 12)));
     SPI_ISR(spi->addr) |= 0xFFFFFFFF;
-
-    /* Manually change CS */
-    if (!(spi->cfg.csp)) SPI_TCR(spi->addr) |=  (1 << 7);
-    else                 SPI_TCR(spi->addr) &= ~(1 << 7);
 
     /* Return result from read pipe */
     return SPI_RXD(spi->addr);
@@ -184,6 +192,11 @@ write(void *ctx, u32 idx, void *data)
 
                     mem_copy(&(spi->cfg), &cfg, sizeof(struct spi_cfg));
                 }
+                break;
+
+            case SPI_TRANSFER:
+                spi_select(spi, data);
+                ret = true;
                 break;
         }
     }

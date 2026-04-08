@@ -76,6 +76,10 @@ struct vrm
 
     struct
     {
+        bool (*dir)(uint8_t pin, bool output);
+        bool (*get)(uint8_t pin, bool *state);
+        bool (*set)(uint8_t pin, bool state);
+
         struct
         {
             uint32_t (*uart)(uint8_t bits, uint8_t parity, uint8_t stop);
@@ -83,6 +87,9 @@ struct vrm
         } flags;
         bool (*info)(uint8_t id, uint32_t *rate, uint32_t *flags);
         bool (*config)(uint8_t id, uint32_t rate, uint32_t flags);
+
+        bool (*start)(uint8_t id);
+        bool (*stop)(uint8_t id);
         bool (*read)(uint8_t id, char *c);
         bool (*write)(uint8_t id, char c);
     } comm;

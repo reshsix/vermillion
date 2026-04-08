@@ -20,6 +20,18 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <hal/classes/spi.h>
 
 extern bool
+spi_start(dev_spi *ds)
+{
+    return stream_write((dev_stream *)ds, SPI_TRANSFER, true);
+}
+
+extern bool
+spi_stop(dev_spi *ds)
+{
+    return stream_write((dev_stream *)ds, SPI_TRANSFER, false);
+}
+
+extern bool
 spi_read(dev_spi *ds, u8 *data)
 {
     return stream_read((dev_stream *)ds, STREAM_COMMON, data);
