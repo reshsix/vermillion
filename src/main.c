@@ -109,7 +109,8 @@ main(void)
                 comm_write(COMM_UART0, buf[i]);
         }
 
-        const char *path = "/prog/shell.elf";
+        const char *path  = "/prog/init.elf";
+        const char *path2 = "/prog/shell.elf";
 
         u32 entry = 0;
         u8 *mem = loader_fdpic(path, &entry);
@@ -119,7 +120,18 @@ main(void)
             syslog_string(COMM_UART0, f(&v, &path, 1) ? "Success" : "Failure");
         }
         else
-            syslog_string(COMM_UART0, "shell.elf missing\r\n");
+        {
+            syslog_string(COMM_UART0, "init.elf missing, running shell\r\n");
+            u8 *mem = loader_fdpic(path2, &entry);
+            if (mem)
+            {
+                vrm_prog_t f = (void *)&(mem[entry]);
+                syslog_string(COMM_UART0, f(&v, &path, 1) ? "Success" :
+                                                            "Failure");
+            }
+            else
+                syslog_string(COMM_UART0, "shell.elf missing\r\n");
+        }
         mem_del(mem);
     }
     else
