@@ -1,17 +1,17 @@
 /*
-This file is part of vermillion.
-
-Vermillion is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published
-by the Free Software Foundation, version 3.
-
-Vermillion is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+ *  This file is part of vermillion.
+ *
+ *  Vermillion is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3.
+ *
+ *  Vermillion is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <general/types.h>
@@ -202,7 +202,7 @@ comm_read(uint8_t id, char *c)
     {
         case COMM_UART0:
         case COMM_UART1:
-            ret = stream_read((id == COMM_UART0) ? u0 : u1, STREAM_COMMON, c);
+            ret = uart_read((id == COMM_UART0) ? u0 : u1, c);
             break;
         case COMM_SPI:
             ret = spi_read(s0, (u8*)c);
@@ -221,8 +221,7 @@ comm_write(uint8_t id, char c)
     {
         case COMM_UART0:
         case COMM_UART1:
-            ret = stream_write((id == COMM_UART0) ? u0 : u1,
-                               STREAM_COMMON, &c);
+            ret = uart_write((id == COMM_UART0) ? u0 : u1, &c);
             break;
         case COMM_SPI:
             ret = spi_write(s0, (u8*)&c);

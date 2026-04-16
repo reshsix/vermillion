@@ -1,17 +1,17 @@
 /*
-This file is part of vermillion.
-
-Vermillion is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published
-by the Free Software Foundation, version 3.
-
-Vermillion is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+ *  This file is part of vermillion.
+ *
+ *  Vermillion is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3.
+ *
+ *  Vermillion is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <general/types.h>
@@ -22,25 +22,25 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 extern bool
 spi_start(dev_spi *ds)
 {
-    return stream_write((dev_stream *)ds, SPI_TRANSFER, true);
+    return stream_ioctl((dev_stream *)ds, SPI_STATE_CS, true);
 }
 
 extern bool
 spi_stop(dev_spi *ds)
 {
-    return stream_write((dev_stream *)ds, SPI_TRANSFER, false);
+    return stream_ioctl((dev_stream *)ds, SPI_STATE_CS, false);
 }
 
 extern bool
 spi_read(dev_spi *ds, u8 *data)
 {
-    return stream_read((dev_stream *)ds, STREAM_COMMON, data);
+    return stream_read((dev_stream *)ds, data);
 }
 
 extern bool
 spi_write(dev_spi *ds, u8 *data)
 {
-    return stream_write((dev_stream *)ds, STREAM_COMMON, data);
+    return stream_write((dev_stream *)ds, data);
 }
 
 extern bool
@@ -49,7 +49,7 @@ spi_info(dev_spi *ds, u32 *freq, enum spi_mode *mode,
 {
     struct spi_cfg cfg = {0};
 
-    bool ret = stream_read((dev_stream *)ds, SPI_CONFIG, &cfg);
+    bool ret = stream_ioctl((dev_stream *)ds, SPI_CONFIG_GET, &cfg);
     if (ret)
     {
         if (freq)   *freq   = cfg.freq;
@@ -68,5 +68,5 @@ spi_config(dev_spi *ds, u32 freq, enum spi_mode mode,
 {
     struct spi_cfg cfg = {.freq = freq, .mode = mode,
                           .lsb = lsb, .csp = csp, .duplex = duplex};
-    return stream_write((dev_stream *)ds, SPI_CONFIG, &cfg);
+    return stream_ioctl((dev_stream *)ds, SPI_CONFIG_SET, &cfg);
 }

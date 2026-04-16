@@ -1,17 +1,17 @@
 /*
-This file is part of vermillion.
-
-Vermillion is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published
-by the Free Software Foundation, version 3.
-
-Vermillion is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+ *  This file is part of vermillion.
+ *
+ *  Vermillion is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3.
+ *
+ *  Vermillion is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <general/types.h>
@@ -48,70 +48,18 @@ static const u32 ports[5] = {0x01c28000, 0x01c28400,
                              0x01c28800, 0x01c28c00, 0x01f02800};
 
 static bool
-stat(void *ctx, u32 idx, u32 *width)
-{
-    bool ret = true;
-
-    (void)ctx;
-    switch (idx)
-    {
-        case STREAM_COMMON:
-            *width = sizeof(u8);
-            break;
-        case UART_CONFIG:
-            *width = sizeof(struct uart_cfg);
-            break;
-        default:
-            ret = false;
-            break;
-    }
-
-    return ret;
-}
-
-static bool
-read(void *ctx, u32 idx, void *data)
+ioctl(void *ctx, u8 idx, void *data)
 {
     bool ret = false;
 
     struct serial *u = ctx;
     switch (idx)
     {
-        case STREAM_COMMON:
-            ret = true;
-            while (!(IO_LSR(u->port) & (1 << 0)));
-
-            u8 byte = IO_BUF(u->port);
-            mem_copy(data, &byte, sizeof(u8));
-            break;
-
-        case UART_CONFIG:
+        case UART_CONFIG_GET:
             ret = true;
             mem_copy(data, &(u->cfg), sizeof(struct uart_cfg));
             break;
-    }
-
-    return ret;
-}
-
-static bool
-write(void *ctx, u32 idx, void *data)
-{
-    bool ret = false;
-
-    struct serial *u = ctx;
-    switch (idx)
-    {
-        case STREAM_COMMON:
-            ret = true;
-            while (!(IO_LSR(u->port) & (1 << 5)));
-
-            u8 byte = IO_BUF(u->port);
-            mem_copy(&byte, data, sizeof(u8));
-            IO_BUF(u->port) = byte;
-            break;
-
-        case UART_CONFIG:;
+        case UART_CONFIG_SET:;
             struct uart_cfg cfg = {0};
             mem_copy(&cfg, data, sizeof(struct uart_cfg));
 
@@ -121,7 +69,6 @@ write(void *ctx, u32 idx, void *data)
             ret = (  cfg.baud <= 1500000  && cfg.baud >= 23       &&
                    !(cfg.stop == UART_1HS && cfg.bits != UART_5B) &&
                    !(cfg.stop == UART_2S  && cfg.bits == UART_5B));
-
             if (ret)
             {
                 mem_copy(&(u->cfg), &cfg, sizeof(struct uart_cfg));
@@ -169,9 +116,49 @@ write(void *ctx, u32 idx, void *data)
     return ret;
 }
 
+static bool
+stat(void *ctx, u32 *width)
+{
+    *width = sizeof(u8);
+    return true;
+}
+
+static bool
+read(void *ctx, void *data)
+{
+    bool ret = false;
+
+    struct serial *u = ctx;
+    ret = (IO_LSR(u->port) & (1 << 0));
+    if (ret)
+    {
+        u8 byte = IO_BUF(u->port);
+        mem_copy(data, &byte, sizeof(u8));
+    }
+
+    return ret;
+}
+
+static bool
+write(void *ctx, void *data)
+{
+    bool ret = false;
+
+    struct serial *u = ctx;
+    ret = (IO_LSR(u->port) & (1 << 5));
+    if (ret)
+    {
+        u8 byte = IO_BUF(u->port);
+        mem_copy(&byte, data, sizeof(u8));
+        IO_BUF(u->port) = byte;
+    }
+
+    return ret;
+}
+
 static const drv_uart sunxi_uart =
 {
-    .stat = stat, .read = read, .write = write
+    .ioctl = ioctl, .stat = stat, .read = read, .write = write
 };
 
 /* Device creation */

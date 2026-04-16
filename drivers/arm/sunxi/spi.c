@@ -1,17 +1,17 @@
 /*
-This file is part of vermillion.
-
-Vermillion is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published
-by the Free Software Foundation, version 3.
-
-Vermillion is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+ *  This file is part of vermillion.
+ *
+ *  Vermillion is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3.
+ *
+ *  Vermillion is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <general/types.h>
@@ -43,43 +43,64 @@ struct spi
 static struct spi spis[2] = {0};
 
 static bool
-stat(void *ctx, u32 idx, u32 *width)
+ioctl(void *ctx, u8 idx, void *data)
 {
-    bool ret = true;
+    bool ret = false;
 
-    if (ctx)
+    struct spi *spi = ctx;
+    switch (idx)
     {
-        switch (idx)
-        {
-            case STREAM_COMMON:
-                *width = sizeof(u8);
-                break;
-            case SPI_CONFIG:
-                *width = sizeof(struct spi_cfg);
-                break;
-            default:
-                ret = false;
-                break;
-        }
+        case SPI_CONFIG_GET:
+            ret = true;
+            mem_copy(data, &(spi->cfg), sizeof(struct spi_cfg));
+            break;
+        case SPI_CONFIG_SET:;
+            struct spi_cfg cfg = {0};
+            mem_copy(&cfg, data, sizeof(struct spi_cfg));
+            ret = (cfg.freq <= 24000000 && cfg.freq >= 367 && cfg.mode < 4);
+            if (ret)
+            {
+                u32 div = 24000000 / cfg.freq;
+
+                if (div < 2)
+                    SPI_CLK(spi->addr) = 0x0;
+                else if (div > 512)
+                {
+                    u8 log2 = 0;
+                    while (div >>= 1)
+                        log2++;
+
+                    SPI_CLK(spi->addr) = log2 << 8;
+                }
+                else
+                    SPI_CLK(spi->addr) = (1 << 12) | ((div / 2) - 1);
+
+                mem_copy(&(spi->cfg), &cfg, sizeof(struct spi_cfg));
+            }
+            break;
+        case SPI_STATE_CS:
+            ret = true;
+
+            bool on = data;
+            SPI_TCR(spi->addr) = (spi->cfg.mode & 0x3) | (spi->cfg.lsb << 12) |
+                                 (1 << 6) | (1 << 13);
+            bool st = spi->cfg.csp;
+            if (!on)
+                st = !st;
+
+            if (st) SPI_TCR(spi->addr) |=  (1 << 7);
+            else    SPI_TCR(spi->addr) &= ~(1 << 7);
+            break;
     }
 
     return ret;
 }
 
-static void
-spi_select(struct spi *spi, bool on)
+static bool
+stat(void *ctx, u32 *width)
 {
-    /* Set SPI mode */
-    SPI_TCR(spi->addr) = (spi->cfg.mode & 0x3) | (spi->cfg.lsb << 12) |
-                         (1 << 6) | (1 << 13);
-
-    /* Manually change CS */
-    bool st = spi->cfg.csp;
-    if (!on)
-        st = !st;
-
-    if (st) SPI_TCR(spi->addr) |=  (1 << 7);
-    else    SPI_TCR(spi->addr) &= ~(1 << 7);
+    *width = sizeof(u8);
+    return true;
 }
 
 static u8
@@ -120,93 +141,37 @@ spi_transfer(struct spi *spi, u8 byte)
 }
 
 static bool
-read(void *ctx, u32 idx, void *data)
+read(void *ctx, void *data)
 {
-    bool ret = false;
+    bool ret = true;
 
-    if (ctx)
-    {
-        struct spi *spi = ctx;
-        switch (idx)
-        {
-            case STREAM_COMMON:
-                ret = true;
-
-                u8 byte = 0;
-                if (spi->cfg.duplex)
-                    byte = spi->last;
-                else
-                    byte = spi_transfer(ctx, 0x0);
-                mem_copy(data, &byte, sizeof(u8));
-                break;
-
-            case SPI_CONFIG:
-                ret = true;
-                mem_copy(data, &(spi->cfg), sizeof(struct spi_cfg));
-                break;
-        }
-    }
+    struct spi *spi = ctx;
+    u8 byte = 0;
+    if (spi->cfg.duplex)
+        byte = spi->last;
+    else
+        byte = spi_transfer(ctx, 0x0);
+    mem_copy(data, &byte, sizeof(u8));
 
     return ret;
 }
 
 static bool
-write(void *ctx, u32 idx, void *data)
+write(void *ctx, void *data)
 {
-    bool ret = false;
+    bool ret = true;
 
-    if (ctx)
-    {
-        struct spi *spi = ctx;
-        switch (idx)
-        {
-            case STREAM_COMMON:
-                ret = true;
-
-                u8 byte = 0;
-                mem_copy(&byte, data, sizeof(u8));
-                spi->last = spi_transfer(spi, byte);
-                break;
-
-            case SPI_CONFIG:;
-                struct spi_cfg cfg = {0};
-                mem_copy(&cfg, data, sizeof(struct spi_cfg));
-                ret = (cfg.freq <= 24000000 && cfg.freq >= 367 && cfg.mode < 4);
-
-                if (ret)
-                {
-                    u32 div = 24000000 / cfg.freq;
-
-                    if (div < 2)
-                        SPI_CLK(spi->addr) = 0x0;
-                    else if (div > 512)
-                    {
-                        u8 log2 = 0;
-                        while (div >>= 1)
-                            log2++;
-
-                        SPI_CLK(spi->addr) = log2 << 8;
-                    }
-                    else
-                        SPI_CLK(spi->addr) = (1 << 12) | ((div / 2) - 1);
-
-                    mem_copy(&(spi->cfg), &cfg, sizeof(struct spi_cfg));
-                }
-                break;
-
-            case SPI_TRANSFER:
-                spi_select(spi, data);
-                ret = true;
-                break;
-        }
-    }
+    struct spi *spi = ctx;
+    u8 byte = 0;
+    mem_copy(&byte, data, sizeof(u8));
+    spi->last = spi_transfer(spi, byte);
 
     return ret;
 }
 
 static const drv_spi sunxi_spi =
 {
-    .stat = stat, .read = read, .write = write
+    .ioctl = ioctl, .stat = stat, .read = read, .write = write
 };
 
 /* Device creation */
