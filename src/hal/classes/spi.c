@@ -16,57 +16,62 @@
 
 #include <general/types.h>
 
-#include <hal/stream.h>
+#include <hal/bus.h>
 #include <hal/classes/spi.h>
 
 extern bool
-spi_start(dev_spi *ds)
-{
-    return stream_ioctl((dev_stream *)ds, SPI_STATE_CS, true);
-}
-
-extern bool
-spi_stop(dev_spi *ds)
-{
-    return stream_ioctl((dev_stream *)ds, SPI_STATE_CS, false);
-}
-
-extern bool
-spi_read(dev_spi *ds, u8 *data)
-{
-    return stream_read((dev_stream *)ds, data);
-}
-
-extern bool
-spi_write(dev_spi *ds, u8 *data)
-{
-    return stream_write((dev_stream *)ds, data);
-}
-
-extern bool
-spi_info(dev_spi *ds, u32 *freq, enum spi_mode *mode,
-         bool *lsb, bool *csp, bool *duplex)
+spi_info(dev_spi *ds, u32 *freq, enum spi_mode *mode, bool *lsb)
 {
     struct spi_cfg cfg = {0};
 
-    bool ret = stream_ioctl((dev_stream *)ds, SPI_CONFIG_GET, &cfg);
+    bool ret = bus_ioctl((dev_bus *)ds, SPI_CONFIG_GET, &cfg);
     if (ret)
     {
-        if (freq)   *freq   = cfg.freq;
-        if (mode)   *mode   = cfg.mode;
-        if (lsb)    *lsb    = cfg.lsb;
-        if (csp)    *csp    = cfg.csp;
-        if (duplex) *duplex = cfg.duplex;
+        if (freq) *freq = cfg.freq;
+        if (mode) *mode = cfg.mode;
+        if (lsb)  *lsb  = cfg.lsb;
     }
 
     return ret;
 }
 
 extern bool
-spi_config(dev_spi *ds, u32 freq, enum spi_mode mode,
-           bool lsb, bool csp, bool duplex)
+spi_config(dev_spi *ds, u32 freq, enum spi_mode mode, bool lsb)
 {
-    struct spi_cfg cfg = {.freq = freq, .mode = mode,
-                          .lsb = lsb, .csp = csp, .duplex = duplex};
-    return stream_ioctl((dev_stream *)ds, SPI_CONFIG_SET, &cfg);
+    struct spi_cfg cfg = {.freq = freq, .mode = mode, .lsb = lsb};
+    return bus_ioctl((dev_bus *)ds, SPI_CONFIG_SET, &cfg);
+}
+
+extern bool
+spi_state(dev_spi *ds, bool cs)
+{
+    return bus_ioctl((dev_bus *)ds, SPI_STATE_CS, (void*)cs);
+}
+
+extern bool
+spi_limit(dev_spi *ds, size_t *count)
+{
+    bool ret = false;
+
+    size_t w = 0, c = 0;
+    ret = bus_stat((dev_bus *)ds, &w, &c);
+    if (ret)
+    {
+        if (count)
+            *count = c;
+    }
+
+    return ret;
+}
+
+extern bool
+spi_transfer(dev_spi *ds, void *data, size_t count)
+{
+    return bus_transfer((dev_bus *)ds, data, count);
+}
+
+extern bool
+spi_poll(dev_spi *ds)
+{
+    return bus_poll((dev_bus *)ds);
 }

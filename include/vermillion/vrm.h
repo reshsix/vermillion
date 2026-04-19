@@ -1,17 +1,17 @@
 /*
-This file is part of vermillion.
-
-Vermillion is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published
-by the Free Software Foundation, version 3.
-
-Vermillion is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+ *  This file is part of vermillion.
+ *
+ *  Vermillion is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3.
+ *
+ *  Vermillion is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #pragma once
@@ -27,13 +27,6 @@ typedef struct dict    vrm_dict;
 typedef struct vrm_disk_f vrm_disk_f;
 typedef struct vrm_dict   vrm_dict;
 #endif
-
-enum vrm_comm_id
-{
-    VRM_UART0,
-    VRM_UART1,
-    VRM_SPI
-};
 
 struct vrm
 {
@@ -79,20 +72,36 @@ struct vrm
         bool (*dir)(uint8_t pin, bool output);
         bool (*get)(uint8_t pin, bool *state);
         bool (*set)(uint8_t pin, bool state);
+    } gpio;
 
+    struct
+    {
+        bool (*info)(bool slave, uint32_t *rate, uint8_t *bits,
+                     uint8_t *parity, uint8_t *stop);
+        bool (*config)(bool slave, uint32_t rate, uint8_t bits,
+                       uint8_t parity, uint8_t stop);
+        bool (*read)(bool slave, char *c);
+        bool (*write)(bool slave, char c);
         struct
         {
-            uint32_t (*uart)(uint8_t bits, uint8_t parity, uint8_t stop);
-            uint32_t (*spi)(uint8_t mode, bool lsb, bool csp, bool duplex);
-        } flags;
-        bool (*info)(uint8_t id, uint32_t *rate, uint32_t *flags);
-        bool (*config)(uint8_t id, uint32_t rate, uint32_t flags);
+            bool (*read)(bool slave, char *c);
+            bool (*write)(bool slave, char c);
+        } nb;
+    } uart;
 
-        bool (*start)(uint8_t id);
-        bool (*stop)(uint8_t id);
-        bool (*read)(uint8_t id, char *c);
-        bool (*write)(uint8_t id, char c);
-    } comm;
+    struct
+    {
+        bool (*info)(uint32_t *rate, uint8_t *mode, bool *lsb, bool *csp);
+        bool (*config)(uint32_t rate, uint8_t mode, bool lsb, bool csp);
+        bool (*state)(bool cs);
+        bool (*transfer)(uint8_t *data, size_t count);
+        struct
+        {
+            bool (*limit)(size_t *count);
+            bool (*transfer)(uint8_t *data, size_t count);
+            bool (*poll)(void);
+        } nb;
+    } spi;
 
     struct
     {
@@ -140,9 +149,9 @@ struct vrm
 
     struct
     {
-        void (*char_)(uint8_t id, const char c);
-        void (*string)(uint8_t id, const char *s);
-        void (*unsigned_)(uint8_t id, const uint64_t n);
-        void (*signed_)(uint8_t id, int64_t n);
+        void (*char_)(const char c);
+        void (*string)(const char *s);
+        void (*unsigned_)(uint64_t n);
+        void (*signed_)(int64_t n);
     } syslog;
 };

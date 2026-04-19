@@ -1,17 +1,17 @@
 /*
-This file is part of vermillion.
-
-Vermillion is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published
-by the Free Software Foundation, version 3.
-
-Vermillion is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+ *  This file is part of vermillion.
+ *
+ *  Vermillion is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3.
+ *
+ *  Vermillion is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <general/mem.h>
@@ -58,17 +58,22 @@ main(void)
                     .path.dirname  = path_dirname,
                     .path.filename = path_filename,
 
-                    .comm.dir        = comm_dir,
-                    .comm.get        = comm_get,
-                    .comm.set        = comm_set,
-                    .comm.flags.uart = comm_flags_uart,
-                    .comm.flags.spi  = comm_flags_spi,
-                    .comm.info       = comm_info,
-                    .comm.config     = comm_config,
-                    .comm.start      = comm_start,
-                    .comm.stop       = comm_stop,
-                    .comm.read       = comm_read,
-                    .comm.write      = comm_write,
+                    .gpio.dir        = comm_gpio_dir,
+                    .gpio.get        = comm_gpio_get,
+                    .gpio.set        = comm_gpio_set,
+                    .uart.info       = comm_uart_info,
+                    .uart.config     = comm_uart_config,
+                    .uart.read       = comm_uart_read,
+                    .uart.write      = comm_uart_write,
+                    .uart.nb.read    = comm_uart_read_nb,
+                    .uart.nb.write   = comm_uart_write_nb,
+                    .spi.info        = comm_spi_info,
+                    .spi.config      = comm_spi_config,
+                    .spi.state       = comm_spi_state,
+                    .spi.transfer    = comm_spi_transfer,
+                    .spi.nb.limit    = comm_spi_limit,
+                    .spi.nb.transfer = comm_spi_transfer_nb,
+                    .spi.nb.poll     = comm_spi_poll,
                     .disk.open       = disk_open,
                     .disk.close      = disk_close,
                     .disk.stat       = disk_stat,
@@ -93,7 +98,7 @@ main(void)
                     .syslog.string    = syslog_string,
                     .syslog.unsigned_ = syslog_unsigned,
                     .syslog.signed_   = syslog_signed};
-    syslog_string(COMM_UART0, "\033[2J\033[H");
+    syslog_string("\033[2J\033[H");
 
     disk_f *f = disk_open("/NOTICE");
     if (f)
@@ -106,7 +111,7 @@ main(void)
                 break;
 
             for (size_t i = 0; i < read; i++)
-                comm_write(COMM_UART0, buf[i]);
+                comm_uart_write(false, buf[i]);
         }
 
         const char *path  = "/prog/init.elf";
@@ -117,25 +122,24 @@ main(void)
         if (mem)
         {
             vrm_prog_t f = (void *)&(mem[entry]);
-            syslog_string(COMM_UART0, f(&v, &path, 1) ? "Success" : "Failure");
+            syslog_string(f(&v, &path, 1) ? "Success" : "Failure");
         }
         else
         {
-            syslog_string(COMM_UART0, "init.elf missing, running shell\r\n");
+            syslog_string("init.elf missing, running shell\r\n");
             u8 *mem = loader_fdpic(path2, &entry);
             if (mem)
             {
                 vrm_prog_t f = (void *)&(mem[entry]);
-                syslog_string(COMM_UART0, f(&v, &path, 1) ? "Success" :
-                                                            "Failure");
+                syslog_string(f(&v, &path, 1) ? "Success" : "Failure");
             }
             else
-                syslog_string(COMM_UART0, "shell.elf missing\r\n");
+                syslog_string("shell.elf missing\r\n");
         }
         mem_del(mem);
     }
     else
-        syslog_string(COMM_UART0, "NOTICE missing\r\n");
+        syslog_string("NOTICE missing\r\n");
     disk_close(f);
 
     devtree_clean();

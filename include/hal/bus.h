@@ -16,33 +16,24 @@
 
 #pragma once
 
-#include <hal/bus.h>
+#include <general/types.h>
 
-enum spi_index
+typedef struct
 {
-    SPI_CONFIG_GET,
-    SPI_CONFIG_SET,
-    SPI_STATE_CS
-};
+    void *init, (*clean)(void *);
+    bool (*ioctl)(void *ctx, u8 idx, void *data);
+    bool (*stat)(void *ctx, size_t *width, size_t *length);
+    bool (*transfer)(void *ctx, void *data, size_t count);
+    bool (*poll)(void *ctx);
+} drv_bus;
 
-typedef drv_bus drv_spi;
-typedef dev_bus dev_spi;
-
-enum spi_mode
+typedef struct
 {
-    SPI_MODE0, SPI_MODE1, SPI_MODE2, SPI_MODE3
-};
+    const drv_bus *driver;
+    void *context;
+} dev_bus;
 
-bool spi_info(dev_spi *ds, u32 *freq, enum spi_mode *mode, bool *lsb);
-bool spi_config(dev_spi *ds, u32 freq, enum spi_mode mode, bool lsb);
-bool spi_state(dev_spi *ds, bool cs);
-bool spi_limit(dev_spi *ds, size_t *count);
-bool spi_transfer(dev_spi *ds, void *data, size_t count);
-bool spi_poll(dev_spi *ds);
-
-struct spi_cfg
-{
-    u32 freq;
-    enum spi_mode mode;
-    bool lsb;
-};
+bool bus_ioctl(dev_bus *ds, u8 idx, void *data);
+bool bus_stat(dev_bus *ds, size_t *width, size_t *length);
+bool bus_transfer(dev_bus *ds, void *data, size_t count);
+bool bus_poll(dev_bus *ds);

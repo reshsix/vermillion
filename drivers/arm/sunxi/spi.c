@@ -28,8 +28,8 @@
 #define SPI_MBC(x) *(volatile u32*)(x + 0x30)
 #define SPI_MTC(x) *(volatile u32*)(x + 0x34)
 #define SPI_BCC(x) *(volatile u32*)(x + 0x38)
-#define SPI_TXD(x) *(volatile u32*)(x + 0x200)
-#define SPI_RXD(x) *(volatile u32*)(x + 0x300)
+#define SPI_TXD(x) *(volatile u8*)(x + 0x200)
+#define SPI_RXD(x) *(volatile u8*)(x + 0x300)
 
 /* Driver definition */
 
@@ -37,7 +37,10 @@ struct spi
 {
     u32 addr;
     struct spi_cfg cfg;
-    u8 last;
+
+    u8 *data;
+    size_t count;
+    bool busy;
 };
 
 static struct spi spis[2] = {0};
@@ -81,15 +84,12 @@ ioctl(void *ctx, u8 idx, void *data)
         case SPI_STATE_CS:
             ret = true;
 
-            bool on = data;
+            bool high = data;
             SPI_TCR(spi->addr) = (spi->cfg.mode & 0x3) | (spi->cfg.lsb << 12) |
                                  (1 << 6) | (1 << 13);
-            bool st = spi->cfg.csp;
-            if (!on)
-                st = !st;
 
-            if (st) SPI_TCR(spi->addr) |=  (1 << 7);
-            else    SPI_TCR(spi->addr) &= ~(1 << 7);
+            if (high) SPI_TCR(spi->addr) |=  (1 << 7);
+            else      SPI_TCR(spi->addr) &= ~(1 << 7);
             break;
     }
 
@@ -97,81 +97,68 @@ ioctl(void *ctx, u8 idx, void *data)
 }
 
 static bool
-stat(void *ctx, u32 *width)
+stat(void *ctx, size_t *width, size_t *length)
 {
-    *width = sizeof(u8);
+    *width  = sizeof(u8);
+    *length = 64;
     return true;
 }
 
-static u8
-spi_transfer(struct spi *spi, u8 byte)
-{
-    /* Reset FIFOs */
-    SPI_FCR(spi->addr) |= (1 << 31) | (1 << 15);
-    while (!(SPI_ISR(spi->addr) & ((1 << 1) | (1 << 5))));
-    SPI_ISR(spi->addr) |= 0xFFFFFFFF;
-
-    /* Set all counters */
-    SPI_MBC(spi->addr) = 0x1;
-    SPI_MTC(spi->addr) = 0x1;
-    SPI_BCC(spi->addr) = 0x1;
-
-    /* Add byte to FIFO */
-    SPI_TXD(spi->addr) = byte;
-
-    /* Wait for XCH=0 */
-    while (SPI_TCR(spi->addr) & (1 << 31));
-
-    /* Set SPI mode */
-    SPI_TCR(spi->addr) = (spi->cfg.mode & 0x3) | (spi->cfg.lsb << 12) |
-                         (1 << 6) | (1 << 13);
-
-    /* Clean ISR */
-    SPI_ISR(spi->addr) |= 0xFFFFFFFF;
-
-    /* Start transfer */
-    SPI_TCR(spi->addr) |= (1 << 31);
-
-    /* Wait for completion */
-    while (!(SPI_ISR(spi->addr) & (1 << 12)));
-    SPI_ISR(spi->addr) |= 0xFFFFFFFF;
-
-    /* Return result from read pipe */
-    return SPI_RXD(spi->addr);
-}
-
 static bool
-read(void *ctx, void *data)
+transfer(void *ctx, void *data, size_t count)
 {
-    bool ret = true;
+    bool ret = (count <= 64);
 
+    /* Check if XCH = 0 */
     struct spi *spi = ctx;
-    u8 byte = 0;
-    if (spi->cfg.duplex)
-        byte = spi->last;
-    else
-        byte = spi_transfer(ctx, 0x0);
-    mem_copy(data, &byte, sizeof(u8));
+    if (ret)
+        ret = !(SPI_TCR(spi->addr) & (1 << 31));
+
+    if (ret)
+    {
+        spi->data  = data;
+        spi->count = count;
+
+        /* Set all counters */
+        SPI_MBC(spi->addr) = count;
+        SPI_MTC(spi->addr) = count;
+        SPI_BCC(spi->addr) = count;
+
+        /* Write bytes to TXFIFO */
+        for (size_t i = 0; i < count; i++)
+            SPI_TXD(spi->addr) = spi->data[i];
+
+        /* Set mode and start transfer */
+        SPI_TCR(spi->addr) = (spi->cfg.mode & 0x3) | (spi->cfg.lsb << 12) |
+                             (1 << 6) | (1 << 13) | (1 << 31);
+    }
 
     return ret;
 }
 
 static bool
-write(void *ctx, void *data)
+poll(void *ctx)
 {
     bool ret = true;
 
+    /* Check if XCH = 0 */
     struct spi *spi = ctx;
-    u8 byte = 0;
-    mem_copy(&byte, data, sizeof(u8));
-    spi->last = spi_transfer(spi, byte);
+    if (ret)
+        ret = !(SPI_TCR(spi->addr) & (1 << 31));
+
+    if (ret)
+    {
+        /* Read bytes from RXFIFO */
+        for (size_t i = 0; i < spi->count; i++)
+            spi->data[i] = SPI_RXD(spi->addr);
+    }
 
     return ret;
 }
 
 static const drv_spi sunxi_spi =
 {
-    .ioctl = ioctl, .stat = stat, .read = read, .write = write
+    .ioctl = ioctl, .stat = stat, .transfer = transfer, .poll = poll
 };
 
 /* Device creation */

@@ -1,17 +1,17 @@
 /*
-This file is part of vermillion.
-
-Vermillion is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published
-by the Free Software Foundation, version 3.
-
-Vermillion is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+ *  This file is part of vermillion.
+ *
+ *  Vermillion is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3.
+ *
+ *  Vermillion is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #pragma once
@@ -31,23 +31,23 @@ void comm_setup(dev_stream *uart0, dev_stream *uart1,
 
 /* For external usage */
 
-enum comm_id
-{
-    COMM_UART0,
-    COMM_UART1,
-    COMM_SPI
-};
+bool comm_gpio_dir(uint8_t pin, bool output);
+bool comm_gpio_get(uint8_t pin, bool *state);
+bool comm_gpio_set(uint8_t pin, bool state);
 
-bool comm_dir(uint8_t pin, bool output);
-bool comm_get(uint8_t pin, bool *state);
-bool comm_set(uint8_t pin, bool state);
+bool comm_uart_info(bool slave, uint32_t *rate, uint8_t *bits,
+                    uint8_t *parity, uint8_t *stop);
+bool comm_uart_config(bool slave, uint32_t rate, uint8_t bits,
+                      uint8_t parity, uint8_t stop);
+bool comm_uart_read(bool slave, char *c);
+bool comm_uart_write(bool slave, char c);
+bool comm_uart_read_nb(bool slave, char *c);
+bool comm_uart_write_nb(bool slave, char c);
 
-uint32_t comm_flags_uart(uint8_t bits, uint8_t parity, uint8_t stop);
-uint32_t comm_flags_spi(uint8_t mode, bool lsb, bool csp, bool duplex);
-bool comm_info(u8 id, u32 *rate, u32 *flags);
-bool comm_config(u8 id, u32 rate, u32 flags);
-
-bool comm_start(u8 id);
-bool comm_stop(u8 id);
-bool comm_read(u8 id, char *c);
-bool comm_write(u8 id, char c);
+bool comm_spi_info(uint32_t *rate, uint8_t *mode, bool *lsb);
+bool comm_spi_config(uint32_t rate, uint8_t mode, bool lsb);
+bool comm_spi_state(bool cs);
+bool comm_spi_transfer(uint8_t *data, size_t count);
+bool comm_spi_limit(size_t *count);
+bool comm_spi_transfer_nb(uint8_t *data, size_t count);
+bool comm_spi_poll(void);

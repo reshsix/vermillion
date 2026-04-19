@@ -117,7 +117,7 @@ ioctl(void *ctx, u8 idx, void *data)
 }
 
 static bool
-stat(void *ctx, u32 *width)
+stat(void *ctx, size_t *width)
 {
     *width = sizeof(u8);
     return true;

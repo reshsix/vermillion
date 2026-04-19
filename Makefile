@@ -64,7 +64,7 @@ PREFIX = src/general
 OBJS += $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/path.o
 
 PREFIX = src/hal
-OBJS += $(PREFIX)/block.o $(PREFIX)/stream.o
+OBJS += $(PREFIX)/block.o $(PREFIX)/stream.o $(PREFIX)/bus.o
 
 PREFIX = src/hal/classes
 OBJS += $(PREFIX)/fs.o $(PREFIX)/gpio.o $(PREFIX)/pic.o \

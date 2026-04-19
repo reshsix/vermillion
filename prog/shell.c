@@ -1,17 +1,17 @@
 /*
-This file is part of vermillion.
-
-Vermillion is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published
-by the Free Software Foundation, version 3.
-
-Vermillion is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+ *  This file is part of vermillion.
+ *
+ *  Vermillion is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3.
+ *
+ *  Vermillion is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <vermillion/prog.h>
@@ -36,18 +36,18 @@ vrm_prog(struct vrm *v, const char **args, int count)
     (void)args;
     (void)count;
 
-    v->comm.write(VRM_UART0, '>');
-    v->comm.write(VRM_UART0, ' ');
+    v->uart.write(0, '>');
+    v->uart.write(0, ' ');
 
     while (true)
     {
         char c = '\0';
-        v->comm.read(VRM_UART0, &c);
+        v->uart.read(0, &c);
         if (c == '\r')
         {
             line[line_c++] = '\0';
-            v->comm.write(VRM_UART0, '\r');
-            v->comm.write(VRM_UART0, '\n');
+            v->uart.write(0, '\r');
+            v->uart.write(0, '\n');
 
             /* Parse program */
             char *saveptr = NULL;
@@ -73,11 +73,11 @@ vrm_prog(struct vrm *v, const char **args, int count)
             {
                 if (list_c == 1)
                 {
-                    v->syslog.signed_(VRM_UART0, v->time.clock());
-                    v->syslog.string(VRM_UART0, " cs\r\n");
+                    v->syslog.signed_(v->time.clock());
+                    v->syslog.string(" cs\r\n");
                 }
                 else
-                    v->syslog.string(VRM_UART0, "USAGE: clock\r\n");
+                    v->syslog.string("USAGE: clock\r\n");
             }
             else
             {
@@ -95,14 +95,13 @@ vrm_prog(struct vrm *v, const char **args, int count)
                     if (mem)
                     {
                         vrm_prog_t f = (void *)&(mem[entry]);
-                        v->syslog.string(VRM_UART0, f(v, list, list_c) ?
+                        v->syslog.string(f(v, list, list_c) ?
                                          FG_GREEN "Success\r\n" :
                                          FG_RED   "Failure\r\n");
-                        v->syslog.string(VRM_UART0, FG_WHITE);
+                        v->syslog.string(FG_WHITE);
                     }
                     else
-                        v->syslog.string(VRM_UART0,
-                                         "ERROR: Program not found\r\n");
+                        v->syslog.string("ERROR: Program not found\r\n");
                     v->mem.del(mem);
                 }
             }
@@ -114,16 +113,16 @@ vrm_prog(struct vrm *v, const char **args, int count)
             list_c = 0;
 
             /* Prompt */
-            v->comm.write(VRM_UART0, '>');
-            v->comm.write(VRM_UART0, ' ');
+            v->uart.write(0, '>');
+            v->uart.write(0, ' ');
         }
         else if (c == '\b' || c == 0x7F)
         {
             if (line_c > 0)
             {
-                v->comm.write(VRM_UART0, '\b');
-                v->comm.write(VRM_UART0, ' ');
-                v->comm.write(VRM_UART0, '\b');
+                v->uart.write(0, '\b');
+                v->uart.write(0, ' ');
+                v->uart.write(0, '\b');
                 line[--line_c] = '\0';
             }
         }
@@ -131,13 +130,12 @@ vrm_prog(struct vrm *v, const char **args, int count)
         {
             if (line_c < sizeof(line))
             {
-                v->comm.write(VRM_UART0, c);
+                v->uart.write(0, c);
                 line[line_c++] = c;
             }
             else
             {
-                v->syslog.string(VRM_UART0,
-                                 "NOTICE: user is typing too much\r\n");
+                v->syslog.string("NOTICE: user is typing too much\r\n");
                 break;
             }
         }

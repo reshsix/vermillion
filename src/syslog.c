@@ -1,17 +1,17 @@
 /*
-This file is part of vermillion.
-
-Vermillion is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published
-by the Free Software Foundation, version 3.
-
-Vermillion is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+ *  This file is part of vermillion.
+ *
+ *  Vermillion is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3.
+ *
+ *  Vermillion is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <general/types.h>
@@ -21,27 +21,27 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <syslog.h>
 
 extern void
-syslog_char(u8 id, const char c)
+syslog_char(const char c)
 {
-    comm_write(id, c);
+    comm_uart_write(false, c);
 }
 
 extern void
-syslog_string(u8 id, const char *s)
+syslog_string(const char *s)
 {
     for (; s[0] != '\0'; s = &(s[1]))
     {
         if (s[0] != '\0')
-            syslog_char(id, s[0]);
+            syslog_char(s[0]);
     }
 }
 
 extern void
-syslog_unsigned(u8 id, const u64 n)
+syslog_unsigned(const u64 n)
 {
     bool started = false;
 
-    syslog_string(id, "0x");
+    syslog_string("0x");
     for (u8 i = 0; i < 16; i++)
     {
         u8 x = (n >> ((15 - i) * 4)) & 0xF;
@@ -51,24 +51,24 @@ syslog_unsigned(u8 id, const u64 n)
         if (started)
         {
             if (x < 10)
-                syslog_char(id, x + '0');
+                syslog_char(x + '0');
             else
-                syslog_char(id, x - 10 + 'A');
+                syslog_char(x - 10 + 'A');
         }
     }
 
     if (!started)
-        syslog_char(id, '0');
+        syslog_char('0');
 }
 
 extern void
-syslog_signed(u8 id, s64 n)
+syslog_signed(s64 n)
 {
     bool started = false;
 
     if (n < 0)
     {
-        syslog_char(id, '-');
+        syslog_char('-');
         n = -n;
     }
 
@@ -81,7 +81,7 @@ syslog_signed(u8 id, s64 n)
 
         if (started)
         {
-            syslog_char(id, d + '0');
+            syslog_char(d + '0');
             a -= i * d;
         }
 
@@ -90,5 +90,5 @@ syslog_signed(u8 id, s64 n)
     }
 
     if (!started)
-        syslog_char(id, '0');
+        syslog_char('0');
 }

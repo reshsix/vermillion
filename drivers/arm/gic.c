@@ -1,17 +1,17 @@
 /*
-This file is part of vermillion.
-
-Vermillion is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published
-by the Free Software Foundation, version 3.
-
-Vermillion is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+ *  This file is part of vermillion.
+ *
+ *  Vermillion is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3.
+ *
+ *  Vermillion is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <general/types.h>
@@ -214,7 +214,7 @@ static struct gic gics[1] = {0};
 
 INTERRUPT(undef) handler_undef(void)
 {
-    syslog_string(COMM_UART0, "Undefined Instruction");
+    syslog_string("Undefined Instruction");
     for (;;)
         arm_wait_interrupts();
 }
@@ -231,20 +231,20 @@ INTERRUPT(swi) handler_swi(void)
                 swi->handler(swi->arg, gic->swi_data);
         }
         else
-            syslog_string(COMM_UART0, "Unhandled supervisor call");
+            syslog_string("Unhandled supervisor call");
     }
 }
 
 INTERRUPT(abort) handler_prefetch(void)
 {
-    syslog_string(COMM_UART0, "Prefetch Abort");
+    syslog_string("Prefetch Abort");
     for (;;)
         arm_wait_interrupts();
 }
 
 INTERRUPT(abort) handler_data(void)
 {
-    syslog_string(COMM_UART0, "Data Abort");
+    syslog_string("Data Abort");
     for (;;)
         arm_wait_interrupts();
 }

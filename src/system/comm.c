@@ -51,10 +51,10 @@ comm_setup(dev_uart *uart0, dev_uart *uart1,
         pa[i] = pins[i];
 }
 
-/* For external usage */
+/* GPIO functions */
 
 extern bool
-comm_dir(uint8_t pin, bool output)
+comm_gpio_dir(uint8_t pin, bool output)
 {
     bool ret = false;
 
@@ -66,7 +66,7 @@ comm_dir(uint8_t pin, bool output)
 }
 
 extern bool
-comm_get(uint8_t pin, bool *state)
+comm_gpio_get(uint8_t pin, bool *state)
 {
     bool ret = false;
 
@@ -77,7 +77,7 @@ comm_get(uint8_t pin, bool *state)
 }
 
 extern bool
-comm_set(uint8_t pin, bool state)
+comm_gpio_set(uint8_t pin, bool state)
 {
     bool ret = false;
 
@@ -87,146 +87,128 @@ comm_set(uint8_t pin, bool state)
     return ret;
 }
 
-extern uint32_t
-comm_flags_uart(uint8_t bits, uint8_t parity, uint8_t stop)
-{
-    return bits | (parity << 4) | (stop << 8);
-}
-
-extern uint32_t
-comm_flags_spi(uint8_t mode, bool lsb, bool csp, bool duplex)
-{
-    return mode | (lsb << 4) | (csp << 5) | (duplex << 6);
-}
+/* UART functions */
 
 extern bool
-comm_info(uint8_t id, uint32_t *rate, uint32_t *flags)
+comm_uart_info(bool slave, uint32_t *rate, uint8_t *bits,
+               uint8_t *parity, uint8_t *stop)
 {
     bool ret = false;
 
-    uint32_t rate2  = 0;
-    uint32_t flags2 = 0;
-    switch (id)
+    enum uart_bits   bits2;
+    enum uart_parity parity2;
+    enum uart_stop   stop2;
+
+    ret = uart_info((slave) ? u1 : u0, rate, &bits2, &parity2, &stop2);
+    if (ret)
     {
-        case COMM_UART0:
-        case COMM_UART1:;
-            enum uart_bits   bits;
-            enum uart_parity parity;
-            enum uart_stop   stop;
+        if (bits)
+            *bits = bits2;
+        if (parity)
+            *parity = parity2;
+        *stop = stop2;
+    }
 
-            ret = uart_info((id == COMM_UART0) ? u0 : u1, &rate2,
-                            &bits, &parity, &stop);
-            if (ret)
-                flags2 = bits | (parity << 4) | (stop << 8);
-            break;
-        case COMM_SPI:
-            enum spi_mode mode;
-            bool lsb, csp, duplex;
+    return ret;
+}
+extern bool
+comm_uart_config(bool slave, uint32_t rate, uint8_t bits,
+                 uint8_t parity, uint8_t stop)
+{
+    return uart_config((slave) ? u1 : u0, rate, bits, parity, stop);
+}
 
-            ret = spi_info(s0, rate, &mode, &lsb, &csp, &duplex);
-            if (ret)
-                flags2 = mode | (lsb << 4) | (csp << 5) | (duplex << 6);
-            break;
+extern bool
+comm_uart_read(bool slave, char *c)
+{
+    while (!uart_read((slave) ? u1 : u0, c));
+    return true;
+}
+
+extern bool
+comm_uart_write(bool slave, char c)
+{
+    while (!uart_write((slave) ? u1 : u0, c));
+    return true;
+}
+
+extern bool
+comm_uart_read_nb(bool slave, char *c)
+{
+    return uart_read((slave) ? u1 : u0, c);
+}
+
+extern bool
+comm_uart_write_nb(bool slave, char c)
+{
+    return uart_write((slave) ? u1 : u0, c);
+}
+
+/* SPI functions */
+
+extern bool
+comm_spi_info(uint32_t *rate, uint8_t *mode, bool *lsb)
+{
+    bool ret = false;
+
+    enum spi_mode mode2;
+    ret = spi_info(s0, rate, &mode2, lsb);
+    if (ret)
+    {
+        if (mode)
+            *mode = mode2;
     }
 
     return ret;
 }
 
 extern bool
-comm_config(uint8_t id, uint32_t rate, uint32_t flags)
+comm_spi_config(uint32_t rate, uint8_t mode, bool lsb)
+{
+    return spi_config(s0, rate, mode, lsb);
+}
+
+extern bool
+comm_spi_state(bool cs)
+{
+    return spi_state(s0, cs);
+}
+
+extern bool
+comm_spi_transfer(uint8_t *data, size_t count)
 {
     bool ret = false;
 
-    switch (id)
+    size_t limit = 0;
+    ret = spi_limit(s0, &limit);
+    if (ret)
     {
-        case COMM_UART0:
-        case COMM_UART1:
-            ret = uart_config((id == COMM_UART0) ? u0 : u1, rate,
-                              (flags & 0x0F)   >> 0,
-                              (flags & 0xF0)   >> 4,
-                              (flags & 0x0F00) >> 8);
-            break;
-        case COMM_SPI:
-            ret = spi_config(s0, rate, flags & 0x0F,
-                             flags & 0x10, flags & 0x20, flags & 0x40);
-            break;
+        for (size_t i = 0; i < count; i += limit)
+        {
+            size_t remain = count - i;
+            size_t size = (remain > limit) ? limit : remain;
+            while (!spi_transfer(s0, &(data[i]), size));
+            while (!spi_poll(s0));
+        }
     }
 
     return ret;
 }
 
 extern bool
-comm_start(uint8_t id)
+comm_spi_limit(size_t *count)
 {
-    bool ret = false;
-
-    switch (id)
-    {
-        case COMM_UART0:
-        case COMM_UART1:
-            ret = false;
-            break;
-        case COMM_SPI:
-            ret = spi_start(s0);
-            break;
-    }
-
-    return ret;
+    return spi_limit(s0, count);
 }
 
 extern bool
-comm_stop(uint8_t id)
+comm_spi_transfer_nb(uint8_t *data, size_t count)
 {
-    bool ret = false;
-
-    switch (id)
-    {
-        case COMM_UART0:
-        case COMM_UART1:
-            ret = false;
-            break;
-        case COMM_SPI:
-            ret = spi_stop(s0);
-            break;
-    }
-
-    return ret;
+    return spi_transfer(s0, data, count);
 }
 
 extern bool
-comm_read(uint8_t id, char *c)
+comm_spi_poll(void)
 {
-    bool ret = false;
-
-    switch (id)
-    {
-        case COMM_UART0:
-        case COMM_UART1:
-            ret = uart_read((id == COMM_UART0) ? u0 : u1, c);
-            break;
-        case COMM_SPI:
-            ret = spi_read(s0, (u8*)c);
-            break;
-    }
-
-    return ret;
-}
-
-extern bool
-comm_write(uint8_t id, char c)
-{
-    bool ret = false;
-
-    switch (id)
-    {
-        case COMM_UART0:
-        case COMM_UART1:
-            ret = uart_write((id == COMM_UART0) ? u0 : u1, &c);
-            break;
-        case COMM_SPI:
-            ret = spi_write(s0, (u8*)&c);
-            break;
-    }
-
-    return ret;
+    return spi_poll(s0);
 }
