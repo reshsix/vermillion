@@ -53,7 +53,7 @@ dev_fs root;
 dev_pic pic;
 dev_spi spi0;
 dev_gpio gpio0, gpio1;
-dev_uart tty0, tty1, tty2, tty3, tty4;
+dev_uart tty0, tty1;
 dev_block mmcblk0, mmcblk0p1;
 dev_timer timer0, timer1;
 
@@ -63,16 +63,14 @@ devtree_init(void)
     mem_init();
     APB0_GATE = 1;
 
+    /* Interrupts */
+    pic = arm_gic_init(0x01c82000, 0x01c81000);
+
     /* Serial */
     tty0 = sunxi_uart_init(0);
     tty1 = sunxi_uart_init(1);
-    tty2 = sunxi_uart_init(2);
-    tty3 = sunxi_uart_init(3);
-    tty4 = sunxi_uart_init(4);
     uart_config(&tty0, 115200, UART_8B, UART_NOPARITY, UART_1S);
-
-    /* Interrupts */
-    pic = arm_gic_init(0x01c82000, 0x01c81000);
+    uart_config(&tty1, 115200, UART_8B, UART_NOPARITY, UART_1S);
 
     /* GPIO initialization */
     gpio0 = sunxi_gpio_init(0, &pic);
@@ -149,9 +147,6 @@ devtree_clean(void)
     comm_setup(NULL, NULL, NULL, NULL, 0, NULL);
     sunxi_uart_clean(&tty0);
     sunxi_uart_clean(&tty1);
-    sunxi_uart_clean(&tty2);
-    sunxi_uart_clean(&tty3);
-    sunxi_uart_clean(&tty4);
     sunxi_spi_clean(&spi0);
 
     arm_gic_clean(&pic);

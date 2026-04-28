@@ -17,6 +17,7 @@
 #include <general/types.h>
 #include <general/mem.h>
 
+#include <hal/classes/pic.h>
 #include <hal/classes/uart.h>
 
 #define IO_BUF(p) *(volatile u32*)(p + 0x00)
@@ -41,11 +42,34 @@ struct serial
 {
     u32 port;
     struct uart_cfg cfg;
+
+    dev_pic *pic;
+    u8 irq;
+
+    u8 buffer[0x400];
+    size_t head, tail;
 };
 
 struct serial serials[5] = {0};
 static const u32 ports[5] = {0x01c28000, 0x01c28400,
                              0x01c28800, 0x01c28c00, 0x01f02800};
+static const u8 irqs[5] = {32, 33, 34, 35, 70};
+
+static void
+uart_handler(void *arg)
+{
+    struct serial *u = arg;
+
+    while (IO_LSR(u->port) & (1 << 0))
+    {
+        size_t next = (u->head + 1) & 0x3FF;
+        if (next != u->tail)
+        {
+            u->buffer[u->head] = IO_BUF(u->port);
+            u->head = next;
+        }
+    }
+}
 
 static bool
 ioctl(void *ctx, u8 idx, void *data)
@@ -72,6 +96,7 @@ ioctl(void *ctx, u8 idx, void *data)
             if (ret)
             {
                 mem_copy(&(u->cfg), &cfg, sizeof(struct uart_cfg));
+                while (IO_USR(u->port) & 1);
 
                 u16 divider = 1500000 / cfg.baud;
                 IO_LCR(u->port) |= (1 << 7);
@@ -129,10 +154,17 @@ read(void *ctx, void *data)
     bool ret = false;
 
     struct serial *u = ctx;
-    ret = (IO_LSR(u->port) & (1 << 0));
+    ret = (u->head != u->tail || IO_LSR(u->port) & (1 << 0));
     if (ret)
     {
-        u8 byte = IO_BUF(u->port);
+        u8 byte = 0;
+        if (u->head != u->tail)
+        {
+            byte = u->buffer[u->tail];
+            u->tail = (u->tail + 1) & 0x3FF;
+        }
+        else
+            byte = IO_BUF(u->port);
         mem_copy(data, &byte, sizeof(u8));
     }
 
@@ -148,7 +180,7 @@ write(void *ctx, void *data)
     ret = (IO_LSR(u->port) & (1 << 5));
     if (ret)
     {
-        u8 byte = IO_BUF(u->port);
+        u8 byte = 0;
         mem_copy(&byte, data, sizeof(u8));
         IO_BUF(u->port) = byte;
     }
@@ -164,7 +196,7 @@ static const drv_uart sunxi_uart =
 /* Device creation */
 
 extern dev_uart
-sunxi_uart_init(u8 id)
+sunxi_uart_init(u8 id, dev_pic *pic)
 {
     struct serial *ret = NULL;
 
@@ -172,6 +204,14 @@ sunxi_uart_init(u8 id)
     {
         ret = &(serials[id]);
         ret->port = ports[id];
+
+        ret->pic = pic;
+        ret->irq = irqs[id];
+        pic_config(pic, ret->irq, true, uart_handler, ret, PIC_LEVEL_H);
+
+        /* FIFOs with RX 1/2 full interrupt */
+        IO_FCR(ret->port) = (1 << 7) | (1 << 0);
+        IO_IER(ret->port) |= (1 << 0);
     }
 
     return (dev_uart){.driver = &sunxi_uart, .context = ret};
@@ -181,5 +221,9 @@ extern void
 sunxi_uart_clean(dev_uart *u)
 {
     if (u)
+    {
+        struct serial *s = u->context;
+        pic_config(s->pic, s->irq, false, NULL, NULL, PIC_LEVEL_H);
         u->context = NULL;
+    }
 }

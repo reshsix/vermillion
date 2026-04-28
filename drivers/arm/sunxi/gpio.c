@@ -301,7 +301,7 @@ sunxi_gpio_init(u8 id, dev_pic *pic, u16 *irqs)
         {
             case 0:
                 ret->base      = 0x01c20800;
-                ret->io_ports  = 6;
+                ret->io_ports  = 7;
                 ret->int_ports = 2;
                 ret->irqs[0]   = 43;
                 ret->irqs[1]   = 49;
