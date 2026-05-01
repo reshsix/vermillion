@@ -719,6 +719,11 @@ fill_entry(u8 *buf, const char *name, bool dir, u8 entries, u32 cluster)
     buf[i + 27] = (cluster >> 8) & 0xFF;
     buf[i + 20] = (cluster >> 16) & 0xFF;
     buf[i + 21] = (cluster >> 24) & 0xFF;
+
+    /* Unused date/time slots */
+    buf[i + 16] = 0x21;
+    buf[i + 18] = 0x21;
+    buf[i + 24] = 0x21;
 }
 
 static bool

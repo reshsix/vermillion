@@ -75,10 +75,12 @@ mmc_rw(void *ctx, u32 idx, void *buffer, u32 block, bool write)
         case BLOCK_COMMON:
             ret = true;
 
+            while (SD_STA(card->base) & (1 << 9) ||
+                   SD_STA(card->base) & (1 << 10));
+            while (SD_CMD(card->base) >> 31);
+
             SD_BLK(card->base) = 0x200;
             SD_CFG(card->base) = 1 << 31;
-
-            while (SD_CMD(card->base) >> 31);
 
             SD_CNT(card->base) = 0x200;
             if (!(card->mmc))
@@ -111,6 +113,9 @@ mmc_rw(void *ctx, u32 idx, void *buffer, u32 block, bool write)
                     mem_copy(&(dest[(i * sizeof(u32))]), &x, sizeof(u32));
                 }
             }
+
+            while (SD_STA(card->base) & (1 << 9) ||
+                   SD_STA(card->base) & (1 << 10));
             break;
     }
 

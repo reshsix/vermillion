@@ -1,11 +1,11 @@
 # Vermillion
-**Status: 1.2α**
+**Status: 1.2β**
 
 ## Features
 - [x] Shell/Programs
 - [x] Libraries
 - [x] Packages
-- [ ] Modem
+- [x] Modem
 
 ## Packages
 [Antimony](https://github.com/reshsix/antimony) - Core tools
