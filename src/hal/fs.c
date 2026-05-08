@@ -1,17 +1,17 @@
 /*
-This file is part of vermillion.
-
-Vermillion is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published
-by the Free Software Foundation, version 3.
-
-Vermillion is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+ *  This file is part of vermillion.
+ *
+ *  Vermillion is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3.
+ *
+ *  Vermillion is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <general/types.h>
@@ -19,7 +19,75 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/str.h>
 #include <general/path.h>
 
-#include <hal/classes/fs.h>
+#include <hal/fs.h>
+
+static void *
+root(dev_fs *df)
+{
+    return df->driver->root(df->context);
+}
+
+static void *
+walk(dev_fs *df, void *parent, void *entry,
+        bool *dir, char *name, u32 *size)
+{
+    return df->driver->walk(df->context, parent, entry, dir, name, size);
+}
+
+static bool
+read(dev_fs *df, void *entry, void *buf, u32 fs)
+{
+    bool ret = (df != NULL);
+
+    if (ret)
+        ret = df->driver->read(df->context, entry, buf, fs);
+
+    return ret;
+}
+
+static bool
+write(dev_fs *df, void *entry, void *buf, u32 fs)
+{
+    bool ret = (df != NULL);
+
+    if (ret)
+        ret = df->driver->write(df->context, entry, buf, fs);
+
+    return ret;
+}
+
+static bool
+resize(dev_fs *df, void *entry, u32 size)
+{
+    bool ret = (df != NULL);
+
+    if (ret)
+        ret = df->driver->resize(df->context, entry, size);
+
+    return ret;
+}
+
+static bool
+create(dev_fs *df, void *parent, const char *name, bool dir)
+{
+    bool ret = (df != NULL);
+
+    if (ret)
+        ret = df->driver->create(df->context, parent, name, dir);
+
+    return ret;
+}
+
+static bool
+remove(dev_fs *df, void *entry)
+{
+    bool ret = (df != NULL);
+
+    if (ret)
+        ret = df->driver->remove(df->context, entry);
+
+    return ret;
+}
 
 static char fs_buffer[PATH_MAX] = {0};
 
@@ -29,7 +97,7 @@ fs_open(dev_fs *df, const char *path)
     struct fs_file *ret = mem_new(sizeof(struct fs_file));
 
     bool success = false;
-    if (ret && path_validate(path) && block_write(df, FS_ROOT, NULL, 0))
+    if (ret && path_validate(path))
     {
         success = false;
 
@@ -38,47 +106,50 @@ fs_open(dev_fs *df, const char *path)
 
         char *state = NULL;
 
-        void *cur = NULL;
-        if (block_read(df, FS_CACHE, &cur, 0))
+        void *cur = root(df);
+        if (cur)
         {
+            char name[255] = {0};
+
             success = true;
             for (char *token = str_token(fs_buffer, "/", &state); token;
                        token = str_token(NULL,      "/", &state))
             {
                 success = false;
-                for (size_t i = 0;
-                     block_write(df, FS_CACHE, &cur, 0)  &&
-                     block_write(df, FS_LIST,  &i,   0); i++)
+                while (true)
                 {
-                    char *name = NULL;
-                    if (block_read((dev_block *)df, FS_NAME, &name, 0) &&
-                        str_comp(name, token, 0) == 0)
+                    ret->cache = walk(df, cur, ret->cache,
+                                      &(ret->dir), name, &(ret->size));
+                    if (ret->cache)
                     {
-                        success = block_read(df, FS_CACHE, &cur, 0);
-                        break;
+                        if (str_comp(name, token, 0) == 0)
+                        {
+                            success = true;
+                            cur = ret->cache;
+                            ret->cache = NULL;
+                            break;
+                        }
                     }
+                    else
+                        break;
                 }
             }
+
+            if (success)
+                ret->cache = cur;
         }
     }
 
     if (success)
     {
-        success = block_read(df, FS_CACHE, &(ret->cache), 0) &&
-                  block_read(df, FS_TYPE,  &(ret->type),  0) &&
-                  block_read(df, FS_NAME,  &(ret->name),  0) &&
-                  block_read(df, FS_SIZE,  &(ret->size),  0);
-    }
-
-    if (success)
-    {
         ret->df = df;
-        if (ret->type == FS_REGULAR &&
-            block_stat(df, BLOCK_COMMON, &(ret->width), NULL))
+
+        if (!(ret->dir))
         {
+            ret->width = 0x200;
             ret->buffer = mem_new(ret->width);
             if (ret->buffer)
-                if (!block_read((dev_block *)df, BLOCK_COMMON, ret->buffer, 0))
+                if (!read(df, ret->cache, ret->buffer, 0))
                     ret->buffer = mem_del(ret->buffer);
 
             if (!(ret->buffer))
@@ -104,16 +175,14 @@ fs_close(struct fs_file *f)
 }
 
 extern bool
-fs_stat(struct fs_file *f, enum fs_type *type, char **name, u32 *size)
+fs_stat(struct fs_file *f, bool *dir, u32 *size)
 {
     bool ret = (f != NULL);
 
     if (ret)
     {
-        if (type)
-            *type = f->type;
-        if (name)
-            *name = f->name;
+        if (dir)
+            *dir = f->dir;
         if (size)
             *size = f->size;
     }
@@ -121,40 +190,16 @@ fs_stat(struct fs_file *f, enum fs_type *type, char **name, u32 *size)
     return ret;
 }
 
-extern bool
-fs_walk(struct fs_file *f, u32 index,
-        enum fs_type *type, char **name, u32 *size)
+extern void *
+fs_walk(struct fs_file *f, void *state, bool *dir, char *name, u32 *size)
 {
-    bool ret = (f && f->type == FS_DIRECTORY) &&
-               block_write(f->df, FS_CACHE, &(f->cache), 0) &&
-               block_write(f->df, FS_LIST, &index, 0);
-
-    enum fs_type t = FS_REGULAR;
-    char *n = NULL;
-    u32 s = 0;
-
-    if (ret)
-        ret = block_read(f->df, FS_TYPE, &t, 0) &&
-              block_read(f->df, FS_NAME, &n, 0) &&
-              block_read(f->df, FS_SIZE, &s, 0);
-
-    if (ret)
-    {
-        if (type)
-            *type = t;
-        if (name)
-            *name = n;
-        if (size)
-            *size = s;
-    }
-
-    return ret;
+    return walk(f->df, f->cache, state, dir, name, size);
 }
 
 extern bool
 fs_seek(struct fs_file *f, enum fs_seek seek, s32 pos)
 {
-    bool ret = (f && f->type == FS_REGULAR);
+    bool ret = (f && !(f->dir));
 
     if (ret)
     {
@@ -184,7 +229,7 @@ fs_seek(struct fs_file *f, enum fs_seek seek, s32 pos)
 extern bool
 fs_tell(struct fs_file *f, u32 *pos)
 {
-    bool ret = (f && f->type == FS_REGULAR);
+    bool ret = (f && !(f->dir));
 
     if (ret)
         *pos = f->pos;
@@ -193,42 +238,33 @@ fs_tell(struct fs_file *f, u32 *pos)
 }
 
 static u32
-fs_rw(struct fs_file *f, void *buffer, u32 bytes, bool write)
+fs_rw(struct fs_file *f, void *buffer, u32 bytes, bool w)
 {
     u32 ret = 0;
 
-    if (f && f->type == FS_REGULAR)
+    if (f && !(f->dir))
     {
-        if (write)
+        if (w)
         {
             u32 needed = f->pos + bytes;
             if (needed > f->size)
-            {
-                if (block_write(f->df, FS_CACHE, &(f->cache), 0) &&
-                    block_write(f->df, FS_SIZE,  &needed, 0))
-                    f->size = needed;
-            }
+                fs_resize(f, needed);
         }
 
         while (bytes > 0 && f->pos < f->size)
         {
             if (f->pos / f->width != f->block)
             {
-                if (!(block_write(f->df, FS_CACHE, &(f->cache), 0)))
-                    break;
-
                 if (f->flush)
                 {
-                    if (block_write(f->df, BLOCK_COMMON,
-                                    f->buffer, f->block))
+                    if (write(f->df, f->cache, f->buffer, f->block))
                         f->flush = false;
                     else
                         break;
                 }
 
                 f->block = f->pos / f->width;
-                if (!block_read(f->df, BLOCK_COMMON,
-                                f->buffer, f->block))
+                if (!read(f->df, f->cache, f->buffer, f->block))
                     break;
             }
 
@@ -237,7 +273,7 @@ fs_rw(struct fs_file *f, void *buffer, u32 bytes, bool write)
             if (f->pos + slice >= f->size)
                 slice = f->size - f->pos;
 
-            if (write)
+            if (w)
             {
                 u8 *source = buffer;
                 mem_copy(&(f->buffer[rel]), &(source[ret]), slice);
@@ -274,9 +310,7 @@ extern bool
 fs_flush(struct fs_file *f)
 {
     if (f && f->flush)
-        f->flush = !(block_write(f->df, FS_CACHE, &(f->cache), 0) &&
-                      block_write(f->df, BLOCK_COMMON,
-                                  f->buffer, f->block));
+        f->flush = !(write(f->df, f->cache, f->buffer, f->block));
 
     return (f && !(f->flush));
 }
@@ -284,12 +318,12 @@ fs_flush(struct fs_file *f)
 extern bool
 fs_resize(struct fs_file *f, u32 size)
 {
-    bool ret = (f && f->type == FS_REGULAR) &&
-               block_write(f->df, FS_CACHE, &(f->cache), 0);
+    bool ret = (f && !(f->dir));
 
     if (ret)
-        ret = block_write(f->df, FS_SIZE, &size, 0) &&
-              block_read(f->df, FS_SIZE, &(f->size), 0);
+        ret = resize(f->df, f->cache, size);
+    if (ret)
+        f->size = size;
 
     return ret;
 }
@@ -310,15 +344,14 @@ fs_create(dev_fs *df, const char *path, bool dir)
 
             struct fs_file *f = fs_open(df, fs_buffer);
 
-            if (f && f->type == FS_DIRECTORY &&
-                block_write(f->df, FS_CACHE, &(f->cache), 0))
+            if (f && f->dir)
             {
                 str_copy(fs_buffer, path, 0);
                 path_filename(fs_buffer);
-
-                char *name = &(fs_buffer);
-                ret = block_write(df, (dir) ? FS_MKDIR : FS_MKFILE, &name, 0);
+                ret = create(df, f->cache, &(fs_buffer), dir);
             }
+            else
+                ret = false;
 
             fs_close(f);
         }
@@ -337,16 +370,26 @@ fs_remove(dev_fs *df, const char *path)
     bool ret = false;
 
     struct fs_file *f = fs_open(df, path);
-    if (f)
-        ret = block_write(f->df, FS_CACHE, &(f->cache), 0);
 
-    if (ret)
+    if (f)
     {
-        u32 index = 2;
-        if (f->type != FS_DIRECTORY || !block_write(f->df, FS_LIST, &index, 0))
-            ret = block_write(f->df, FS_REMOVE, NULL, 0);
+        if (f->dir)
+        {
+            ret = true;
+
+            void *cur = NULL;
+            for (size_t i = 0; i < 3; i++)
+            {
+                cur = walk(df, f, cur, NULL, NULL, NULL);
+                if (i >= 2 && cur)
+                    ret = false;
+            }
+
+            if (ret)
+                ret = remove(df, f);
+        }
         else
-            ret = false;
+            ret = remove(df, f->cache);
     }
 
     if (ret)

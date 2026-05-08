@@ -42,7 +42,7 @@ exist_or_create(struct vrm *v, bool dir, const char *path, bool *created)
     if (f)
     {
         bool dir2 = false;
-        if (v->disk.stat(f, &dir2, NULL, NULL) && (dir == dir2))
+        if (v->disk.stat(f, &dir2, NULL) && (dir == dir2))
             ret = true;
         else
             v->syslog.string(": wrong type");
@@ -200,7 +200,7 @@ script_read(struct vrm *v, vrm_disk_f *f, bool remove)
 
     bool dir = false;
     uint32_t size = 0;
-    if (v->disk.stat(f, &dir, NULL, &size))
+    if (v->disk.stat(f, &dir, &size))
     {
         if (!dir)
         {
@@ -286,7 +286,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
             {
                 bool dir = false;
                 uint32_t size = 0;
-                if (v->disk.stat(f, &dir, NULL, &size))
+                if (v->disk.stat(f, &dir, &size))
                 {
                     if (!dir)
                     {

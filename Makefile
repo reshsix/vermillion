@@ -64,10 +64,10 @@ PREFIX = src/general
 OBJS += $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/path.o
 
 PREFIX = src/hal
-OBJS += $(PREFIX)/block.o $(PREFIX)/stream.o $(PREFIX)/bus.o
+OBJS += $(PREFIX)/block.o $(PREFIX)/stream.o $(PREFIX)/bus.o $(PREFIX)/fs.o
 
 PREFIX = src/hal/classes
-OBJS += $(PREFIX)/fs.o $(PREFIX)/gpio.o $(PREFIX)/pic.o \
+OBJS += $(PREFIX)/gpio.o $(PREFIX)/pic.o \
         $(PREFIX)/spi.o $(PREFIX)/timer.o $(PREFIX)/uart.o
 
 PREFIX = src/system

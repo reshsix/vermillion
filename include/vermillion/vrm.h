@@ -108,10 +108,9 @@ struct vrm
         vrm_disk_f * (*open)(const char *path);
         vrm_disk_f * (*close)(vrm_disk_f *f);
 
-        bool (*stat)(vrm_disk_f *f,
-                     bool *dir, char **name, uint32_t *size);
-        bool (*walk)(vrm_disk_f *f, uint32_t index,
-                     bool *dir, char **name, uint32_t *size);
+        bool (*stat)(vrm_disk_f *f, bool *dir, uint32_t *size);
+        void * (*walk)(vrm_disk_f *f, void *state,
+                       bool *dir, char *name, uint32_t *size);
 
         bool (*seek)(vrm_disk_f *f, uint32_t  pos);
         bool (*tell)(vrm_disk_f *f, uint32_t *pos);

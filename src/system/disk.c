@@ -18,7 +18,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/path.h>
 #include <general/types.h>
 
-#include <hal/classes/fs.h>
+#include <hal/fs.h>
 
 #include <system/disk.h>
 
@@ -47,29 +47,15 @@ disk_close(disk_f *f)
 }
 
 extern bool
-disk_stat(disk_f *f, bool *dir, char **name, u32 *size)
+disk_stat(disk_f *f, bool *dir, u32 *size)
 {
-    bool ret = false;
-
-    enum fs_type type2 = FS_REGULAR;
-    ret = fs_stat(f, &type2, name, size);
-    if (ret && dir)
-        *dir = (type2 == FS_DIRECTORY);
-
-    return ret;
+    return fs_stat(f, dir, size);
 }
 
-extern bool
-disk_walk(disk_f *f, u32 index, bool *dir, char **name, u32 *size)
+extern void *
+disk_walk(disk_f *f, void *state, bool *dir, char *name, u32 *size)
 {
-    bool ret = false;
-
-    enum fs_type type2 = FS_REGULAR;
-    ret = fs_walk(f, index, &type2, name, size);
-    if (ret && dir)
-        *dir = (type2 == FS_DIRECTORY);
-
-    return ret;
+    return fs_walk(f, state, dir, name, size);
 }
 
 extern bool

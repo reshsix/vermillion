@@ -18,7 +18,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <general/types.h>
 
-#include <hal/classes/fs.h>
+#include <hal/fs.h>
 
 /* For devtree usage */
 
@@ -31,8 +31,8 @@ typedef struct fs_file disk_f;
 disk_f *disk_open(const char *path);
 disk_f *disk_close(disk_f *f);
 
-bool disk_stat(disk_f *f, bool *dir, char **name, u32 *size);
-bool disk_walk(disk_f *f, u32 index, bool *dir, char **name, u32 *size);
+bool disk_stat(disk_f *f, bool *dir, u32 *size);
+void *disk_walk(disk_f *f, void *state, bool *dir, char *name, u32 *size);
 
 bool disk_seek(disk_f *f, u32  pos);
 bool disk_tell(disk_f *f, u32 *pos);

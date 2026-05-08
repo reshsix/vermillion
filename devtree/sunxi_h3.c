@@ -17,9 +17,9 @@
 #include <general/mem.h>
 #include <general/types.h>
 
+#include <hal/fs.h>
 #include <hal/block.h>
 #include <hal/stream.h>
-#include <hal/classes/fs.h>
 #include <hal/classes/pic.h>
 #include <hal/classes/gpio.h>
 #include <hal/classes/uart.h>
