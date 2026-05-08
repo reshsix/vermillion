@@ -22,10 +22,8 @@
 
 #ifdef VERMILLION_INTERNALS
 typedef struct fs_file vrm_disk_f;
-typedef struct dict    vrm_dict;
 #else
 typedef struct vrm_disk_f vrm_disk_f;
-typedef struct vrm_dict   vrm_dict;
 #endif
 
 struct vrm
@@ -76,17 +74,10 @@ struct vrm
 
     struct
     {
-        bool (*info)(bool slave, uint32_t *rate, uint8_t *bits,
-                     uint8_t *parity, uint8_t *stop);
-        bool (*config)(bool slave, uint32_t rate, uint8_t bits,
-                       uint8_t parity, uint8_t stop);
-        bool (*read)(bool slave, char *c);
-        bool (*write)(bool slave, char c);
-        struct
-        {
-            bool (*read)(bool slave, char *c);
-            bool (*write)(bool slave, char c);
-        } nb;
+        bool (*read)(uint8_t id, uint8_t *data);
+        bool (*write)(uint8_t id, uint8_t data);
+        bool (*info)(uint8_t id, uint32_t *baud);
+        bool (*config)(uint8_t id, uint32_t baud);
     } uart;
 
     struct
@@ -105,7 +96,7 @@ struct vrm
 
     struct
     {
-        vrm_disk_f * (*open)(const char *path);
+        vrm_disk_f * (*open)(uint8_t id, const char *path);
         vrm_disk_f * (*close)(vrm_disk_f *f);
 
         bool (*stat)(vrm_disk_f *f, bool *dir, uint32_t *size);
@@ -121,9 +112,9 @@ struct vrm
 
         bool (*resize)(vrm_disk_f *f, uint32_t size);
 
-        bool (*create)(const char *path, bool dir);
-        bool (*remove)(const char *path);
-    } disk;
+        bool (*create)(uint8_t id, const char *path, bool dir);
+        bool (*remove)(uint8_t id, const char *path);
+    } fs;
 
     struct
     {
@@ -143,7 +134,7 @@ struct vrm
 
     struct
     {
-        uint8_t * (*fdpic)(const char *path, uint32_t *entry);
+        uint8_t * (*fdpic)(uint8_t id, const char *path, uint32_t *entry);
     } loader;
 
     struct

@@ -23,7 +23,7 @@
 extern void
 syslog_char(const char c)
 {
-    comm_uart_write(false, c);
+    while (!uart_write(0, c));
 }
 
 extern void

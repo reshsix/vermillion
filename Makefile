@@ -71,7 +71,7 @@ OBJS += $(PREFIX)/gpio.o $(PREFIX)/pic.o \
         $(PREFIX)/spi.o $(PREFIX)/timer.o $(PREFIX)/uart.o
 
 PREFIX = src/system
-OBJS += $(PREFIX)/comm.o $(PREFIX)/disk.o $(PREFIX)/libs.o $(PREFIX)/time.o
+OBJS += $(PREFIX)/comm.o $(PREFIX)/libs.o $(PREFIX)/time.o
 
 OBJS += devtree.o src/loader.o src/syslog.o src/main.o
 

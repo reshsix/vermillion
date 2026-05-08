@@ -18,42 +18,55 @@
 
 #include <hal/classes/uart.h>
 
-extern bool
-uart_read(dev_uart *du, u8 *data)
+/* For devtree usage */
+
+static dev_uart *dev_l = NULL;
+static u8 dev_c = 0;
+
+extern void
+uart_setup(dev_uart *list, u8 count)
 {
-    return stream_read((dev_stream *)du, data);
+    dev_l = list;
+    dev_c = count;
+}
+
+/* For external usage */
+
+static void *
+uart_dev(u8 id)
+{
+    return (id < dev_c) ? &(dev_l[id]) : NULL;
 }
 
 extern bool
-uart_write(dev_uart *du, u8 data)
+uart_read(u8 id, u8 *data)
 {
-    return stream_write((dev_stream *)du, &data);
+    return stream_read(uart_dev(id), data);
 }
 
 extern bool
-uart_info(dev_uart *du, u32 *baud, enum uart_bits *bits,
-          enum uart_parity *parity, enum uart_stop *stop)
+uart_write(u8 id, u8 data)
 {
-    struct uart_cfg cfg = {0};
+    return stream_write(uart_dev(id), &data);
+}
 
-    bool ret = stream_ioctl((dev_stream *)du, UART_CONFIG_GET, &cfg);
-    if (ret)
-    {
-        if (baud)   *baud   = cfg.baud;
-        if (bits)   *bits   = cfg.bits;
-        if (parity) *parity = cfg.parity;
-        if (stop)   *stop   = cfg.stop;
-    }
+extern bool
+uart_info(u8 id, u32 *baud)
+{
+    u32 baud2 = 0;
+
+    bool ret = stream_ioctl(uart_dev(id), UART_BAUD_GET, &baud2);
+    if (ret && baud)
+        *baud = baud2;
 
     return ret;
 }
 
 extern bool
-uart_config(dev_uart *du, u32 baud, enum uart_bits bits,
-            enum uart_parity parity, enum uart_stop stop)
+uart_config(u8 id, u32 baud)
 {
-    struct uart_cfg cfg = {.baud = baud,    .bits = bits,
-                           .parity = parity, stop = stop};
+    if (baud == 0)
+        baud = 115200;
 
-    return stream_ioctl((dev_stream *)du, UART_CONFIG_SET, &cfg);
+    return stream_ioctl(uart_dev(id), UART_BAUD_SET, &baud);
 }

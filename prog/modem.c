@@ -54,7 +54,7 @@ soh(struct vrm *v, uint8_t *block, bool *started, bool *finished)
             if (length)
             {
                 if (*started)
-                    ret = v->disk.write(current, buffer, 128);
+                    ret = v->fs.write(current, buffer, 128);
                 else
                 {
                     v->str.copy(name, "/recv/", 0);
@@ -71,12 +71,12 @@ soh(struct vrm *v, uint8_t *block, bool *started, bool *finished)
                         bytes += size[i] - '0';
                     }
 
-                    if (v->disk.create(name, false))
+                    if (v->fs.create(0, name, false))
                     {
                         if (current)
-                            v->disk.close(current);
+                            v->fs.close(current);
 
-                        current = v->disk.open(name);
+                        current = v->fs.open(0, name);
                         if (!current)
                         {
                             error = "Failed to open file\r\n";
@@ -131,7 +131,7 @@ stx(struct vrm *v, uint8_t *block, bool *started)
         nblk = ~nblk;
         if ((blk == *block) && (nblk == *block))
         {
-            ret = v->disk.write(current, buffer, 1024);
+            ret = v->fs.write(current, buffer, 1024);
             (*block)++;
         }
         else
@@ -175,7 +175,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
 {
     bool ret = true;
 
-    v->disk.create("/recv", true);
+    v->fs.create(0, "/recv", true);
 
     bool handshake = false;
     bool started   = false;
@@ -191,7 +191,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
             for (size_t i = 0; i < 30; i++)
             {
                 v->uart.write(0, 'C');
-                ret = v->uart.nb.read(0, &id);
+                ret = /* TODO */ v->uart.read(0, &id);
                 if (ret)
                 {
                     handshake = true;
@@ -240,7 +240,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
     }
 
     if (current)
-        v->disk.close(current);
+        v->fs.close(current);
 
     return ret;
 }

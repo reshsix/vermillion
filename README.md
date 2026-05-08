@@ -9,6 +9,7 @@
 
 ## Packages
 [Antimony](https://github.com/reshsix/antimony) - Core tools
+(Incompatible with this version)
 
 ## Devices
 - nanopi\_neo\_defconfig (NanoPi NEO)

@@ -21,6 +21,20 @@
 
 #include <hal/fs.h>
 
+/* For devtree usage */
+
+static dev_fs *dev_l = NULL;
+static u8 dev_c = 0;
+
+extern void
+fs_setup(dev_fs *list, u8 count)
+{
+    dev_l = list;
+    dev_c = count;
+}
+
+/* For external usage */
+
 static void *
 root(dev_fs *df)
 {
@@ -29,7 +43,7 @@ root(dev_fs *df)
 
 static void *
 walk(dev_fs *df, void *parent, void *entry,
-        bool *dir, char *name, u32 *size)
+     bool *dir, char *name, u32 *size)
 {
     return df->driver->walk(df->context, parent, entry, dir, name, size);
 }
@@ -91,10 +105,18 @@ remove(dev_fs *df, void *entry)
 
 static char fs_buffer[PATH_MAX] = {0};
 
+static void *
+fs_dev(u8 id)
+{
+    return (id < dev_c) ? &(dev_l[id]) : NULL;
+}
+
 extern struct fs_file *
-fs_open(dev_fs *df, const char *path)
+fs_open(u8 id, const char *path)
 {
     struct fs_file *ret = mem_new(sizeof(struct fs_file));
+
+    dev_fs *df = fs_dev(id);
 
     bool success = false;
     if (ret && path_validate(path))
@@ -197,30 +219,15 @@ fs_walk(struct fs_file *f, void *state, bool *dir, char *name, u32 *size)
 }
 
 extern bool
-fs_seek(struct fs_file *f, enum fs_seek seek, s32 pos)
+fs_seek(struct fs_file *f, u32 pos)
 {
     bool ret = (f && !(f->dir));
 
     if (ret)
     {
-        switch (seek)
-        {
-            case FS_START:
-                ret = (pos >= 0 && (u32)pos <= f->size);
-                if (ret)
-                    f->pos = pos;
-                break;
-            case FS_CURRENT:
-                ret = (f->pos + pos <= f->size && f->pos + pos > 0);
-                if (ret)
-                    f->pos += pos;
-                break;
-            case FS_END:
-                ret = (f->size + pos <= f->size && f->size + pos > 0);
-                if (ret)
-                    f->pos = f->size + pos;
-                break;
-        }
+        ret = (pos <= f->size);
+        if (ret)
+            f->pos = pos;
     }
 
     return ret;
@@ -329,26 +336,27 @@ fs_resize(struct fs_file *f, u32 size)
 }
 
 extern bool
-fs_create(dev_fs *df, const char *path, bool dir)
+fs_create(u8 id, const char *path, bool dir)
 {
     bool ret = path_validate(path);
 
+    dev_fs *df = fs_dev(id);
     if (ret)
     {
-        struct fs_file *check = fs_open(df, path);
+        struct fs_file *check = fs_open(id, path);
 
         if (!check)
         {
             str_copy(fs_buffer, path, 0);
             path_dirname(fs_buffer);
 
-            struct fs_file *f = fs_open(df, fs_buffer);
+            struct fs_file *f = fs_open(id, fs_buffer);
 
             if (f && f->dir)
             {
                 str_copy(fs_buffer, path, 0);
                 path_filename(fs_buffer);
-                ret = create(df, f->cache, &(fs_buffer), dir);
+                ret = create(df, f->cache, fs_buffer, dir);
             }
             else
                 ret = false;
@@ -365,12 +373,13 @@ fs_create(dev_fs *df, const char *path, bool dir)
 }
 
 extern bool
-fs_remove(dev_fs *df, const char *path)
+fs_remove(u8 id, const char *path)
 {
     bool ret = false;
 
-    struct fs_file *f = fs_open(df, path);
+    dev_fs *df = fs_dev(id);
 
+    struct fs_file *f = fs_open(id, path);
     if (f)
     {
         if (f->dir)

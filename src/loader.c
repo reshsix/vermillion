@@ -1,17 +1,17 @@
 /*
-This file is part of vermillion.
-
-Vermillion is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published
-by the Free Software Foundation, version 3.
-
-Vermillion is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+ *  This file is part of vermillion.
+ *
+ *  Vermillion is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3.
+ *
+ *  Vermillion is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 /* Programs have to be compiled with the following flags:
@@ -21,7 +21,7 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/mem.h>
 #include <general/types.h>
 
-#include <system/disk.h>
+#include <hal/fs.h>
 
 #include <syslog.h>
 
@@ -59,16 +59,16 @@ struct __attribute__((packed)) elfp {
 };
 
 static u8 *
-fdpic_loader(const char *path, u32 *entry)
+fdpic_loader(u8 id, const char *path, u32 *entry)
 {
     u8 ret = true;
 
-    disk_f *f = NULL;
+    struct fs_file *f = NULL;
     struct elf header = {0};
     if (path)
     {
-        f = disk_open(path);
-        if (!f || disk_read(f, &header, sizeof(struct elf)) !=
+        f = fs_open(id, path);
+        if (!f || fs_read(f, &header, sizeof(struct elf)) !=
                   sizeof(struct elf))
             ret = false;
     }
@@ -91,8 +91,8 @@ fdpic_loader(const char *path, u32 *entry)
         struct elfp pheader = {0};
         s32 offset = header.progs + (header.prog_s * i);
 
-        ret = disk_seek(f, offset) &&
-              disk_read(f, &pheader, sizeof(struct elfp)) ==
+        ret = fs_seek(f, offset) &&
+              fs_read(f, &pheader, sizeof(struct elfp)) ==
                         sizeof(struct elfp);
 
         if (ret && pheader.type == 1)
@@ -112,8 +112,8 @@ fdpic_loader(const char *path, u32 *entry)
 
             if (ret)
             {
-                ret = disk_seek(f, pheader.offset) &&
-                      disk_read(f, &(buffer[pheader.vaddr]),
+                ret = fs_seek(f, pheader.offset) &&
+                      fs_read(f, &(buffer[pheader.vaddr]),
                                 pheader.size_f) == pheader.size_f;
             }
         }
@@ -125,18 +125,18 @@ fdpic_loader(const char *path, u32 *entry)
         mem_del(buffer);
 
     if (f)
-        disk_close(f);
+        fs_close(f);
 
     return ret ? buffer : NULL;
 }
 
 extern u8 *
-loader_fdpic(const char *path, u32 *entry)
+loader_fdpic(u8 id, const char *path, u32 *entry)
 {
     u8 *ret = NULL;
 
     if (entry)
-        ret = fdpic_loader(path, entry);
+        ret = fdpic_loader(id, path, entry);
 
     return ret;
 }

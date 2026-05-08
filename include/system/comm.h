@@ -25,8 +25,7 @@
 
 /* For devtree usage */
 
-void comm_setup(dev_stream *uart0, dev_stream *uart1,
-                dev_gpio *gpio, uint16_t *pins, uint8_t pinc,
+void comm_setup(dev_gpio *gpio, uint16_t *pins, uint8_t pinc,
                 dev_spi *spi);
 
 /* For external usage */
@@ -34,15 +33,6 @@ void comm_setup(dev_stream *uart0, dev_stream *uart1,
 bool comm_gpio_dir(uint8_t pin, bool output);
 bool comm_gpio_get(uint8_t pin, bool *state);
 bool comm_gpio_set(uint8_t pin, bool state);
-
-bool comm_uart_info(bool slave, uint32_t *rate, uint8_t *bits,
-                    uint8_t *parity, uint8_t *stop);
-bool comm_uart_config(bool slave, uint32_t rate, uint8_t bits,
-                      uint8_t parity, uint8_t stop);
-bool comm_uart_read(bool slave, char *c);
-bool comm_uart_write(bool slave, char c);
-bool comm_uart_read_nb(bool slave, char *c);
-bool comm_uart_write_nb(bool slave, char c);
 
 bool comm_spi_info(uint32_t *rate, uint8_t *mode, bool *lsb);
 bool comm_spi_config(uint32_t rate, uint8_t mode, bool lsb);

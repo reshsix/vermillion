@@ -18,40 +18,23 @@
 
 #include <hal/stream.h>
 
-enum uart_index
-{
-    UART_CONFIG_GET, UART_CONFIG_SET
-};
-
 typedef drv_stream drv_uart;
 typedef dev_stream dev_uart;
 
-enum uart_bits
+/* For driver usage */
+
+enum uart_index
 {
-    UART_5B, UART_6B, UART_7B, UART_8B
+    UART_BAUD_GET, UART_BAUD_SET
 };
 
-enum uart_parity
-{
-    UART_NOPARITY, UART_ODD, UART_EVEN, UART_MARK, UART_SPACE
-};
+/* For devtree usage */
 
-enum uart_stop
-{
-    UART_1S, UART_1HS, UART_2S
-};
+void uart_setup(dev_uart *list, u8 count);
 
-struct uart_cfg
-{
-    u32 baud;
-    enum uart_bits bits;
-    enum uart_parity parity;
-    enum uart_stop stop;
-};
+/* For external usage*/
 
-bool uart_read(dev_uart *du, u8 *data);
-bool uart_write(dev_uart *du, u8 data);
-bool uart_info(dev_uart *du, u32 *baud, enum uart_bits *bits,
-               enum uart_parity *parity, enum uart_stop *stop);
-bool uart_config(dev_uart *du, u32 baud, enum uart_bits bits,
-                 enum uart_parity parity, enum uart_stop stop);
+bool uart_read(u8 id, u8 *data);
+bool uart_write(u8 id, u8 data);
+bool uart_info(u8 id, u32 *baud);
+bool uart_config(u8 id, u32 baud);

@@ -38,10 +38,10 @@
 
 /* Driver definition */
 
-struct serial
+struct uart
 {
     u32 port;
-    struct uart_cfg cfg;
+    u32 baud;
 
     dev_pic *pic;
     u8 irq;
@@ -50,7 +50,7 @@ struct serial
     size_t head, tail;
 };
 
-struct serial serials[5] = {0};
+struct uart serials[5] = {0};
 static const u32 ports[5] = {0x01c28000, 0x01c28400,
                              0x01c28800, 0x01c28c00, 0x01f02800};
 static const u8 irqs[5] = {32, 33, 34, 35, 70};
@@ -58,7 +58,7 @@ static const u8 irqs[5] = {32, 33, 34, 35, 70};
 static void
 uart_handler(void *arg)
 {
-    struct serial *u = arg;
+    struct uart *u = arg;
 
     while (IO_LSR(u->port) & (1 << 0))
     {
@@ -76,64 +76,31 @@ ioctl(void *ctx, u8 idx, void *data)
 {
     bool ret = false;
 
-    struct serial *u = ctx;
+    struct uart *u = ctx;
     switch (idx)
     {
-        case UART_CONFIG_GET:
+        case UART_BAUD_GET:
             ret = true;
-            mem_copy(data, &(u->cfg), sizeof(struct uart_cfg));
+            mem_copy(data, &(u->baud), sizeof(u32));
             break;
-        case UART_CONFIG_SET:;
-            struct uart_cfg cfg = {0};
-            mem_copy(&cfg, data, sizeof(struct uart_cfg));
+        case UART_BAUD_SET:
+            mem_copy(&(u->baud), data, sizeof(u32));
 
-            if (cfg.baud == 0)
-                cfg.baud = 115200;
-
-            ret = (  cfg.baud <= 1500000  && cfg.baud >= 23       &&
-                   !(cfg.stop == UART_1HS && cfg.bits != UART_5B) &&
-                   !(cfg.stop == UART_2S  && cfg.bits == UART_5B));
+            ret = (u->baud <= 1500000 && u->baud >= 23);
             if (ret)
             {
-                mem_copy(&(u->cfg), &cfg, sizeof(struct uart_cfg));
                 while (IO_USR(u->port) & 1);
 
-                u16 divider = 1500000 / cfg.baud;
+                u16 divider = 1500000 / u->baud;
                 IO_LCR(u->port) |= (1 << 7);
                 IO_DLH(u->port) = (divider >> 8) & 0xff;
                 IO_DLL(u->port) = (divider >> 0) & 0xff;
                 IO_LCR(u->port) &= ~(1 << 7);
 
-                IO_LCR(u->port) &= ~0x3;
-                IO_LCR(u->port) |= cfg.bits & 0x3;
-
-                switch (cfg.parity)
-                {
-                    case UART_NOPARITY:
-                        IO_LCR(u->port) &= ~(1 << 3);
-                        break;
-                    case UART_ODD:
-                        IO_LCR(u->port) &= ~0x38;
-                        IO_LCR(u->port) |= (1 << 3);
-                        break;
-                    case UART_EVEN:
-                        IO_LCR(u->port) &= ~0x38;
-                        IO_LCR(u->port) |= (1 << 3) | (1 << 4);
-                        break;
-                    default:
-                        break;
-                }
-
-                switch (cfg.stop)
-                {
-                    case UART_1S:
-                        IO_LCR(u->port) &= ~(1 << 2);
-                        break;
-                    case UART_1HS:
-                    case UART_2S:
-                        IO_LCR(u->port) |= (1 << 2);
-                        break;
-                }
+                /* Guarantees 8N1 */
+                IO_LCR(u->port) |= 0x3;
+                IO_LCR(u->port) &= ~(1 << 3);
+                IO_LCR(u->port) &= ~(1 << 2);
             }
             break;
     }
@@ -144,6 +111,7 @@ ioctl(void *ctx, u8 idx, void *data)
 static bool
 stat(void *ctx, size_t *width)
 {
+    (void)ctx;
     *width = sizeof(u8);
     return true;
 }
@@ -153,7 +121,7 @@ read(void *ctx, void *data)
 {
     bool ret = false;
 
-    struct serial *u = ctx;
+    struct uart *u = ctx;
     ret = (u->head != u->tail || IO_LSR(u->port) & (1 << 0));
     if (ret)
     {
@@ -176,7 +144,7 @@ write(void *ctx, void *data)
 {
     bool ret = false;
 
-    struct serial *u = ctx;
+    struct uart *u = ctx;
     ret = (IO_LSR(u->port) & (1 << 5));
     if (ret)
     {
@@ -198,9 +166,9 @@ static const drv_uart sunxi_uart =
 extern dev_uart
 sunxi_uart_init(u8 id, dev_pic *pic)
 {
-    struct serial *ret = NULL;
+    struct uart *ret = NULL;
 
-    if (id < (sizeof(serials) / sizeof(struct serial)))
+    if (id < (sizeof(serials) / sizeof(struct uart)))
     {
         ret = &(serials[id]);
         ret->port = ports[id];
@@ -222,8 +190,8 @@ sunxi_uart_clean(dev_uart *u)
 {
     if (u)
     {
-        struct serial *s = u->context;
-        pic_config(s->pic, s->irq, false, NULL, NULL, PIC_LEVEL_H);
+        struct uart *u2 = u->context;
+        pic_config(u2->pic, u2->irq, false, NULL, NULL, PIC_LEVEL_H);
         u->context = NULL;
     }
 }

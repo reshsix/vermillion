@@ -36,8 +36,8 @@ vrm_prog(struct vrm *v, const char **args, int count)
     (void)args;
     (void)count;
 
-    v->uart.write(0, '>');
-    v->uart.write(0, ' ');
+    v->syslog.char_('>');
+    v->syslog.char_(' ');
 
     while (true)
     {
@@ -46,8 +46,8 @@ vrm_prog(struct vrm *v, const char **args, int count)
         if (c == '\r')
         {
             line[line_c++] = '\0';
-            v->uart.write(0, '\r');
-            v->uart.write(0, '\n');
+            v->syslog.char_('\r');
+            v->syslog.char_('\n');
 
             /* Parse program */
             char *saveptr = NULL;
@@ -91,7 +91,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
                 if (list_c)
                 {
                     uint32_t entry = 0;
-                    uint8_t *mem = v->loader.fdpic(buffer, &entry);
+                    uint8_t *mem = v->loader.fdpic(0, buffer, &entry);
                     if (mem)
                     {
                         vrm_prog_t f = (void *)&(mem[entry]);
@@ -113,16 +113,16 @@ vrm_prog(struct vrm *v, const char **args, int count)
             list_c = 0;
 
             /* Prompt */
-            v->uart.write(0, '>');
-            v->uart.write(0, ' ');
+            v->syslog.char_('>');
+            v->syslog.char_(' ');
         }
         else if (c == '\b' || c == 0x7F)
         {
             if (line_c > 0)
             {
-                v->uart.write(0, '\b');
-                v->uart.write(0, ' ');
-                v->uart.write(0, '\b');
+                v->syslog.char_('\b');
+                v->syslog.char_(' ');
+                v->syslog.char_('\b');
                 line[--line_c] = '\0';
             }
         }
@@ -130,7 +130,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
         {
             if (line_c < sizeof(line))
             {
-                v->uart.write(0, c);
+                v->syslog.char_(c);
                 line[line_c++] = c;
             }
             else

@@ -18,8 +18,10 @@
 #include <general/str.h>
 #include <general/path.h>
 
+#include <hal/fs.h>
+#include <hal/classes/uart.h>
+
 #include <system/comm.h>
-#include <system/disk.h>
 #include <system/libs.h>
 #include <system/time.h>
 
@@ -61,12 +63,10 @@ main(void)
                     .gpio.dir        = comm_gpio_dir,
                     .gpio.get        = comm_gpio_get,
                     .gpio.set        = comm_gpio_set,
-                    .uart.info       = comm_uart_info,
-                    .uart.config     = comm_uart_config,
-                    .uart.read       = comm_uart_read,
-                    .uart.write      = comm_uart_write,
-                    .uart.nb.read    = comm_uart_read_nb,
-                    .uart.nb.write   = comm_uart_write_nb,
+                    .uart.read       = uart_read,
+                    .uart.write      = uart_write,
+                    .uart.info       = uart_info,
+                    .uart.config     = uart_config,
                     .spi.info        = comm_spi_info,
                     .spi.config      = comm_spi_config,
                     .spi.state       = comm_spi_state,
@@ -74,18 +74,18 @@ main(void)
                     .spi.nb.limit    = comm_spi_limit,
                     .spi.nb.transfer = comm_spi_transfer_nb,
                     .spi.nb.poll     = comm_spi_poll,
-                    .disk.open       = disk_open,
-                    .disk.close      = disk_close,
-                    .disk.stat       = disk_stat,
-                    .disk.walk       = disk_walk,
-                    .disk.seek       = disk_seek,
-                    .disk.tell       = disk_tell,
-                    .disk.read       = disk_read,
-                    .disk.write      = disk_write,
-                    .disk.flush      = disk_flush,
-                    .disk.resize     = disk_resize,
-                    .disk.create     = disk_create,
-                    .disk.remove     = disk_remove,
+                    .fs.open         = fs_open,
+                    .fs.close        = fs_close,
+                    .fs.stat         = fs_stat,
+                    .fs.walk         = fs_walk,
+                    .fs.seek         = fs_seek,
+                    .fs.tell         = fs_tell,
+                    .fs.read         = fs_read,
+                    .fs.write        = fs_write,
+                    .fs.flush        = fs_flush,
+                    .fs.resize       = fs_resize,
+                    .fs.create       = fs_create,
+                    .fs.remove       = fs_remove,
                     .libs.load       = libs_load,
                     .libs.unload     = libs_unload,
                     .libs.pointer    = libs_pointer,
@@ -100,25 +100,25 @@ main(void)
                     .syslog.signed_   = syslog_signed};
     syslog_string("\033[2J\033[H");
 
-    disk_f *f = disk_open("/NOTICE");
+    struct fs_file *f = fs_open(0, "/NOTICE");
     if (f)
     {
         u8 buf[128] = {0};
         for (;;)
         {
-            u32 read = disk_read(f, buf, sizeof(buf));
+            u32 read = fs_read(f, buf, sizeof(buf));
             if (read == 0)
                 break;
 
             for (size_t i = 0; i < read; i++)
-                comm_uart_write(false, buf[i]);
+                syslog_char(buf[i]);
         }
 
         const char *path  = "/prog/init.elf";
         const char *path2 = "/prog/shell.elf";
 
         u32 entry = 0;
-        u8 *mem = loader_fdpic(path, &entry);
+        u8 *mem = loader_fdpic(0, path, &entry);
         if (mem)
         {
             vrm_prog_t f = (void *)&(mem[entry]);
@@ -127,7 +127,7 @@ main(void)
         else
         {
             syslog_string("init.elf missing, running shell\r\n");
-            u8 *mem = loader_fdpic(path2, &entry);
+            u8 *mem = loader_fdpic(0, path2, &entry);
             if (mem)
             {
                 vrm_prog_t f = (void *)&(mem[entry]);
@@ -140,7 +140,7 @@ main(void)
     }
     else
         syslog_string("NOTICE missing\r\n");
-    disk_close(f);
+    fs_close(f);
 
     devtree_clean();
 }

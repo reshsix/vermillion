@@ -49,11 +49,11 @@
 #define ORANGEPI_ONE 0
 #define NANOPI_NEO 1
 
-dev_fs root;
+dev_fs fs[1];
 dev_pic pic;
 dev_spi spi0;
 dev_gpio gpio0, gpio1;
-dev_uart tty0, tty1;
+dev_uart uart[2];
 dev_block mmcblk0, mmcblk0p1;
 dev_timer timer0, timer1;
 
@@ -67,10 +67,11 @@ devtree_init(void)
     pic = arm_gic_init(0x01c82000, 0x01c81000);
 
     /* Serial */
-    tty0 = sunxi_uart_init(0);
-    tty1 = sunxi_uart_init(1);
-    uart_config(&tty0, 115200, UART_8B, UART_NOPARITY, UART_1S);
-    uart_config(&tty1, 115200, UART_8B, UART_NOPARITY, UART_1S);
+    uart[0] = sunxi_uart_init(0);
+    uart[1] = sunxi_uart_init(1);
+    uart_setup(uart, 2);
+    uart_config(0, 115200);
+    uart_config(1, 115200);
 
     /* GPIO initialization */
     gpio0 = sunxi_gpio_init(0, &pic);
@@ -106,7 +107,8 @@ devtree_init(void)
     /* Storage */
     mmcblk0 = sunxi_mmc_init(0);
     mmcblk0p1 = mbr_init(0, &mmcblk0, 1);
-    root = fat32_init(&mmcblk0p1);
+    fs[0] = fat32_init(&mmcblk0p1);
+    fs_setup(fs, 1);
 
     /* Peripherals */
     CLK_SPI0    = 1 << 31;
@@ -116,8 +118,7 @@ devtree_init(void)
     spi_config(&spi0, 24000000, SPI_MODE0, false);
 
     /* Systems */
-    comm_setup(&tty0, &tty1, &gpio0, (uint16_t[]){0,1,2,3}, 4, &spi0);
-    disk_config(&root);
+    comm_setup(&gpio0, (uint16_t[]){0,1,2,3}, 4, &spi0);
     time_config(&timer0);
     pic_state(&pic, true);
 }
@@ -142,11 +143,11 @@ devtree_clean(void)
     sunxi_mmc_clean(&mmcblk0);
     mbr_clean(&mmcblk0p1);
 
-    fat32_clean(&root);
+    fat32_clean(&(fs[0]));
 
-    comm_setup(NULL, NULL, NULL, NULL, 0, NULL);
-    sunxi_uart_clean(&tty0);
-    sunxi_uart_clean(&tty1);
+    comm_setup(NULL, NULL, 0, NULL);
+    sunxi_uart_clean(&(uart[0]));
+    sunxi_uart_clean(&(uart[1]));
     sunxi_spi_clean(&spi0);
 
     arm_gic_clean(&pic);

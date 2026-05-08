@@ -18,18 +18,6 @@
 
 #include <general/types.h>
 
-enum fs_index
-{
-    FS_COMMON = 0,
-    FS_CACHE,
-    FS_ROOT,
-    FS_LIST,
-
-    FS_TYPE, FS_NAME, FS_SIZE,
-
-    FS_MKFILE, FS_MKDIR, FS_REMOVE,
-};
-
 typedef struct
 {
     void *init, (*clean)(void *);
@@ -64,20 +52,19 @@ struct fs_file
     u32 pos;
 };
 
-enum fs_seek
-{
-    FS_START,
-    FS_CURRENT,
-    FS_END
-};
+/* For internal usage */
 
-struct fs_file *fs_open(dev_fs *df, const char *path);
+void fs_setup(dev_fs *list, u8 count);
+
+/* For external usage */
+
+struct fs_file *fs_open(u8 id, const char *path);
 struct fs_file *fs_close(struct fs_file *f);
 
 bool fs_stat(struct fs_file *f, bool *dir, u32 *size);
 void *fs_walk(struct fs_file *f, void *state, bool *dir, char *name, u32 *size);
 
-bool fs_seek(struct fs_file *f, enum fs_seek seek, s32 pos);
+bool fs_seek(struct fs_file *f, u32 pos);
 bool fs_tell(struct fs_file *f, u32 *pos);
 
 u32 fs_read(struct fs_file *f, void *buffer, u32 bytes);
@@ -86,5 +73,5 @@ bool fs_flush(struct fs_file *f);
 
 bool fs_resize(struct fs_file *f, u32 size);
 
-bool fs_create(dev_fs *df, const char *path, bool dir);
-bool fs_remove(dev_fs *df, const char *path);
+bool fs_create(u8 id, const char *path, bool dir);
+bool fs_remove(u8 id, const char *path);

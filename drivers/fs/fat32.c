@@ -367,7 +367,7 @@ fat32_walk(struct fat32 *f, u32 cluster, u32 sect, u32 idx,
 {
     bool ret = true;
 
-    static u8 name2[255] = {0};
+    static char name2[255] = {0};
     if (!name)
         name = name2;
 
@@ -879,8 +879,6 @@ fat32_create(struct fat32 *f, u32 pcluster,
                 sector += 1;
             else
             {
-                u32 prev = pcluster;
-
                 pcluster = fat32_alloc2(f, pcluster);
                 if (!cluster_eof(pcluster))
                 {

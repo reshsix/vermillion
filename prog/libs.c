@@ -40,7 +40,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
             v->str.concat(buffer, ".elf", 4);
 
             uint32_t entry = 0;
-            uint8_t *mem = v->loader.fdpic(buffer, &entry);
+            uint8_t *mem = v->loader.fdpic(0, buffer, &entry);
             if (mem)
             {
                 vrm_lib_t f = (void *)&(mem[entry]);

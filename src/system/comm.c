@@ -23,8 +23,6 @@
 
 #include <system/comm.h>
 
-static dev_stream *u0 = NULL;
-static dev_stream *u1 = NULL;
 static dev_gpio   *g0 = NULL;
 static dev_spi    *s0 = NULL;
 
@@ -34,12 +32,9 @@ static uint8_t  pc     = 0;
 /* For devtree usage */
 
 extern void
-comm_setup(dev_uart *uart0, dev_uart *uart1,
-           dev_gpio *gpio, uint16_t *pins, uint8_t pinc,
+comm_setup(dev_gpio *gpio, uint16_t *pins, uint8_t pinc,
            dev_spi *spi)
 {
-    u0 = uart0;
-    u1 = uart1;
     g0 = gpio;
     s0 = spi;
 
@@ -85,63 +80,6 @@ comm_gpio_set(uint8_t pin, bool state)
         ret = gpio_set(g0, pa[pin], state);
 
     return ret;
-}
-
-/* UART functions */
-
-extern bool
-comm_uart_info(bool slave, uint32_t *rate, uint8_t *bits,
-               uint8_t *parity, uint8_t *stop)
-{
-    bool ret = false;
-
-    enum uart_bits   bits2;
-    enum uart_parity parity2;
-    enum uart_stop   stop2;
-
-    ret = uart_info((slave) ? u1 : u0, rate, &bits2, &parity2, &stop2);
-    if (ret)
-    {
-        if (bits)
-            *bits = bits2;
-        if (parity)
-            *parity = parity2;
-        *stop = stop2;
-    }
-
-    return ret;
-}
-extern bool
-comm_uart_config(bool slave, uint32_t rate, uint8_t bits,
-                 uint8_t parity, uint8_t stop)
-{
-    return uart_config((slave) ? u1 : u0, rate, bits, parity, stop);
-}
-
-extern bool
-comm_uart_read(bool slave, char *c)
-{
-    while (!uart_read((slave) ? u1 : u0, c));
-    return true;
-}
-
-extern bool
-comm_uart_write(bool slave, char c)
-{
-    while (!uart_write((slave) ? u1 : u0, c));
-    return true;
-}
-
-extern bool
-comm_uart_read_nb(bool slave, char *c)
-{
-    return uart_read((slave) ? u1 : u0, c);
-}
-
-extern bool
-comm_uart_write_nb(bool slave, char c)
-{
-    return uart_write((slave) ? u1 : u0, c);
 }
 
 /* SPI functions */
