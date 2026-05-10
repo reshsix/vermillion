@@ -19,15 +19,13 @@
 
 #include <hal/fs.h>
 #include <hal/block.h>
+#include <hal/timer.h>
 #include <hal/stream.h>
 #include <hal/classes/pic.h>
 #include <hal/classes/gpio.h>
 #include <hal/classes/uart.h>
-#include <hal/classes/timer.h>
 
 #include <system/comm.h>
-#include <system/disk.h>
-#include <system/time.h>
 
 #include <drivers/fs/mbr.h>
 #include <drivers/fs/fat32.h>
@@ -55,7 +53,7 @@ dev_spi spi0;
 dev_gpio gpio0, gpio1;
 dev_uart uart[2];
 dev_block mmcblk0, mmcblk0p1;
-dev_timer timer0, timer1;
+dev_timer timer[2];
 
 extern void
 devtree_init(void)
@@ -101,8 +99,9 @@ devtree_init(void)
     gpio_config(&gpio0, (2 * 32) + 3, GPIO_CUSTOM + 1, GPIO_PULLOFF);
 
     /* Timers */
-    timer0 = sunxi_timer_init(0, &pic);
-    timer1 = sunxi_timer_init(1, &pic);
+    timer[0] = sunxi_timer_init(0, &pic);
+    timer[1] = sunxi_timer_init(1, &pic);
+    timer_setup(timer, 2);
 
     /* Storage */
     mmcblk0 = sunxi_mmc_init(0);
@@ -119,7 +118,6 @@ devtree_init(void)
 
     /* Systems */
     comm_setup(&gpio0, (uint16_t[]){0,1,2,3}, 4, &spi0);
-    time_config(&timer0);
     pic_state(&pic, true);
 }
 
@@ -137,8 +135,8 @@ devtree_clean(void)
     sunxi_gpio_clean(&gpio0);
     sunxi_gpio_clean(&gpio1);
 
-    sunxi_timer_clean(&timer0);
-    sunxi_timer_clean(&timer1);
+    sunxi_timer_clean(&(timer[0]));
+    sunxi_timer_clean(&(timer[1]));
 
     sunxi_mmc_clean(&mmcblk0);
     mbr_clean(&mmcblk0p1);

@@ -19,11 +19,11 @@
 #include <general/path.h>
 
 #include <hal/fs.h>
+#include <hal/timer.h>
 #include <hal/classes/uart.h>
 
 #include <system/comm.h>
 #include <system/libs.h>
-#include <system/time.h>
 
 #include <loader.h>
 #include <syslog.h>
@@ -86,12 +86,10 @@ main(void)
                     .fs.resize       = fs_resize,
                     .fs.create       = fs_create,
                     .fs.remove       = fs_remove,
+                    .timer.alarm     = timer_alarm,
                     .libs.load       = libs_load,
                     .libs.unload     = libs_unload,
                     .libs.pointer    = libs_pointer,
-                    .time.event      = time_event,
-                    .time.sleep      = time_sleep,
-                    .time.clock      = time_clock,
 
                     .loader.fdpic     = loader_fdpic,
                     .syslog.char_     = syslog_char,

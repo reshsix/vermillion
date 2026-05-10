@@ -69,16 +69,6 @@ vrm_prog(struct vrm *v, const char **args, int count)
                 ret = true;
                 break;
             }
-            else if (v->str.comp(list[0], "clock", 0) == 0)
-            {
-                if (list_c == 1)
-                {
-                    v->syslog.signed_(v->time.clock());
-                    v->syslog.string(" cs\r\n");
-                }
-                else
-                    v->syslog.string("USAGE: clock\r\n");
-            }
             else
             {
                 /* Make path */

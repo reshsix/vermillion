@@ -197,7 +197,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
                     handshake = true;
                     break;
                 }
-                v->time.sleep(100);
+                v->timer.alarm(0, 1000000, false, NULL, NULL);
             }
         }
         else

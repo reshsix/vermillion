@@ -118,17 +118,16 @@ struct vrm
 
     struct
     {
+        bool (*alarm)(uint8_t id, uint32_t us, bool repeat,
+                      void (*handler)(void *), void *arg);
+    } timer;
+
+    struct
+    {
         bool   (*load)(const char *name, void *pointer, void *memory);
         bool   (*unload)(const char *name);
         void * (*pointer)(const char *name);
     } libs;
-
-    struct
-    {
-        bool (*event)(void (*handler)(void *), void *arg, uint8_t jiffies);
-        void (*sleep)(uint8_t jiffies);
-        uint64_t (*clock)(void);
-    } time;
 
     /* Main-adjacent functions */
 
