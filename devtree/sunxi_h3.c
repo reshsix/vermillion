@@ -18,12 +18,12 @@
 #include <general/types.h>
 
 #include <hal/fs.h>
+#include <hal/spi.h>
+#include <hal/uart.h>
 #include <hal/block.h>
 #include <hal/timer.h>
-#include <hal/stream.h>
 #include <hal/classes/pic.h>
 #include <hal/classes/gpio.h>
-#include <hal/classes/uart.h>
 
 #include <system/comm.h>
 
@@ -49,7 +49,7 @@
 
 dev_fs fs[1];
 dev_pic pic;
-dev_spi spi0;
+dev_spi spi[1];
 dev_gpio gpio0, gpio1;
 dev_uart uart[2];
 dev_block mmcblk0, mmcblk0p1;
@@ -113,11 +113,12 @@ devtree_init(void)
     CLK_SPI0    = 1 << 31;
     BUS0_GATE  |= 1 << 20;
     BUS0_RESET |= 1 << 20;
-    spi0 = sunxi_spi_init(0);
-    spi_config(&spi0, 24000000, SPI_MODE0, false);
+    spi[0] = sunxi_spi_init(0);
+    spi_setup(spi, 1);
+    spi_config(0, 24000000, 0, false);
 
     /* Systems */
-    comm_setup(&gpio0, (uint16_t[]){0,1,2,3}, 4, &spi0);
+    comm_setup(&gpio0, (uint16_t[]){0,1,2,3}, 4);
     pic_state(&pic, true);
 }
 
@@ -143,10 +144,10 @@ devtree_clean(void)
 
     fat32_clean(&(fs[0]));
 
-    comm_setup(NULL, NULL, 0, NULL);
+    comm_setup(NULL, NULL, 0);
     sunxi_uart_clean(&(uart[0]));
     sunxi_uart_clean(&(uart[1]));
-    sunxi_spi_clean(&spi0);
+    sunxi_spi_clean(&(spi[0]));
 
     arm_gic_clean(&pic);
 

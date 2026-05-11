@@ -16,17 +16,25 @@
 
 #pragma once
 
-#include <hal/stream.h>
-
-typedef drv_stream drv_uart;
-typedef dev_stream dev_uart;
-
-/* For driver usage */
-
 enum uart_index
 {
     UART_BAUD_GET, UART_BAUD_SET
 };
+
+typedef struct
+{
+    void *init, (*clean)(void *);
+    bool (*info)  (void *ctx, u32 *baud);
+    bool (*config)(void *ctx, u32 baud);
+    bool (*read)  (void *ctx, u8 *data);
+    bool (*write) (void *ctx, u8 data);
+} drv_uart;
+
+typedef struct
+{
+    const drv_uart *driver;
+    void *context;
+} dev_uart;
 
 /* For devtree usage */
 

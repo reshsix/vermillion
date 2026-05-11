@@ -19,8 +19,9 @@
 #include <general/path.h>
 
 #include <hal/fs.h>
+#include <hal/spi.h>
+#include <hal/uart.h>
 #include <hal/timer.h>
-#include <hal/classes/uart.h>
 
 #include <system/comm.h>
 #include <system/libs.h>
@@ -67,13 +68,14 @@ main(void)
                     .uart.write      = uart_write,
                     .uart.info       = uart_info,
                     .uart.config     = uart_config,
-                    .spi.info        = comm_spi_info,
-                    .spi.config      = comm_spi_config,
-                    .spi.state       = comm_spi_state,
-                    .spi.transfer    = comm_spi_transfer,
-                    .spi.nb.limit    = comm_spi_limit,
-                    .spi.nb.transfer = comm_spi_transfer_nb,
-                    .spi.nb.poll     = comm_spi_poll,
+                    .spi.info        = spi_info,
+                    .spi.config      = spi_config,
+                    .spi.begin       = spi_begin,
+                    .spi.end         = spi_end,
+                    .spi.limit       = spi_limit,
+                    .spi.transfer    = spi_transfer,
+                    .spi.poll        = spi_poll,
+                    .timer.alarm     = timer_alarm,
                     .fs.open         = fs_open,
                     .fs.close        = fs_close,
                     .fs.stat         = fs_stat,
@@ -86,7 +88,6 @@ main(void)
                     .fs.resize       = fs_resize,
                     .fs.create       = fs_create,
                     .fs.remove       = fs_remove,
-                    .timer.alarm     = timer_alarm,
                     .libs.load       = libs_load,
                     .libs.unload     = libs_unload,
                     .libs.pointer    = libs_pointer,

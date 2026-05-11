@@ -82,17 +82,20 @@ struct vrm
 
     struct
     {
-        bool (*info)(uint32_t *rate, uint8_t *mode, bool *lsb, bool *csp);
-        bool (*config)(uint32_t rate, uint8_t mode, bool lsb, bool csp);
-        bool (*state)(bool cs);
-        bool (*transfer)(uint8_t *data, size_t count);
-        struct
-        {
-            bool (*limit)(size_t *count);
-            bool (*transfer)(uint8_t *data, size_t count);
-            bool (*poll)(void);
-        } nb;
+        bool (*info)(uint8_t id, uint32_t *freq, uint8_t *mode, bool *lsb);
+        bool (*config)(uint8_t id, uint32_t freq, uint8_t mode, bool lsb);
+        bool (*begin)(uint8_t id);
+        bool (*end)(uint8_t id);
+        bool (*limit)(uint8_t id, size_t *count);
+        bool (*transfer)(uint8_t id, uint8_t *data, size_t count);
+        bool (*poll)(uint8_t id);
     } spi;
+
+    struct
+    {
+        bool (*alarm)(uint8_t id, uint32_t us, bool repeat,
+                      void (*handler)(void *), void *arg);
+    } timer;
 
     struct
     {
@@ -115,12 +118,6 @@ struct vrm
         bool (*create)(uint8_t id, const char *path, bool dir);
         bool (*remove)(uint8_t id, const char *path);
     } fs;
-
-    struct
-    {
-        bool (*alarm)(uint8_t id, uint32_t us, bool repeat,
-                      void (*handler)(void *), void *arg);
-    } timer;
 
     struct
     {

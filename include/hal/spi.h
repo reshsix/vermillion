@@ -16,24 +16,34 @@
 
 #pragma once
 
-#include <general/types.h>
-
 typedef struct
 {
     void *init, (*clean)(void *);
-    bool (*ioctl)(void *ctx, u8 idx, void *data);
-    bool (*stat) (void *ctx, size_t *width);
-    bool (*read) (void *ctx, void *data);
-    bool (*write)(void *ctx, void *data);
-} drv_stream;
+    bool (*info)(void *ctx, u32 *freq, u8 *mode, bool *lsb);
+    bool (*config)(void *ctx, u32 freq, u8 mode, bool lsb);
+    bool (*begin)(void *ctx);
+    bool (*end)(void *ctx);
+    bool (*limit)(void *ctx, size_t *count);
+    bool (*transfer)(void *ctx, u8 *data, size_t count);
+    bool (*poll)(void *ctx);
+} drv_spi;
 
 typedef struct
 {
-    const drv_stream *driver;
+    const drv_spi *driver;
     void *context;
-} dev_stream;
+} dev_spi;
 
-bool stream_ioctl(dev_stream *ds, u8 idx, void *data);
-bool stream_stat(dev_stream *ds,  size_t *width);
-bool stream_read(dev_stream *ds,  void *data);
-bool stream_write(dev_stream *ds, void *data);
+/* For devtree usage */
+
+void spi_setup(dev_spi *list, u8 count);
+
+/* For external usage */
+
+bool spi_info(u8 id, u32 *freq, u8 *mode, bool *lsb);
+bool spi_config(u8 id, u32 freq, u8 mode, bool lsb);
+bool spi_begin(u8 id);
+bool spi_end(u8 id);
+bool spi_limit(u8 id, size_t *count);
+bool spi_transfer(u8 id, u8 *data, size_t count);
+bool spi_poll(u8 id);

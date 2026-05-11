@@ -17,7 +17,7 @@
 #include <general/types.h>
 #include <general/mem.h>
 
-#include <hal/classes/spi.h>
+#include <hal/spi.h>
 
 #define SPI_GCR(x) *(volatile u32*)(x + 0x04)
 #define SPI_TCR(x) *(volatile u32*)(x + 0x08)
@@ -36,7 +36,10 @@
 struct spi
 {
     u32 addr;
-    struct spi_cfg cfg;
+
+    u32 freq;
+    u8 mode;
+    bool lsb;
 
     u8 *data;
     size_t count;
@@ -46,66 +49,81 @@ struct spi
 static struct spi spis[2] = {0};
 
 static bool
-ioctl(void *ctx, u8 idx, void *data)
+info(void *ctx, u32 *freq, u8 *mode, bool *lsb)
 {
     bool ret = false;
 
     struct spi *spi = ctx;
-    switch (idx)
+    if (spi)
     {
-        case SPI_CONFIG_GET:
-            ret = true;
-            mem_copy(data, &(spi->cfg), sizeof(struct spi_cfg));
-            break;
-        case SPI_CONFIG_SET:;
-            struct spi_cfg cfg = {0};
-            mem_copy(&cfg, data, sizeof(struct spi_cfg));
-            ret = (cfg.freq <= 24000000 && cfg.freq >= 367 && cfg.mode < 4);
-            if (ret)
-            {
-                u32 div = 24000000 / cfg.freq;
-
-                if (div < 2)
-                    SPI_CLK(spi->addr) = 0x0;
-                else if (div > 512)
-                {
-                    u8 log2 = 0;
-                    while (div >>= 1)
-                        log2++;
-
-                    SPI_CLK(spi->addr) = log2 << 8;
-                }
-                else
-                    SPI_CLK(spi->addr) = (1 << 12) | ((div / 2) - 1);
-
-                mem_copy(&(spi->cfg), &cfg, sizeof(struct spi_cfg));
-            }
-            break;
-        case SPI_STATE_CS:
-            ret = true;
-
-            bool high = data;
-            SPI_TCR(spi->addr) = (spi->cfg.mode & 0x3) | (spi->cfg.lsb << 12) |
-                                 (1 << 6) | (1 << 13);
-
-            if (high) SPI_TCR(spi->addr) |=  (1 << 7);
-            else      SPI_TCR(spi->addr) &= ~(1 << 7);
-            break;
+        *freq = spi->freq;
+        *mode = spi->mode;
+        *lsb  = spi->lsb;
+        ret = true;
     }
 
     return ret;
 }
 
 static bool
-stat(void *ctx, size_t *width, size_t *length)
+config(void *ctx, u32 freq, u8 mode, bool lsb)
 {
-    *width  = sizeof(u8);
-    *length = 64;
+    bool ret = (freq <= 24000000 && freq >= 367 && mode < 4);
+
+    if (ret)
+    {
+        struct spi *spi = ctx;
+
+        u32 div = 24000000 / freq;
+        if (div < 2)
+            div = 0;
+        else if (div > 512)
+        {
+            u8 log2 = 0;
+            while (div >>= 1)
+                log2++;
+
+            div = log2 << 8;
+        }
+        else
+            div = (1 << 12) | ((div / 2) - 1);
+
+        SPI_CLK(spi->addr) = div;
+        SPI_TCR(spi->addr) = (mode & 0x3) | (lsb << 12) | (1 << 6) | (1 << 13);
+
+        spi->freq = 24000000 / div;
+        spi->mode = mode;
+        spi->lsb  = lsb;
+    }
+
+    return ret;
+}
+
+static bool
+begin(void *ctx)
+{
+    struct spi *spi = ctx;
+    SPI_TCR(spi->addr) &= ~(1 << 7);
     return true;
 }
 
 static bool
-transfer(void *ctx, void *data, size_t count)
+end(void *ctx)
+{
+    struct spi *spi = ctx;
+    SPI_TCR(spi->addr) |= (1 << 7);
+    return true;
+}
+
+static bool
+limit(void *ctx, size_t *count)
+{
+    *count = 64;
+    return true;
+}
+
+static bool
+transfer(void *ctx, u8 *data, size_t count)
 {
     bool ret = (count <= 64);
 
@@ -128,9 +146,8 @@ transfer(void *ctx, void *data, size_t count)
         for (size_t i = 0; i < count; i++)
             SPI_TXD(spi->addr) = spi->data[i];
 
-        /* Set mode and start transfer */
-        SPI_TCR(spi->addr) = (spi->cfg.mode & 0x3) | (spi->cfg.lsb << 12) |
-                             (1 << 6) | (1 << 13) | (1 << 31);
+        /* Start transfer */
+        SPI_TCR(spi->addr) |= (1 << 31);
     }
 
     return ret;
@@ -158,7 +175,9 @@ poll(void *ctx)
 
 static const drv_spi sunxi_spi =
 {
-    .ioctl = ioctl, .stat = stat, .transfer = transfer, .poll = poll
+    .info = info, .config = config,
+    .begin = begin, .end = end,
+    .limit = limit, .transfer = transfer, .poll = poll
 };
 
 /* Device creation */
@@ -184,8 +203,12 @@ sunxi_spi_init(u8 id)
         SPI_GCR(ret->addr) |= 1 << 31;
         while (SPI_GCR(ret->addr) & 1 << 31);
 
+        /* Enable, Master mode */
         SPI_GCR(ret->addr) |= 1 << 0;
         SPI_GCR(ret->addr) |= 1 << 1;
+
+        /* Mode 0, MSB first, Software CS, No delay */
+        SPI_TCR(ret->addr) = (1 << 6) | (1 << 13);
     }
 
     return (dev_spi){.driver = &sunxi_spi, .context = ret};

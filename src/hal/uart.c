@@ -16,52 +16,54 @@
 
 #include <general/types.h>
 
-#include <hal/stream.h>
+#include <hal/uart.h>
+
+/* For devtree usage */
+
+static dev_uart *dev_l = NULL;
+static u8 dev_c = 0;
+
+extern void
+uart_setup(dev_uart *list, u8 count)
+{
+    dev_l = list;
+    dev_c = count;
+}
+
+/* For external usage */
+
+#define UART_CALL(f, ...) \
+(id < dev_c) ? dev_l[id].driver->f(dev_l[id].context, ##__VA_ARGS__) : false;
 
 extern bool
-stream_ioctl(dev_stream *ds, u8 idx, void *data)
+uart_read(u8 id, u8 *data)
 {
-    bool ret = (ds != NULL);
+    return UART_CALL(read, data);
+}
 
-    if (ret)
-        ret = ds->driver->ioctl(ds->context, idx, data);
+extern bool
+uart_write(u8 id, u8 data)
+{
+    return UART_CALL(write, data);
+}
+
+extern bool
+uart_info(u8 id, u32 *baud)
+{
+    u32 baud2 = 0;
+
+    bool ret = UART_CALL(info, &baud2);
+    if (ret && baud)
+        *baud = baud2;
 
     return ret;
 }
 
 extern bool
-stream_stat(dev_stream *ds, size_t *width)
+uart_config(u8 id, u32 baud)
 {
-    bool ret = (ds != NULL);
+    if (baud == 0)
+        baud = 115200;
 
-    size_t w = 0;
-    if (ret)
-        ret = ds->driver->stat(ds->context, &w);
-
-    if (ret && width)
-        *width = w;
-
-    return ret;
-}
-
-extern bool
-stream_read(dev_stream *ds, void *data)
-{
-    bool ret = (ds != NULL);
-
-    if (ret)
-        ret = ds->driver->read(ds->context, data);
-
-    return ret;
-}
-
-extern bool
-stream_write(dev_stream *ds, void *data)
-{
-    bool ret = (ds != NULL);
-
-    if (ret)
-        ret = ds->driver->write(ds->context, data);
-
-    return ret;
+    return UART_CALL(config, baud);
 }

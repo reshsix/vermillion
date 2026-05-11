@@ -16,6 +16,8 @@
 
 #include <general/types.h>
 
+#include <hal/uart.h>
+
 #include <system/comm.h>
 
 #include <syslog.h>

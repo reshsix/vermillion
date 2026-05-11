@@ -17,8 +17,8 @@
 #include <general/types.h>
 #include <general/mem.h>
 
+#include <hal/uart.h>
 #include <hal/classes/pic.h>
-#include <hal/classes/uart.h>
 
 #define IO_BUF(p) *(volatile u32*)(p + 0x00)
 #define IO_DLL(p) *(volatile u32*)(p + 0x00)
@@ -72,52 +72,42 @@ uart_handler(void *arg)
 }
 
 static bool
-ioctl(void *ctx, u8 idx, void *data)
+info(void *ctx, u32 *baud)
 {
-    bool ret = false;
-
     struct uart *u = ctx;
-    switch (idx)
+    *baud = u->baud;
+    return true;
+}
+
+static bool
+config(void *ctx, u32 baud)
+{
+    bool ret = (baud <= 1500000 && baud >= 23);
+
+    if (ret)
     {
-        case UART_BAUD_GET:
-            ret = true;
-            mem_copy(data, &(u->baud), sizeof(u32));
-            break;
-        case UART_BAUD_SET:
-            mem_copy(&(u->baud), data, sizeof(u32));
+        struct uart *u = ctx;
+        while (IO_USR(u->port) & 1);
 
-            ret = (u->baud <= 1500000 && u->baud >= 23);
-            if (ret)
-            {
-                while (IO_USR(u->port) & 1);
+        u16 divider = 1500000 / baud;
+        IO_LCR(u->port) |= (1 << 7);
+        IO_DLH(u->port) = (divider >> 8) & 0xff;
+        IO_DLL(u->port) = (divider >> 0) & 0xff;
+        IO_LCR(u->port) &= ~(1 << 7);
 
-                u16 divider = 1500000 / u->baud;
-                IO_LCR(u->port) |= (1 << 7);
-                IO_DLH(u->port) = (divider >> 8) & 0xff;
-                IO_DLL(u->port) = (divider >> 0) & 0xff;
-                IO_LCR(u->port) &= ~(1 << 7);
+        /* Guarantees 8N1 */
+        IO_LCR(u->port) |= 0x3;
+        IO_LCR(u->port) &= ~(1 << 3);
+        IO_LCR(u->port) &= ~(1 << 2);
 
-                /* Guarantees 8N1 */
-                IO_LCR(u->port) |= 0x3;
-                IO_LCR(u->port) &= ~(1 << 3);
-                IO_LCR(u->port) &= ~(1 << 2);
-            }
-            break;
+        u->baud = baud;
     }
 
     return ret;
 }
 
 static bool
-stat(void *ctx, size_t *width)
-{
-    (void)ctx;
-    *width = sizeof(u8);
-    return true;
-}
-
-static bool
-read(void *ctx, void *data)
+read(void *ctx, u8 *data)
 {
     bool ret = false;
 
@@ -125,40 +115,35 @@ read(void *ctx, void *data)
     ret = (u->head != u->tail || IO_LSR(u->port) & (1 << 0));
     if (ret)
     {
-        u8 byte = 0;
         if (u->head != u->tail)
         {
-            byte = u->buffer[u->tail];
+            *data = u->buffer[u->tail];
             u->tail = (u->tail + 1) & 0x3FF;
         }
         else
-            byte = IO_BUF(u->port);
-        mem_copy(data, &byte, sizeof(u8));
+            *data = IO_BUF(u->port);
     }
 
     return ret;
 }
 
 static bool
-write(void *ctx, void *data)
+write(void *ctx, u8 data)
 {
     bool ret = false;
 
     struct uart *u = ctx;
     ret = (IO_LSR(u->port) & (1 << 5));
     if (ret)
-    {
-        u8 byte = 0;
-        mem_copy(&byte, data, sizeof(u8));
-        IO_BUF(u->port) = byte;
-    }
+        IO_BUF(u->port) = data;
 
     return ret;
 }
 
 static const drv_uart sunxi_uart =
 {
-    .ioctl = ioctl, .stat = stat, .read = read, .write = write
+    .info = info, .config = config,
+    .read = read, .write = write
 };
 
 /* Device creation */

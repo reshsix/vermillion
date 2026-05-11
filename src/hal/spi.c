@@ -16,15 +16,15 @@
 
 #include <general/types.h>
 
-#include <hal/classes/uart.h>
+#include <hal/spi.h>
 
 /* For devtree usage */
 
-static dev_uart *dev_l = NULL;
+static dev_spi *dev_l = NULL;
 static u8 dev_c = 0;
 
 extern void
-uart_setup(dev_uart *list, u8 count)
+spi_setup(dev_spi *list, u8 count)
 {
     dev_l = list;
     dev_c = count;
@@ -32,41 +32,47 @@ uart_setup(dev_uart *list, u8 count)
 
 /* For external usage */
 
-static void *
-uart_dev(u8 id)
+#define SPI_CALL(f, ...) \
+(id < dev_c) ? dev_l[id].driver->f(dev_l[id].context, ##__VA_ARGS__) : false;
+
+extern bool
+spi_info(u8 id, u32 *freq, u8 *mode, bool *lsb)
 {
-    return (id < dev_c) ? &(dev_l[id]) : NULL;
+    return SPI_CALL(info, freq, mode, lsb);
 }
 
 extern bool
-uart_read(u8 id, u8 *data)
+spi_config(u8 id, u32 freq, u8 mode, bool lsb)
 {
-    return stream_read(uart_dev(id), data);
+    return SPI_CALL(config, freq, mode, lsb);
 }
 
 extern bool
-uart_write(u8 id, u8 data)
+spi_begin(u8 id)
 {
-    return stream_write(uart_dev(id), &data);
+    return SPI_CALL(begin);
 }
 
 extern bool
-uart_info(u8 id, u32 *baud)
+spi_end(u8 id)
 {
-    u32 baud2 = 0;
-
-    bool ret = stream_ioctl(uart_dev(id), UART_BAUD_GET, &baud2);
-    if (ret && baud)
-        *baud = baud2;
-
-    return ret;
+    return SPI_CALL(end);
 }
 
 extern bool
-uart_config(u8 id, u32 baud)
+spi_limit(u8 id, size_t *count)
 {
-    if (baud == 0)
-        baud = 115200;
+    return SPI_CALL(limit, count);
+}
 
-    return stream_ioctl(uart_dev(id), UART_BAUD_SET, &baud);
+extern bool
+spi_transfer(u8 id, u8 *data, size_t count)
+{
+    return SPI_CALL(transfer, data, count);
+}
+
+extern bool
+spi_poll(u8 id)
+{
+    return SPI_CALL(poll);
 }

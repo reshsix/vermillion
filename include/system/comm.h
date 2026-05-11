@@ -18,26 +18,14 @@
 
 #include <general/types.h>
 
-#include <hal/stream.h>
-#include <hal/classes/spi.h>
 #include <hal/classes/gpio.h>
-#include <hal/classes/uart.h>
 
 /* For devtree usage */
 
-void comm_setup(dev_gpio *gpio, uint16_t *pins, uint8_t pinc,
-                dev_spi *spi);
+void comm_setup(dev_gpio *gpio, uint16_t *pins, uint8_t pinc);
 
 /* For external usage */
 
 bool comm_gpio_dir(uint8_t pin, bool output);
 bool comm_gpio_get(uint8_t pin, bool *state);
 bool comm_gpio_set(uint8_t pin, bool state);
-
-bool comm_spi_info(uint32_t *rate, uint8_t *mode, bool *lsb);
-bool comm_spi_config(uint32_t rate, uint8_t mode, bool lsb);
-bool comm_spi_state(bool cs);
-bool comm_spi_transfer(uint8_t *data, size_t count);
-bool comm_spi_limit(size_t *count);
-bool comm_spi_transfer_nb(uint8_t *data, size_t count);
-bool comm_spi_poll(void);
