@@ -19,13 +19,11 @@
 
 #include <hal/fs.h>
 #include <hal/spi.h>
+#include <hal/gpio.h>
 #include <hal/uart.h>
 #include <hal/block.h>
 #include <hal/timer.h>
 #include <hal/classes/pic.h>
-#include <hal/classes/gpio.h>
-
-#include <system/comm.h>
 
 #include <drivers/fs/mbr.h>
 #include <drivers/fs/fat32.h>
@@ -118,7 +116,6 @@ devtree_init(void)
     spi_config(0, 24000000, 0, false);
 
     /* Systems */
-    comm_setup(&gpio0, (uint16_t[]){0,1,2,3}, 4);
     pic_state(&pic, true);
 }
 
@@ -144,7 +141,6 @@ devtree_clean(void)
 
     fat32_clean(&(fs[0]));
 
-    comm_setup(NULL, NULL, 0);
     sunxi_uart_clean(&(uart[0]));
     sunxi_uart_clean(&(uart[1]));
     sunxi_spi_clean(&(spi[0]));

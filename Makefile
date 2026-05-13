@@ -65,13 +65,13 @@ OBJS += $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/path.o
 
 PREFIX = src/hal
 OBJS += $(PREFIX)/block.o $(PREFIX)/uart.o $(PREFIX)/spi.o $(PREFIX)/fs.o \
-		$(PREFIX)/timer.o
+		$(PREFIX)/timer.o $(PREFIX)/gpio.o
 
 PREFIX = src/hal/classes
-OBJS += $(PREFIX)/gpio.o $(PREFIX)/pic.o
+OBJS += $(PREFIX)/pic.o
 
 PREFIX = src/system
-OBJS += $(PREFIX)/comm.o $(PREFIX)/libs.o
+OBJS += $(PREFIX)/libs.o
 
 OBJS += devtree.o src/loader.o src/syslog.o src/main.o
 

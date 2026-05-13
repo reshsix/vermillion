@@ -23,7 +23,6 @@
 #include <hal/uart.h>
 #include <hal/timer.h>
 
-#include <system/comm.h>
 #include <system/libs.h>
 
 #include <loader.h>
@@ -61,9 +60,9 @@ main(void)
                     .path.dirname  = path_dirname,
                     .path.filename = path_filename,
 
-                    .gpio.dir        = comm_gpio_dir,
-                    .gpio.get        = comm_gpio_get,
-                    .gpio.set        = comm_gpio_set,
+                    /* TODO .gpio.dir        = comm_gpio_dir,
+                            .gpio.get        = comm_gpio_get,
+                            .gpio.set        = comm_gpio_set, */
                     .uart.read       = uart_read,
                     .uart.write      = uart_write,
                     .uart.info       = uart_info,

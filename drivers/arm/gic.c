@@ -19,8 +19,6 @@
 
 #include <hal/classes/pic.h>
 
-#include <system/comm.h>
-
 #include <syslog.h>
 
 enum

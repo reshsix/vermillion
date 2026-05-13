@@ -17,8 +17,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/types.h>
 #include <general/mem.h>
 
+#include <hal/gpio.h>
 #include <hal/classes/pic.h>
-#include <hal/classes/gpio.h>
 
 #define PN_CFG(c, n, i) *(volatile u32 *)(c + (n * 0x24) + (0x4 * i))
 #define PN_DAT(c, n)    *(volatile u32 *)(c + (n * 0x24) + 0x10)

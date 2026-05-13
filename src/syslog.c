@@ -18,8 +18,6 @@
 
 #include <hal/uart.h>
 
-#include <system/comm.h>
-
 #include <syslog.h>
 
 extern void
