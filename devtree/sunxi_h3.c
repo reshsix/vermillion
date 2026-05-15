@@ -48,16 +48,44 @@
 dev_fs fs[1];
 dev_pic pic;
 dev_spi spi[1];
-dev_gpio gpio0, gpio1;
+dev_gpio gpio[2];
 dev_uart uart[2];
 dev_block mmcblk0, mmcblk0p1;
 dev_timer timer[2];
+
+struct led
+{
+    u8 id, port, slot;
+};
+struct led power  = {0};
+struct led status = {0};
 
 extern void
 devtree_init(void)
 {
     mem_init();
     APB0_GATE = 1;
+
+    /* Board config */
+    switch (CONFIG_SUNXI_BOARD)
+    {
+        case ORANGEPI_ONE:
+            power.id    = 1;
+            power.port  = 0;
+            power.slot  = 10;
+            status.id   = 0;
+            status.port = 0;
+            status.slot = 15;
+            break;
+        case NANOPI_NEO:
+            power.id    = 0;
+            power.port  = 0;
+            power.slot  = 10;
+            status.id   = 1;
+            status.port = 0;
+            status.slot = 10;
+            break;
+    }
 
     /* Interrupts */
     pic = arm_gic_init(0x01c82000, 0x01c81000);
@@ -70,31 +98,28 @@ devtree_init(void)
     uart_config(1, 115200);
 
     /* GPIO initialization */
-    gpio0 = sunxi_gpio_init(0, &pic);
-    gpio1 = sunxi_gpio_init(1, &pic);
-    switch (CONFIG_SUNXI_BOARD)
-    {
-        /* Green led on PL10 */
-        case ORANGEPI_ONE:
-            gpio_config(&gpio1, 10, GPIO_OUT, GPIO_PULLOFF);
-            gpio_set(&gpio1, 10, true);
-            break;
-        /* Green led on PA10 */
-        case NANOPI_NEO:
-            gpio_config(&gpio0, 10, GPIO_OUT, GPIO_PULLOFF);
-            gpio_set(&gpio0, 10, true);
-            break;
-    }
+    gpio[0] = sunxi_gpio_init(0);
+    gpio[1] = sunxi_gpio_init(1);
+    gpio_setup(gpio, 2);
+    /* Power led ON */
+    u32 port = 0;
+    gpio_config(power.id, power.port, power.slot, GPIO_OUT);
+    gpio_read(power.id, power.port, &port);
+    gpio_write(power.id, power.port, port | (1 << power.slot));
+    /* Status led OFF */
+    gpio_config(status.id, status.port, status.slot, GPIO_OUT);
+    gpio_read(status.id, status.port, &port);
+    gpio_write(status.id, status.port, port & ~(1 << status.slot));
     /* UART1 on PG6 to PG9 */
-    gpio_config(&gpio0, (6 * 32) + 6, GPIO_CUSTOM + 0, GPIO_PULLOFF);
-    gpio_config(&gpio0, (6 * 32) + 7, GPIO_CUSTOM + 0, GPIO_PULLOFF);
-    gpio_config(&gpio0, (6 * 32) + 8, GPIO_CUSTOM + 0, GPIO_PULLOFF);
-    gpio_config(&gpio0, (6 * 32) + 9, GPIO_CUSTOM + 0, GPIO_PULLOFF);
+    gpio_config(0, 6, 6, GPIO_CUSTOM(0));
+    gpio_config(0, 6, 7, GPIO_CUSTOM(0));
+    gpio_config(0, 6, 8, GPIO_CUSTOM(0));
+    gpio_config(0, 6, 9, GPIO_CUSTOM(0));
     /* SPI0 on PC0 to PC3 */
-    gpio_config(&gpio0, (2 * 32) + 0, GPIO_CUSTOM + 1, GPIO_PULLOFF);
-    gpio_config(&gpio0, (2 * 32) + 1, GPIO_CUSTOM + 1, GPIO_PULLOFF);
-    gpio_config(&gpio0, (2 * 32) + 2, GPIO_CUSTOM + 1, GPIO_PULLOFF);
-    gpio_config(&gpio0, (2 * 32) + 3, GPIO_CUSTOM + 1, GPIO_PULLOFF);
+    gpio_config(0, 2, 0, GPIO_CUSTOM(1));
+    gpio_config(0, 2, 1, GPIO_CUSTOM(1));
+    gpio_config(0, 2, 2, GPIO_CUSTOM(1));
+    gpio_config(0, 2, 3, GPIO_CUSTOM(1));
 
     /* Timers */
     timer[0] = sunxi_timer_init(0, &pic);
@@ -115,36 +140,47 @@ devtree_init(void)
     spi_setup(spi, 1);
     spi_config(0, 24000000, 0, false);
 
-    /* Systems */
+    /* Interrupts ON */
     pic_state(&pic, true);
 }
 
 extern void
 devtree_clean(void)
 {
+    /* Interrupts OFF */
     pic_state(&pic, false);
 
-    gpio_set(&gpio1, 10, false);
-    gpio_config(&gpio1, 10, GPIO_OFF, GPIO_PULLOFF);
+    /* Power led OFF */
+    u32 port = 0;
+    gpio_config(power.id, power.port, power.slot, GPIO_OUT);
+    gpio_read(power.id, power.port, &port);
+    gpio_write(power.id, power.port, port & ~(1 << power.slot));
+    /* Status led ON */
+    gpio_config(status.id, status.port, status.slot, GPIO_OUT);
+    gpio_read(status.id, status.port, &port);
+    gpio_write(status.id, status.port, port | (1 << status.slot));
 
-    gpio_config(&gpio0, 15, GPIO_OUT, GPIO_PULLOFF);
-    gpio_set(&gpio0, 15, true);
+    /* GPIO clean */
+    sunxi_gpio_clean(&(gpio[0]));
+    sunxi_gpio_clean(&(gpio[1]));
 
-    sunxi_gpio_clean(&gpio0);
-    sunxi_gpio_clean(&gpio1);
-
+    /* Timer clean */
     sunxi_timer_clean(&(timer[0]));
     sunxi_timer_clean(&(timer[1]));
 
+    /* Storage clean */
     sunxi_mmc_clean(&mmcblk0);
     mbr_clean(&mmcblk0p1);
-
     fat32_clean(&(fs[0]));
 
-    sunxi_uart_clean(&(uart[0]));
-    sunxi_uart_clean(&(uart[1]));
+    /* Peripherals clean */
     sunxi_spi_clean(&(spi[0]));
 
+    /* Serial clean */
+    sunxi_uart_clean(&(uart[0]));
+    sunxi_uart_clean(&(uart[1]));
+
+    /* Interrupts clean */
     arm_gic_clean(&pic);
 
     APB0_GATE = 0;

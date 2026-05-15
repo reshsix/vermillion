@@ -18,89 +18,49 @@
 
 #include <hal/gpio.h>
 
-extern bool
-gpio_stat(dev_gpio *dg, u32 *width, u32 *ports)
+/* For devtree usage */
+
+static dev_gpio *dev_l = NULL;
+static u8 dev_c = 0;
+
+extern void
+gpio_setup(dev_gpio *list, u8 count)
 {
-    return block_stat((dev_block *)dg, BLOCK_COMMON, width, ports);
+    dev_l = list;
+    dev_c = count;
+}
+
+/* For external usage */
+
+#define GPIO_CALL(f, ...) \
+(id < dev_c) ? dev_l[id].driver->f(dev_l[id].context, ##__VA_ARGS__) : false;
+
+extern bool
+gpio_count(u8 id, u8 *ports, u8 *slots)
+{
+    return GPIO_CALL(count, ports, slots);
 }
 
 extern bool
-gpio_read(dev_gpio *dg, u16 port, void *data)
+gpio_read(u8 id, u8 port, u32 *data)
 {
-    return block_read((dev_block *)dg, BLOCK_COMMON, data, port);
+    return GPIO_CALL(read, port, data);
 }
 
 extern bool
-gpio_write(dev_gpio *dg, u16 port, void *data)
+gpio_write(u8 id, u8 port, u32 data)
 {
-    return block_write((dev_block *)dg, BLOCK_COMMON, data, port);
+    return GPIO_CALL(write, port, data);
 }
 
 extern bool
-gpio_get(dev_gpio *dg, u16 pin, bool *data)
+gpio_info(u8 id, u8 port, u8 slot, u32 *fields)
 {
-    return block_read((dev_block *)dg, GPIO_PINS, data, pin);
+    return GPIO_CALL(info, port, slot, fields);
 }
 
 extern bool
-gpio_set(dev_gpio *dg, u16 pin, bool data)
+gpio_config(u8 id, u8 port, u8 slot, u32 fields)
 {
-    return block_write((dev_block*)dg, GPIO_PINS, &data, pin);
-}
-
-extern bool
-gpio_info(dev_gpio *dg, u16 id, enum gpio_role *role, enum gpio_pull *pull)
-{
-    struct gpio_pin pin = {0};
-
-    bool ret = block_read((dev_block *)dg, GPIO_CONFIG_PIN, &pin, id);
-
-    if (ret)
-    {
-        if (role)
-            *role = pin.role;
-        if (pull)
-            *pull = pin.pull;
-    }
-
-    return ret;
-}
-
-extern bool
-gpio_config(dev_gpio *dg, u16 id, enum gpio_role role, enum gpio_pull pull)
-{
-    struct gpio_pin pin = {.role = role, .pull = pull};
-    return block_write((dev_block *)dg, GPIO_CONFIG_PIN, &pin, id);
-}
-
-extern bool
-gpio_check(dev_gpio *dg, u16 id, bool *enabled,
-           void (**handler)(void *), void **arg, enum gpio_level *level)
-{
-    struct gpio_intr intr = {0};
-
-    bool ret = block_read((dev_block *)dg, GPIO_CONFIG_EINT, &intr, id);
-
-    if (ret)
-    {
-        if (enabled)
-            *enabled = intr.enabled;
-        if (handler)
-            *handler = intr.handler;
-        if (arg)
-            *arg = intr.arg;
-        if (level)
-            *level = intr.level;
-    }
-
-    return ret;
-}
-
-extern bool
-gpio_eint(dev_gpio *dg, u16 id, bool enabled,
-          void (*handler)(void *), void *arg, enum gpio_level level)
-{
-    struct gpio_intr intr = {.enabled = enabled, .handler = handler,
-                             .arg = arg, .level = level};
-    return block_write((dev_block *)dg, GPIO_CONFIG_EINT, &intr, id);
+    return GPIO_CALL(config, port, slot, fields);
 }

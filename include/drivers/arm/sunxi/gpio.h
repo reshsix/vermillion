@@ -16,5 +16,5 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-dev_gpio sunxi_gpio_init(u8 id, dev_pic *pic);
+dev_gpio sunxi_gpio_init(u8 id);
 void sunxi_gpio_clean(dev_gpio *g);

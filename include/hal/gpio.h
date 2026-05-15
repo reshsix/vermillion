@@ -20,56 +20,39 @@
 
 #include <hal/block.h>
 
-enum gpio_index
+#define GPIO_OFF       (0 << 0)
+#define GPIO_IN        (1 << 0)
+#define GPIO_OUT       (2 << 0)
+#define GPIO_CUSTOM(x) (((x) + 3) << 0)
+
+#define GPIO_PULLOFF  (0 << 4)
+#define GPIO_PULLUP   (1 << 4)
+#define GPIO_PULLDOWN (2 << 4)
+
+typedef struct
 {
-    GPIO_PINS = BLOCK_COMMON + 1,
-    GPIO_CONFIG_PIN,
-    GPIO_CONFIG_EINT
-};
+    void *init, (*clean)(void *);
+    bool (*count)(void *ctx, u8 *ports, u8 *slots);
+    bool (*read)(void *ctx, u8 port, u32 *data);
+    bool (*write)(void *ctx, u8 port, u32 data);
+    bool (*info)(void *ctx, u8 port, u8 slot, u32 *fields);
+    bool (*config)(void *ctx, u8 port, u8 slot, u32 fields);
+} drv_gpio;
 
-typedef drv_block drv_gpio;
-typedef dev_block dev_gpio;
-
-enum gpio_role
+typedef struct
 {
-    GPIO_OFF, GPIO_IN, GPIO_OUT, GPIO_EINT, GPIO_CUSTOM
-};
+    const drv_gpio *driver;
+    void *context;
+} dev_gpio;
 
-enum gpio_pull
-{
-    GPIO_PULLOFF, GPIO_PULLUP, GPIO_PULLDOWN
-};
+/* For internal usage */
 
-enum gpio_level
-{
-    GPIO_EDGE_H, GPIO_EDGE_L, GPIO_LEVEL_H, GPIO_LEVEL_L, GPIO_DOUBLE
-};
+void gpio_setup(dev_gpio *list, u8 count);
 
-struct gpio_pin
-{
-    enum gpio_role role;
-    enum gpio_pull pull;
-};
+/* For external usage */
 
-struct gpio_intr
-{
-    bool enabled;
-    void (*handler)(void *), *arg;
-    enum gpio_level level;
-};
-
-bool gpio_stat(dev_gpio *dg, u32 *width, u32 *ports);
-bool gpio_read(dev_gpio *dg, u16 port, void *data);
-bool gpio_write(dev_gpio *dg, u16 port, void *data);
-
-bool gpio_get(dev_gpio *dg, u16 pin, bool *data);
-bool gpio_set(dev_gpio *dg, u16 pin, bool data);
-
-bool gpio_info(dev_gpio *dg, u16 id,
-               enum gpio_role *role, enum gpio_pull *pull);
-bool gpio_config(dev_gpio *dg, u16 id,
-                 enum gpio_role role, enum gpio_pull pull);
-bool gpio_check(dev_gpio *dg, u16 id, bool *enabled,
-                void (**handler)(void *), void **arg, enum gpio_level *level);
-bool gpio_eint(dev_gpio *dg, u16 id, bool enabled,
-               void (*handler)(void *), void *arg, enum gpio_level level);
+bool gpio_count(u8 id, u8 *ports, u8 *slots);
+bool gpio_read(u8 id, u8 port, u32 *data);
+bool gpio_write(u8 id, u8 port, u32 data);
+bool gpio_info(u8 id, u8 port, u8 slot, u32 *fields);
+bool gpio_config(u8 id, u8 port, u8 slot, u32 fields);

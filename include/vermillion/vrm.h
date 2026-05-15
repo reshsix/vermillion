@@ -67,9 +67,11 @@ struct vrm
 
     struct
     {
-        bool (*dir)(uint8_t pin, bool output);
-        bool (*get)(uint8_t pin, bool *state);
-        bool (*set)(uint8_t pin, bool state);
+        bool (*count)(uint8_t id, uint8_t *ports, uint8_t *slots);
+        bool (*read)(uint8_t id, uint8_t port, uint32_t *data);
+        bool (*write)(uint8_t id, uint8_t port, uint32_t data);
+        bool (*info)(uint8_t id, uint8_t port, uint8_t slot, uint32_t *fields);
+        bool (*config)(uint8_t id, uint8_t port, uint8_t slot, uint32_t fields);
     } gpio;
 
     struct
