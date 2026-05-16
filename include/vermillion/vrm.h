@@ -26,8 +26,15 @@ typedef struct fs_file vrm_disk_f;
 typedef struct vrm_disk_f vrm_disk_f;
 #endif
 
+enum
+{
+    VRM_UART = 0,
+};
+
 struct vrm
 {
+    void * (*driver)(uint8_t id, uint8_t version);
+
     /* General functions */
 
     struct
@@ -73,14 +80,6 @@ struct vrm
         bool (*info)(uint8_t id, uint8_t port, uint8_t slot, uint32_t *fields);
         bool (*config)(uint8_t id, uint8_t port, uint8_t slot, uint32_t fields);
     } gpio;
-
-    struct
-    {
-        bool (*read)(uint8_t id, uint8_t *data);
-        bool (*write)(uint8_t id, uint8_t data);
-        bool (*info)(uint8_t id, uint32_t *baud);
-        bool (*config)(uint8_t id, uint32_t baud);
-    } uart;
 
     struct
     {

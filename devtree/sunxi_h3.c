@@ -20,7 +20,6 @@
 #include <hal/fs.h>
 #include <hal/spi.h>
 #include <hal/gpio.h>
-#include <hal/uart.h>
 #include <hal/block.h>
 #include <hal/timer.h>
 #include <hal/classes/pic.h>
@@ -33,6 +32,9 @@
 #include <drivers/arm/sunxi/gpio.h>
 #include <drivers/arm/sunxi/uart.h>
 #include <drivers/arm/sunxi/timer.h>
+
+#define VERMILLION_INTERNALS
+#include <vermillion/hal/uart.h>
 
 #define R_PRCM 0x01F01400
 #define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)

@@ -16,6 +16,8 @@
 
 #include <vermillion/prog.h>
 
+#include <vermillion/hal/uart.h>
+
 static char line[1024] = {0};
 static size_t line_c = 0;
 
@@ -39,10 +41,11 @@ vrm_prog(struct vrm *v, const char **args, int count)
     v->syslog.char_('>');
     v->syslog.char_(' ');
 
+    struct vrm_uart_v1 *uart = v->driver(VRM_UART, 0);
     while (true)
     {
         char c = '\0';
-        v->uart.read(0, &c);
+        uart->read(0, &c);
         if (c == '\r')
         {
             line[line_c++] = '\0';

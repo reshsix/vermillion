@@ -16,6 +16,7 @@
 
 #pragma once
 
+#ifdef VERMILLION_INTERNALS
 enum uart_index
 {
     UART_BAUD_GET, UART_BAUD_SET
@@ -24,10 +25,10 @@ enum uart_index
 typedef struct
 {
     void *init, (*clean)(void *);
-    bool (*info)  (void *ctx, u32 *baud);
-    bool (*config)(void *ctx, u32 baud);
-    bool (*read)  (void *ctx, u8 *data);
-    bool (*write) (void *ctx, u8 data);
+    bool (*info)  (void *ctx, uint32_t *baud);
+    bool (*config)(void *ctx, uint32_t baud);
+    bool (*read)  (void *ctx, uint8_t *data);
+    bool (*write) (void *ctx, uint8_t data);
 } drv_uart;
 
 typedef struct
@@ -36,13 +37,25 @@ typedef struct
     void *context;
 } dev_uart;
 
-/* For devtree usage */
+void uart_setup(dev_uart *list, uint8_t count);
 
-void uart_setup(dev_uart *list, u8 count);
+bool uart_read(uint8_t id, uint8_t *data);
+bool uart_write(uint8_t id, uint8_t data);
+bool uart_info(uint8_t id, uint32_t *baud);
+bool uart_config(uint8_t id, uint32_t baud);
+#endif
 
-/* For external usage*/
+struct vrm_uart_v1
+{
+    bool (*read)(uint8_t id, uint8_t *data);
+    bool (*write)(uint8_t id, uint8_t data);
+    bool (*info)(uint8_t id, uint32_t *baud);
+    bool (*config)(uint8_t id, uint32_t baud);
+};
 
-bool uart_read(u8 id, u8 *data);
-bool uart_write(u8 id, u8 data);
-bool uart_info(u8 id, u32 *baud);
-bool uart_config(u8 id, u32 baud);
+enum
+{
+    VRM_UART_V1 = 0
+};
+
+void *uart_driver(uint8_t version);

@@ -18,6 +18,9 @@
 #include <vermillion/vrm.h>
 #include <vermillion/prog.h>
 
+#include <vermillion/hal/uart.h>
+static struct vrm_uart_v1 *uart = NULL;
+
 #define SOH 0x01
 #define STX 0x02
 #define EOT 0x04
@@ -39,11 +42,11 @@ soh(struct vrm *v, uint8_t *block, bool *started, bool *finished)
     bool ret = true;
 
     uint8_t blk, nblk, crc0, crc1;
-    ret = v->uart.read(0, &blk) && v->uart.read(0, &nblk);
+    ret = uart->read(0, &blk) && uart->read(0, &nblk);
     for (size_t i = 0; ret && i < 128; i++)
-        ret = v->uart.read(0, &(buffer[i]));
+        ret = uart->read(0, &(buffer[i]));
     if (ret)
-        ret = v->uart.read(0, &crc0) && v->uart.read(0, &crc1);
+        ret = uart->read(0, &crc0) && uart->read(0, &crc1);
 
     if (ret)
     {
@@ -104,12 +107,12 @@ soh(struct vrm *v, uint8_t *block, bool *started, bool *finished)
         }
 
         if (ret)
-            ret = v->uart.write(0, ACK);
+            ret = uart->write(0, ACK);
         else
-            v->uart.write(0, NAK);
+            uart->write(0, NAK);
     }
 
-    v->uart.write(0, 'C');
+    uart->write(0, 'C');
 
     return ret;
 }
@@ -120,11 +123,11 @@ stx(struct vrm *v, uint8_t *block, bool *started)
     bool ret = true;
 
     uint8_t blk, nblk, crc0, crc1;
-    ret = v->uart.read(0, &blk) && v->uart.read(0, &nblk);
+    ret = uart->read(0, &blk) && uart->read(0, &nblk);
     for (size_t i = 0; i < 1024; i++)
-        ret = v->uart.read(0, &(buffer[i]));
+        ret = uart->read(0, &(buffer[i]));
     if (ret)
-        ret = v->uart.read(0, &crc0) && v->uart.read(0, &crc1);
+        ret = uart->read(0, &crc0) && uart->read(0, &crc1);
 
     if (ret)
     {
@@ -141,9 +144,9 @@ stx(struct vrm *v, uint8_t *block, bool *started)
         }
 
         if (ret)
-            ret = v->uart.write(0, ACK);
+            ret = uart->write(0, ACK);
         else
-            v->uart.write(0, NAK);
+            uart->write(0, NAK);
     }
 
     return ret;
@@ -152,16 +155,16 @@ stx(struct vrm *v, uint8_t *block, bool *started)
 static bool
 eot(struct vrm *v, uint8_t *block, bool *started, bool *finished)
 {
-    bool ret = v->uart.write(0, NAK);
+    bool ret = uart->write(0, NAK);
 
     uint8_t id = 0;
     if (ret)
-        ret = v->uart.read(0, &id);
+        ret = uart->read(0, &id);
     if (ret && id == EOT)
-        ret = v->uart.write(0, ACK);
+        ret = uart->write(0, ACK);
     if (ret)
     {
-        v->uart.write(0, 'C');
+        uart->write(0, 'C');
 
         *block = 0;
         ret = soh(v, block, started, finished);
@@ -175,8 +178,9 @@ vrm_prog(struct vrm *v, const char **args, int count)
 {
     bool ret = true;
 
-    v->fs.create(0, "/recv", true);
+    uart = v->driver(VRM_UART, VRM_UART_V1);
 
+    v->fs.create(0, "/recv", true);
     bool handshake = false;
     bool started   = false;
     bool finished  = false;
@@ -190,8 +194,8 @@ vrm_prog(struct vrm *v, const char **args, int count)
         {
             for (size_t i = 0; i < 30; i++)
             {
-                v->uart.write(0, 'C');
-                ret = /* TODO */ v->uart.read(0, &id);
+                uart->write(0, 'C');
+                ret = /* TODO */ uart->read(0, &id);
                 if (ret)
                 {
                     handshake = true;
@@ -201,7 +205,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
             }
         }
         else
-            ret = v->uart.read(0, &id);
+            ret = uart->read(0, &id);
 
         if (ret)
         {
@@ -226,7 +230,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
             if (!ret)
             {
                 for (size_t i = 0; i < 10; i++)
-                    v->uart.write(0, CAN);
+                    uart->write(0, CAN);
                 if (error)
                 {
                     v->syslog.string("\r\n");

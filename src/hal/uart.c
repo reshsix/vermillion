@@ -16,9 +16,10 @@
 
 #include <general/types.h>
 
-#include <hal/uart.h>
+#define VERMILLION_INTERNALS
+#include <vermillion/hal/uart.h>
 
-/* For devtree usage */
+/* Devtree setup */
 
 static dev_uart *dev_l = NULL;
 static u8 dev_c = 0;
@@ -30,7 +31,7 @@ uart_setup(dev_uart *list, u8 count)
     dev_c = count;
 }
 
-/* For external usage */
+/* Driver calls */
 
 #define UART_CALL(f, ...) \
 (id < dev_c) ? dev_l[id].driver->f(dev_l[id].context, ##__VA_ARGS__) : false;
@@ -66,4 +67,27 @@ uart_config(u8 id, u32 baud)
         baud = 115200;
 
     return UART_CALL(config, baud);
+}
+
+/* ABI definitions */
+
+static struct vrm_uart_v1 v1 =
+{
+    .read = uart_read, .write  = uart_write,
+    .info = uart_info, .config = uart_config
+};
+
+extern void *
+uart_driver(u8 version)
+{
+    void *ret = NULL;
+
+    switch (version)
+    {
+        case VRM_UART_V1:
+            ret = &v1;
+            break;
+    }
+
+    return ret;
 }

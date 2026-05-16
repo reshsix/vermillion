@@ -16,7 +16,8 @@
 
 #include <general/types.h>
 
-#include <hal/uart.h>
+#define VERMILLION_INTERNALS
+#include <vermillion/hal/uart.h>
 
 #include <syslog.h>
 

@@ -17,8 +17,10 @@
 #include <general/types.h>
 #include <general/mem.h>
 
-#include <hal/uart.h>
 #include <hal/classes/pic.h>
+
+#define VERMILLION_INTERNALS
+#include <vermillion/hal/uart.h>
 
 #define IO_BUF(p) *(volatile u32*)(p + 0x00)
 #define IO_DLL(p) *(volatile u32*)(p + 0x00)

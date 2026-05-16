@@ -21,7 +21,6 @@
 #include <hal/fs.h>
 #include <hal/spi.h>
 #include <hal/gpio.h>
-#include <hal/uart.h>
 #include <hal/timer.h>
 
 #include <system/libs.h>
@@ -34,12 +33,31 @@
 #include <vermillion/vrm.h>
 #include <vermillion/prog.h>
 
+#include <vermillion/hal/uart.h>
+
+static void *
+driver(u8 driver, u8 version)
+{
+    void *ret = NULL;
+
+    switch (driver)
+    {
+        case VRM_UART:
+            ret = uart_driver(version);
+            break;
+    }
+
+    return ret;
+}
+
 extern void
 main(void)
 {
     devtree_init();
 
-    struct vrm v = {.mem.new       = mem_new,
+    struct vrm v = {.driver = driver,
+
+                    .mem.new       = mem_new,
                     .mem.renew     = mem_renew,
                     .mem.del       = mem_del,
                     .mem.comp      = mem_comp,
@@ -66,10 +84,6 @@ main(void)
                     .gpio.write   = gpio_write,
                     .gpio.info    = gpio_info,
                     .gpio.config  = gpio_config,
-                    .uart.read    = uart_read,
-                    .uart.write   = uart_write,
-                    .uart.info    = uart_info,
-                    .uart.config  = uart_config,
                     .spi.info     = spi_info,
                     .spi.config   = spi_config,
                     .spi.begin    = spi_begin,
