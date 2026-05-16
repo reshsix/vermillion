@@ -34,47 +34,72 @@ uart_setup(dev_uart *list, u8 count)
 /* Driver calls */
 
 #define UART_CALL(f, ...) \
-(id < dev_c) ? dev_l[id].driver->f(dev_l[id].context, ##__VA_ARGS__) : false;
+((id < dev_c) ? dev_l[id].driver->f(dev_l[id].context, ##__VA_ARGS__) : false)
 
 extern bool
-uart_read(u8 id, u8 *data)
+uart_info(u8 id, u32 *baud, u32 *fields)
 {
-    return UART_CALL(read, data);
-}
+    u32 baud2 = 0, fields2 = 0;
 
-extern bool
-uart_write(u8 id, u8 data)
-{
-    return UART_CALL(write, data);
-}
-
-extern bool
-uart_info(u8 id, u32 *baud)
-{
-    u32 baud2 = 0;
-
-    bool ret = UART_CALL(info, &baud2);
-    if (ret && baud)
-        *baud = baud2;
+    bool ret = UART_CALL(info, &baud2, &fields2);
+    if (ret)
+    {
+        if (baud)
+            *baud = baud2;
+        if (fields)
+            *fields = fields2;
+    }
 
     return ret;
 }
 
 extern bool
-uart_config(u8 id, u32 baud)
+uart_config(u8 id, u32 baud, u32 fields)
 {
     if (baud == 0)
         baud = 115200;
 
-    return UART_CALL(config, baud);
+    return UART_CALL(config, baud, fields);
+}
+
+extern bool
+uart_read(u8 id, u8 *data, u32 flags)
+{
+    bool ret = false;
+
+    if (flags & VRM_UART_NOWAIT)
+        ret = UART_CALL(read, data);
+    else
+    {
+        while (!UART_CALL(read, data));
+        ret = true;
+    }
+
+    return ret;
+}
+
+extern bool
+uart_write(u8 id, u8 data, u32 flags)
+{
+    bool ret = false;
+
+    if (flags & VRM_UART_NOWAIT)
+        ret = UART_CALL(write, data);
+    else
+    {
+        while (!UART_CALL(write, data));
+        ret = true;
+    }
+
+    return ret;
 }
 
 /* ABI definitions */
 
 static struct vrm_uart_v1 v1 =
 {
-    .read = uart_read, .write  = uart_write,
-    .info = uart_info, .config = uart_config
+    .info = uart_info, .config = uart_config,
+    .read = uart_read, .write  = uart_write
 };
 
 extern void *

@@ -42,11 +42,13 @@ soh(struct vrm *v, uint8_t *block, bool *started, bool *finished)
     bool ret = true;
 
     uint8_t blk, nblk, crc0, crc1;
-    ret = uart->read(0, &blk) && uart->read(0, &nblk);
+    ret = uart->read(0, &blk,  VRM_UART_WAIT) &&
+          uart->read(0, &nblk, VRM_UART_WAIT);
     for (size_t i = 0; ret && i < 128; i++)
-        ret = uart->read(0, &(buffer[i]));
+        ret = uart->read(0, &(buffer[i]), VRM_UART_WAIT);
     if (ret)
-        ret = uart->read(0, &crc0) && uart->read(0, &crc1);
+        ret = uart->read(0, &crc0, VRM_UART_WAIT) &&
+              uart->read(0, &crc1, VRM_UART_WAIT);
 
     if (ret)
     {
@@ -107,12 +109,12 @@ soh(struct vrm *v, uint8_t *block, bool *started, bool *finished)
         }
 
         if (ret)
-            ret = uart->write(0, ACK);
+            ret = uart->write(0, ACK, VRM_UART_WAIT);
         else
-            uart->write(0, NAK);
+            uart->write(0, NAK, VRM_UART_WAIT);
     }
 
-    uart->write(0, 'C');
+    uart->write(0, 'C', VRM_UART_WAIT);
 
     return ret;
 }
@@ -123,11 +125,13 @@ stx(struct vrm *v, uint8_t *block, bool *started)
     bool ret = true;
 
     uint8_t blk, nblk, crc0, crc1;
-    ret = uart->read(0, &blk) && uart->read(0, &nblk);
+    ret = uart->read(0, &blk,  VRM_UART_WAIT) &&
+          uart->read(0, &nblk, VRM_UART_WAIT);
     for (size_t i = 0; i < 1024; i++)
-        ret = uart->read(0, &(buffer[i]));
+        ret = uart->read(0, &(buffer[i]), VRM_UART_WAIT);
     if (ret)
-        ret = uart->read(0, &crc0) && uart->read(0, &crc1);
+        ret = uart->read(0, &crc0, VRM_UART_WAIT) &&
+              uart->read(0, &crc1, VRM_UART_WAIT);
 
     if (ret)
     {
@@ -144,9 +148,9 @@ stx(struct vrm *v, uint8_t *block, bool *started)
         }
 
         if (ret)
-            ret = uart->write(0, ACK);
+            ret = uart->write(0, ACK, VRM_UART_WAIT);
         else
-            uart->write(0, NAK);
+            uart->write(0, NAK, VRM_UART_WAIT);
     }
 
     return ret;
@@ -155,16 +159,16 @@ stx(struct vrm *v, uint8_t *block, bool *started)
 static bool
 eot(struct vrm *v, uint8_t *block, bool *started, bool *finished)
 {
-    bool ret = uart->write(0, NAK);
+    bool ret = uart->write(0, NAK, VRM_UART_WAIT);
 
     uint8_t id = 0;
     if (ret)
-        ret = uart->read(0, &id);
+        ret = uart->read(0, &id, VRM_UART_WAIT);
     if (ret && id == EOT)
-        ret = uart->write(0, ACK);
+        ret = uart->write(0, ACK, VRM_UART_WAIT);
     if (ret)
     {
-        uart->write(0, 'C');
+        uart->write(0, 'C', VRM_UART_WAIT);
 
         *block = 0;
         ret = soh(v, block, started, finished);
@@ -194,8 +198,8 @@ vrm_prog(struct vrm *v, const char **args, int count)
         {
             for (size_t i = 0; i < 30; i++)
             {
-                uart->write(0, 'C');
-                ret = /* TODO */ uart->read(0, &id);
+                uart->write(0, 'C', VRM_UART_WAIT);
+                ret = uart->read(0, &id, VRM_UART_NOWAIT);
                 if (ret)
                 {
                     handshake = true;
@@ -205,7 +209,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
             }
         }
         else
-            ret = uart->read(0, &id);
+            ret = uart->read(0, &id, VRM_UART_WAIT);
 
         if (ret)
         {
@@ -230,7 +234,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
             if (!ret)
             {
                 for (size_t i = 0; i < 10; i++)
-                    uart->write(0, CAN);
+                    uart->write(0, CAN, VRM_UART_WAIT);
                 if (error)
                 {
                     v->syslog.string("\r\n");

@@ -44,6 +44,7 @@ struct uart
 {
     u32 port;
     u32 baud;
+    u32 fields;
 
     dev_pic *pic;
     u8 irq;
@@ -74,15 +75,16 @@ uart_handler(void *arg)
 }
 
 static bool
-info(void *ctx, u32 *baud)
+info(void *ctx, u32 *baud, u32 *fields)
 {
     struct uart *u = ctx;
-    *baud = u->baud;
+    *baud   = u->baud;
+    *fields = u->fields;
     return true;
 }
 
 static bool
-config(void *ctx, u32 baud)
+config(void *ctx, u32 baud, u32 fields)
 {
     bool ret = (baud <= 1500000 && baud >= 23);
 
@@ -92,17 +94,33 @@ config(void *ctx, u32 baud)
         while (IO_USR(u->port) & 1);
 
         u16 divider = 1500000 / baud;
-        IO_LCR(u->port) |= (1 << 7);
-        IO_DLH(u->port) = (divider >> 8) & 0xff;
-        IO_DLL(u->port) = (divider >> 0) & 0xff;
-        IO_LCR(u->port) &= ~(1 << 7);
+        u8     bits = (fields >> 0) & 0x7;
+        u8   parity = (fields >> 3) & 0x7;
+        u8     stop = (fields >> 6) & 0x3;
+        ret = ((bits   <= VRM_UART_5B)   &&
+               (parity <= VRM_UART_EVEN) &&
+               (stop   <= VRM_UART_2S)   &&
+               ((stop != VRM_UART_1HS) || (bits == VRM_UART_5B)));
 
-        /* Guarantees 8N1 */
-        IO_LCR(u->port) |= 0x3;
-        IO_LCR(u->port) &= ~(1 << 3);
-        IO_LCR(u->port) &= ~(1 << 2);
+        if (ret)
+        {
+            u8   bitses[4] = {3, 2, 1, 0};
+            u8 parities[3] = {0, 3, 1};
+            u8    stops[3] = {0, 1, 1};
 
-        u->baud = baud;
+            bits   = bitses[bits];
+            parity = parities[parity];
+            stop   = stops[stop];
+
+            IO_LCR(u->port) |= (1 << 7);
+            IO_DLH(u->port) = (divider >> 8) & 0xff;
+            IO_DLL(u->port) = (divider >> 0) & 0xff;
+            IO_LCR(u->port) &= ~(1 << 7);
+            IO_LCR(u->port) = bits | (stop << 2) | (parity << 3);
+
+            u->baud   = 1500000 / divider;
+            u->fields = fields;
+        }
     }
 
     return ret;

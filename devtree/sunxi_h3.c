@@ -96,8 +96,8 @@ devtree_init(void)
     uart[0] = sunxi_uart_init(0);
     uart[1] = sunxi_uart_init(1);
     uart_setup(uart, 2);
-    uart_config(0, 115200);
-    uart_config(1, 115200);
+    uart_config(0, 115200, VRM_UART_8B | VRM_UART_NONE | VRM_UART_1S);
+    uart_config(1, 115200, VRM_UART_8B | VRM_UART_NONE | VRM_UART_1S);
 
     /* GPIO initialization */
     gpio[0] = sunxi_gpio_init(0);
