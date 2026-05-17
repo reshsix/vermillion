@@ -17,7 +17,8 @@
 #include <general/types.h>
 #include <general/mem.h>
 
-#include <hal/spi.h>
+#define VERMILLION_INTERNALS
+#include <vermillion/hal/spi.h>
 
 #define SPI_GCR(x) *(volatile u32*)(x + 0x04)
 #define SPI_TCR(x) *(volatile u32*)(x + 0x08)

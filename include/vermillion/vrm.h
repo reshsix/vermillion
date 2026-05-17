@@ -29,6 +29,7 @@ typedef struct vrm_disk_f vrm_disk_f;
 enum
 {
     VRM_UART = 0,
+    VRM_SPI
 };
 
 struct vrm
@@ -80,17 +81,6 @@ struct vrm
         bool (*info)(uint8_t id, uint8_t port, uint8_t slot, uint32_t *fields);
         bool (*config)(uint8_t id, uint8_t port, uint8_t slot, uint32_t fields);
     } gpio;
-
-    struct
-    {
-        bool (*info)(uint8_t id, uint32_t *freq, uint8_t *mode, bool *lsb);
-        bool (*config)(uint8_t id, uint32_t freq, uint8_t mode, bool lsb);
-        bool (*begin)(uint8_t id);
-        bool (*end)(uint8_t id);
-        bool (*limit)(uint8_t id, size_t *count);
-        bool (*transfer)(uint8_t id, uint8_t *data, size_t count);
-        bool (*poll)(uint8_t id);
-    } spi;
 
     struct
     {

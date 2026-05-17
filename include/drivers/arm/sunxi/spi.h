@@ -16,5 +16,8 @@
 
 #pragma once
 
+#define VERMILLION_INTERNALS
+#include <vermillion/hal/spi.h>
+
 extern dev_spi sunxi_spi_init(u8 id);
 extern void sunxi_spi_clean(dev_spi *s);
