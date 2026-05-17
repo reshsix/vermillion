@@ -16,16 +16,28 @@
 
 #pragma once
 
+#define VRM_SPI_MODE0 (0 << 0)
+#define VRM_SPI_MODE1 (1 << 0)
+#define VRM_SPI_MODE2 (2 << 0)
+#define VRM_SPI_MODE3 (3 << 0)
+#define VRM_SPI_MSB   (0 << 2)
+#define VRM_SPI_LSB   (1 << 2)
+#define VRM_SPI_CSL   (0 << 3)
+#define VRM_SPI_CSH   (1 << 3)
+
+#define VRM_SPI_WAIT     (0 << 0)
+#define VRM_SPI_NOWAIT   (1 << 0)
+#define VRM_SPI_COMPLETE (0 << 1)
+#define VRM_SPI_PARTIAL  (1 << 1)
+
 #ifdef VERMILLION_INTERNALS
 typedef struct
 {
     void *init, (*clean)(void *);
-    bool (*info)    (void *ctx, uint32_t *freq, uint8_t *mode, bool *lsb);
-    bool (*config)  (void *ctx, uint32_t freq,  uint8_t  mode, bool  lsb);
-    bool (*begin)   (void *ctx);
-    bool (*end)     (void *ctx);
+    bool (*info)    (void *ctx, uint32_t *freq, uint32_t *fields);
+    bool (*config)  (void *ctx, uint32_t  freq, uint32_t  fields);
     bool (*limit)   (void *ctx, size_t *count);
-    bool (*transfer)(void *ctx, uint8_t *data, size_t count);
+    bool (*transfer)(void *ctx, uint8_t *data, size_t count, bool partial);
     bool (*poll)    (void *ctx);
 } drv_spi;
 
@@ -37,23 +49,19 @@ typedef struct
 
 void spi_setup(dev_spi *list, uint8_t count);
 
-bool spi_info    (uint8_t id, uint32_t *freq, uint8_t *mode, bool *lsb);
-bool spi_config  (uint8_t id, uint32_t  freq, uint8_t  mode, bool  lsb);
-bool spi_begin   (uint8_t id);
-bool spi_end     (uint8_t id);
+bool spi_info    (uint8_t id, uint32_t *freq, uint32_t *fields);
+bool spi_config  (uint8_t id, uint32_t  freq, uint32_t  fields);
 bool spi_limit   (uint8_t id, size_t *count);
-bool spi_transfer(uint8_t id, uint8_t *data, size_t count);
+bool spi_transfer(uint8_t id, uint8_t *data, size_t count, uint32_t flags);
 bool spi_poll    (uint8_t id);
 #endif
 
 struct vrm_spi_v1
 {
-    bool (*info)    (uint8_t id, uint32_t *freq, uint8_t *mode, bool *lsb);
-    bool (*config)  (uint8_t id, uint32_t  freq, uint8_t  mode, bool  lsb);
-    bool (*begin)   (uint8_t id);
-    bool (*end)     (uint8_t id);
+    bool (*info)    (uint8_t id, uint32_t *freq, uint32_t *fields);
+    bool (*config)  (uint8_t id, uint32_t  freq, uint32_t  fields);
     bool (*limit)   (uint8_t id, size_t *count);
-    bool (*transfer)(uint8_t id, uint8_t *data, size_t count);
+    bool (*transfer)(uint8_t id, uint8_t *data, size_t count, uint32_t flags);
     bool (*poll)    (uint8_t id);
 };
 

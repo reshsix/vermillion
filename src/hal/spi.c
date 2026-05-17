@@ -37,27 +37,15 @@ spi_setup(dev_spi *list, u8 count)
 ((id < dev_c) ? dev_l[id].driver->f(dev_l[id].context, ##__VA_ARGS__) : false)
 
 extern bool
-spi_info(u8 id, u32 *freq, u8 *mode, bool *lsb)
+spi_info(u8 id, u32 *freq, u32 *fields)
 {
-    return SPI_CALL(info, freq, mode, lsb);
+    return SPI_CALL(info, freq, fields);
 }
 
 extern bool
-spi_config(u8 id, u32 freq, u8 mode, bool lsb)
+spi_config(u8 id, u32 freq, u32 fields)
 {
-    return SPI_CALL(config, freq, mode, lsb);
-}
-
-extern bool
-spi_begin(u8 id)
-{
-    return SPI_CALL(begin);
-}
-
-extern bool
-spi_end(u8 id)
-{
-    return SPI_CALL(end);
+    return SPI_CALL(config, freq, fields);
 }
 
 extern bool
@@ -67,9 +55,34 @@ spi_limit(u8 id, size_t *count)
 }
 
 extern bool
-spi_transfer(u8 id, u8 *data, size_t count)
+spi_transfer(u8 id, u8 *data, size_t count, uint32_t flags)
 {
-    return SPI_CALL(transfer, data, count);
+    bool ret = false;
+
+    bool partial = flags & VRM_SPI_PARTIAL;
+    if (flags & VRM_SPI_NOWAIT)
+        ret = SPI_CALL(transfer, data, count, partial);
+    else
+    {
+        size_t limit = 0;
+        ret = spi_limit(id, &limit);
+        if (ret)
+        {
+            bool partial2 = true;
+            for (size_t i = 0; i < count; i += limit)
+            {
+                if (i + limit >= count)
+                    partial2 = partial;
+
+                size_t remain = count - i;
+                size_t size = (remain > limit) ? limit : remain;
+                while (!SPI_CALL(transfer, &(data[i]), size, partial2));
+                while (!spi_poll(id));
+            }
+        }
+    }
+
+    return ret;
 }
 
 extern bool
@@ -83,7 +96,6 @@ spi_poll(u8 id)
 static struct vrm_spi_v1 v1 =
 {
     .info     = spi_info,     .config = spi_config,
-    .begin    = spi_begin,    .end    = spi_end,
     .limit    = spi_limit,
     .transfer = spi_transfer, .poll   = spi_poll
 };

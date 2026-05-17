@@ -39,8 +39,8 @@ struct spi
     u32 addr;
 
     u32 freq;
-    u8 mode;
-    bool lsb;
+    u32 fields;
+    bool csh;
 
     u8 *data;
     size_t count;
@@ -50,16 +50,15 @@ struct spi
 static struct spi spis[2] = {0};
 
 static bool
-info(void *ctx, u32 *freq, u8 *mode, bool *lsb)
+info(void *ctx, u32 *freq, u32 *fields)
 {
     bool ret = false;
 
     struct spi *spi = ctx;
     if (spi)
     {
-        *freq = spi->freq;
-        *mode = spi->mode;
-        *lsb  = spi->lsb;
+        *freq   = spi->freq;
+        *fields = spi->fields;
         ret = true;
     }
 
@@ -67,64 +66,65 @@ info(void *ctx, u32 *freq, u8 *mode, bool *lsb)
 }
 
 static bool
-config(void *ctx, u32 freq, u8 mode, bool lsb)
+config(void *ctx, u32 freq, u32 fields)
 {
-    bool ret = (freq <= 24000000 && freq >= 367 && mode < 4);
+    bool ret = (freq <= 24000000 && freq >= 367);
 
     if (ret)
     {
         struct spi *spi = ctx;
 
-        u32 div = 24000000 / freq;
-        if (div < 2)
-            div = 0;
-        else if (div > 512)
+        u32 divider = 24000000 / freq;
+        u8 mode  = (fields >> 0) & 0x3;
+        bool lsb = (fields >> 2) & 0x1;
+        bool csh = (fields >> 3) & 0x1;
+
+        if (divider > 512)
         {
             u8 log2 = 0;
-            while (div >>= 1)
+            while (divider >>= 1)
                 log2++;
 
-            div = log2 << 8;
+            divider = log2 << 8;
         }
+        else if (divider == 1)
+            divider = 0;
+        else if (divider != 0)
+            divider = (1 << 12) | ((divider / 2) - 1);
         else
-            div = (1 << 12) | ((div / 2) - 1);
+            ret = false;
 
-        SPI_CLK(spi->addr) = div;
-        SPI_TCR(spi->addr) = (mode & 0x3) | (lsb << 12) | (1 << 6) | (1 << 13);
+        if (ret)
+        {
+            u32 freq2 = 24000000 / divider;
+            if ((freq == freq2) && (mode < 4))
+            {
+                SPI_CLK(spi->addr) = divider;
+                SPI_TCR(spi->addr) = (mode & 0x3) | (lsb << 12) |
+                                     (1   <<   6) | (1   << 13) ;
 
-        spi->freq = 24000000 / div;
-        spi->mode = mode;
-        spi->lsb  = lsb;
+                spi->freq = 24000000 / divider;
+                spi->fields = fields;
+                spi->csh = csh;
+            }
+            else
+                ret = false;
+        }
     }
 
     return ret;
 }
 
 static bool
-begin(void *ctx)
-{
-    struct spi *spi = ctx;
-    SPI_TCR(spi->addr) &= ~(1 << 7);
-    return true;
-}
-
-static bool
-end(void *ctx)
-{
-    struct spi *spi = ctx;
-    SPI_TCR(spi->addr) |= (1 << 7);
-    return true;
-}
-
-static bool
 limit(void *ctx, size_t *count)
 {
+    (void)ctx;
     *count = 64;
     return true;
 }
 
 static bool
-transfer(void *ctx, u8 *data, size_t count)
+transfer(void *ctx, u8 *data, size_t count, bool partial)
 {
     bool ret = (count <= 64);
 
@@ -147,8 +147,23 @@ transfer(void *ctx, u8 *data, size_t count)
         for (size_t i = 0; i < count; i++)
             SPI_TXD(spi->addr) = spi->data[i];
 
+        /* Chip Select active */
+        if (spi->csh)
+            SPI_TCR(spi->addr) |=  (1 << 7);
+        else
+            SPI_TCR(spi->addr) &= ~(1 << 7);
+
         /* Start transfer */
         SPI_TCR(spi->addr) |= (1 << 31);
+
+        /* Chip Select inactive */
+        if (!partial)
+        {
+            if (spi->csh)
+                SPI_TCR(spi->addr) &= ~(1 << 7);
+            else
+                SPI_TCR(spi->addr) |=  (1 << 7);
+        }
     }
 
     return ret;
@@ -176,8 +191,7 @@ poll(void *ctx)
 
 static const drv_spi sunxi_spi =
 {
-    .info = info, .config = config,
-    .begin = begin, .end = end,
+    .info = info,   .config = config,
     .limit = limit, .transfer = transfer, .poll = poll
 };
 

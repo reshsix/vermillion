@@ -140,7 +140,7 @@ devtree_init(void)
     BUS0_RESET |= 1 << 20;
     spi[0] = sunxi_spi_init(0);
     spi_setup(spi, 1);
-    spi_config(0, 24000000, 0, false);
+    spi_config(0, 24000000, VRM_SPI_MODE0 | VRM_SPI_MSB | VRM_SPI_CSL);
 
     /* Interrupts ON */
     pic_state(&pic, true);
