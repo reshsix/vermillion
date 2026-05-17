@@ -29,6 +29,7 @@ typedef struct vrm_disk_f vrm_disk_f;
 enum
 {
     VRM_UART = 0,
+    VRM_GPIO,
     VRM_SPI
 };
 

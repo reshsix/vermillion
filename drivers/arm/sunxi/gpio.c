@@ -17,7 +17,8 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 #include <general/mem.h>
 #include <general/types.h>
 
-#include <hal/gpio.h>
+#define VERMILLION_INTERNALS
+#include <vermillion/hal/gpio.h>
 
 #define PN_CFG(c, n, i) *(volatile u32 *)(c + (n * 0x24) + (0x4 * i))
 #define PN_DAT(c, n)    *(volatile u32 *)(c + (n * 0x24) + 0x10)
@@ -32,6 +33,76 @@ struct gpio
 };
 
 static struct gpio gpios[2] = {0};
+
+static bool
+info(void *ctx, u8 port, u8 slot, u32 *flags)
+{
+    bool ret = true;
+
+    struct gpio *gpio = ctx;
+    if (port < gpio->io_ports && slot < 32)
+    {
+        u8 reg = slot / 8, pos = slot % 8;
+        u8 role = (PN_CFG(gpio->base, port, reg) >> (pos * 4)) & 0x7;
+        u8 roles[8] = {VRM_GPIO_IN, VRM_GPIO_OUT, VRM_GPIO_MUX0, VRM_GPIO_MUX1,
+                                                  VRM_GPIO_MUX2, VRM_GPIO_MUX3,
+                                                  VRM_GPIO_MUX4, VRM_GPIO_OFF};
+        role = roles[role];
+
+        reg = slot / 16, pos = slot % 16;
+        u8 pull = (PN_PUL(gpio->base, port, reg) >> (pos * 2)) & 0x3;
+        if (pull > VRM_GPIO_PULLDOWN)
+            pull = 0;
+
+        *flags = role | (pull << 4);
+    }
+    else
+        ret = false;
+
+    return ret;
+}
+
+static bool
+config(void *ctx, u8 port, u8 slot, u32 flags)
+{
+    bool ret = true;
+
+    struct gpio *gpio = ctx;
+    if (port < gpio->io_ports && slot < 32)
+    {
+        u8 role = (flags >> 0) & 0xF;
+        if (role < VRM_GPIO_MUX4)
+        {
+            u8 roles[8] = {7, 0, 1, 2, 3, 4, 5, 6};
+            role = roles[role];
+        }
+        else
+            ret = false;
+
+        u8 pull = (flags >> 4) & 0x3;
+        if (pull > VRM_GPIO_PULLDOWN)
+            ret = false;
+
+        if (ret)
+        {
+            u8 reg = slot / 8, pos = slot % 8;
+            u32 data = role << (pos * 4);
+            u32 mask = 0xF  << (pos * 4);
+            PN_CFG(gpio->base, port, reg) &= ~mask;
+            PN_CFG(gpio->base, port, reg) |= (data & mask);
+
+            reg = slot / 16, pos = slot % 16;
+            data = pull << (pos * 2);
+            mask = 0x3  << (pos * 2);
+            PN_PUL(gpio->base, port, reg) &= ~mask;
+            PN_PUL(gpio->base, port, reg) |= (data & mask);
+        }
+    }
+    else
+        ret = false;
+
+    return ret;
+}
 
 static bool
 count(void *ctx, u8 *ports, u8 *slots)
@@ -71,81 +142,12 @@ write(void *ctx, u8 port, u32 data)
     return ret;
 }
 
-static bool
-info(void *ctx, u8 port, u8 slot, u32 *flags)
-{
-    bool ret = true;
-
-    struct gpio *gpio = ctx;
-    if (port < gpio->io_ports && slot < 32)
-    {
-        u8 reg = slot / 8, pos = slot % 8;
-        u8 role = (PN_CFG(gpio->base, port, reg) >> (pos * 4)) & 0x7;
-        u8 roles[8] = {GPIO_IN, GPIO_OUT, GPIO_CUSTOM(0), GPIO_CUSTOM(1),
-                                          GPIO_CUSTOM(2), GPIO_CUSTOM(3),
-                                          GPIO_CUSTOM(4), GPIO_OFF};
-        role = roles[role];
-
-        reg = slot / 16, pos = slot % 16;
-        u8 pull = (PN_PUL(gpio->base, port, reg) >> (pos * 2)) & 0x3;
-        if (pull > GPIO_PULLDOWN)
-            pull = 0;
-
-        *flags = role | (pull << 4);
-    }
-    else
-        ret = false;
-
-    return ret;
-}
-
-static bool
-config(void *ctx, u8 port, u8 slot, u32 flags)
-{
-    bool ret = true;
-
-    struct gpio *gpio = ctx;
-    if (port < gpio->io_ports && slot < 32)
-    {
-        u8 role = (flags >> 0) & 0xF;
-        if (role < GPIO_CUSTOM(4))
-        {
-            u8 roles[8] = {7, 0, 1, 2, 3, 4, 5, 6};
-            role = roles[role];
-        }
-        else
-            ret = false;
-
-        u8 pull = (flags >> 4) & 0x3;
-        if (pull > GPIO_PULLDOWN)
-            ret = false;
-
-        if (ret)
-        {
-            u8 reg = slot / 8, pos = slot % 8;
-            u32 data = role << (pos * 4);
-            u32 mask = 0xF  << (pos * 4);
-            PN_CFG(gpio->base, port, reg) &= ~mask;
-            PN_CFG(gpio->base, port, reg) |= (data & mask);
-
-            reg = slot / 16, pos = slot % 16;
-            data = pull << (pos * 2);
-            mask = 0x3  << (pos * 2);
-            PN_PUL(gpio->base, port, reg) &= ~mask;
-            PN_PUL(gpio->base, port, reg) |= (data & mask);
-        }
-    }
-    else
-        ret = false;
-
-    return ret;
-}
 
 static const drv_gpio sunxi_gpio =
 {
+    .info  = info, .config = config,
     .count = count,
-    .read  = read, .write  = write,
-    .info  = info, .config = config
+    .read  = read, .write  = write
 };
 
 /* Device creation */

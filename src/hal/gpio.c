@@ -16,9 +16,10 @@
 
 #include <general/types.h>
 
-#include <hal/gpio.h>
+#define VERMILLION_INTERNALS
+#include <vermillion/hal/gpio.h>
 
-/* For devtree usage */
+/* Devtree setup */
 
 static dev_gpio *dev_l = NULL;
 static u8 dev_c = 0;
@@ -30,10 +31,22 @@ gpio_setup(dev_gpio *list, u8 count)
     dev_c = count;
 }
 
-/* For external usage */
+/* Driver calls */
 
 #define GPIO_CALL(f, ...) \
-(id < dev_c) ? dev_l[id].driver->f(dev_l[id].context, ##__VA_ARGS__) : false;
+((id < dev_c) ? dev_l[id].driver->f(dev_l[id].context, ##__VA_ARGS__) : false)
+
+extern bool
+gpio_info(u8 id, u8 port, u8 slot, u32 *fields)
+{
+    return GPIO_CALL(info, port, slot, fields);
+}
+
+extern bool
+gpio_config(u8 id, u8 port, u8 slot, u32 fields)
+{
+    return GPIO_CALL(config, port, slot, fields);
+}
 
 extern bool
 gpio_count(u8 id, u8 *ports, u8 *slots)
@@ -53,14 +66,26 @@ gpio_write(u8 id, u8 port, u32 data)
     return GPIO_CALL(write, port, data);
 }
 
-extern bool
-gpio_info(u8 id, u8 port, u8 slot, u32 *fields)
-{
-    return GPIO_CALL(info, port, slot, fields);
-}
+/* ABI definitions */
 
-extern bool
-gpio_config(u8 id, u8 port, u8 slot, u32 fields)
+static struct vrm_gpio_v1 v1 =
 {
-    return GPIO_CALL(config, port, slot, fields);
+    .info  = gpio_info, .config = gpio_config,
+    .count = gpio_count,
+    .read  = gpio_read, .write  = gpio_write
+};
+
+extern void *
+gpio_driver(u8 version)
+{
+    void *ret = NULL;
+
+    switch (version)
+    {
+        case VRM_GPIO_V1:
+            ret = &v1;
+            break;
+    }
+
+    return ret;
 }

@@ -19,7 +19,6 @@
 #include <general/path.h>
 
 #include <hal/fs.h>
-#include <hal/gpio.h>
 #include <hal/timer.h>
 
 #include <system/libs.h>
@@ -33,6 +32,7 @@
 #include <vermillion/prog.h>
 
 #include <vermillion/hal/spi.h>
+#include <vermillion/hal/gpio.h>
 #include <vermillion/hal/uart.h>
 
 static void *
@@ -44,6 +44,9 @@ driver(u8 driver, u8 version)
     {
         case VRM_UART:
             ret = uart_driver(version);
+            break;
+        case VRM_GPIO:
+            ret = gpio_driver(version);
             break;
         case VRM_SPI:
             ret = spi_driver(version);
@@ -82,11 +85,6 @@ main(void)
                     .path.dirname  = path_dirname,
                     .path.filename = path_filename,
 
-                    .gpio.count   = gpio_count,
-                    .gpio.read    = gpio_read,
-                    .gpio.write   = gpio_write,
-                    .gpio.info    = gpio_info,
-                    .gpio.config  = gpio_config,
                     .timer.alarm  = timer_alarm,
                     .fs.open      = fs_open,
                     .fs.close     = fs_close,

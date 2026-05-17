@@ -18,7 +18,6 @@
 #include <general/types.h>
 
 #include <hal/fs.h>
-#include <hal/gpio.h>
 #include <hal/block.h>
 #include <hal/timer.h>
 #include <hal/classes/pic.h>
@@ -34,6 +33,7 @@
 
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/spi.h>
+#include <vermillion/hal/gpio.h>
 #include <vermillion/hal/uart.h>
 
 #define R_PRCM 0x01F01400
@@ -105,23 +105,23 @@ devtree_init(void)
     gpio_setup(gpio, 2);
     /* Power led ON */
     u32 port = 0;
-    gpio_config(power.id, power.port, power.slot, GPIO_OUT);
+    gpio_config(power.id, power.port, power.slot, VRM_GPIO_OUT);
     gpio_read(power.id, power.port, &port);
     gpio_write(power.id, power.port, port | (1 << power.slot));
     /* Status led OFF */
-    gpio_config(status.id, status.port, status.slot, GPIO_OUT);
+    gpio_config(status.id, status.port, status.slot, VRM_GPIO_OUT);
     gpio_read(status.id, status.port, &port);
     gpio_write(status.id, status.port, port & ~(1 << status.slot));
     /* UART1 on PG6 to PG9 */
-    gpio_config(0, 6, 6, GPIO_CUSTOM(0));
-    gpio_config(0, 6, 7, GPIO_CUSTOM(0));
-    gpio_config(0, 6, 8, GPIO_CUSTOM(0));
-    gpio_config(0, 6, 9, GPIO_CUSTOM(0));
+    gpio_config(0, 6, 6, VRM_GPIO_MUX0);
+    gpio_config(0, 6, 7, VRM_GPIO_MUX0);
+    gpio_config(0, 6, 8, VRM_GPIO_MUX0);
+    gpio_config(0, 6, 9, VRM_GPIO_MUX0);
     /* SPI0 on PC0 to PC3 */
-    gpio_config(0, 2, 0, GPIO_CUSTOM(1));
-    gpio_config(0, 2, 1, GPIO_CUSTOM(1));
-    gpio_config(0, 2, 2, GPIO_CUSTOM(1));
-    gpio_config(0, 2, 3, GPIO_CUSTOM(1));
+    gpio_config(0, 2, 0, VRM_GPIO_MUX1);
+    gpio_config(0, 2, 1, VRM_GPIO_MUX1);
+    gpio_config(0, 2, 2, VRM_GPIO_MUX1);
+    gpio_config(0, 2, 3, VRM_GPIO_MUX1);
 
     /* Timers */
     timer[0] = sunxi_timer_init(0, &pic);
@@ -154,11 +154,11 @@ devtree_clean(void)
 
     /* Power led OFF */
     u32 port = 0;
-    gpio_config(power.id, power.port, power.slot, GPIO_OUT);
+    gpio_config(power.id, power.port, power.slot, VRM_GPIO_OUT);
     gpio_read(power.id, power.port, &port);
     gpio_write(power.id, power.port, port & ~(1 << power.slot));
     /* Status led ON */
-    gpio_config(status.id, status.port, status.slot, GPIO_OUT);
+    gpio_config(status.id, status.port, status.slot, VRM_GPIO_OUT);
     gpio_read(status.id, status.port, &port);
     gpio_write(status.id, status.port, port | (1 << status.slot));
 
