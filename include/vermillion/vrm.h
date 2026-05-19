@@ -30,7 +30,9 @@ enum
 {
     VRM_UART = 0,
     VRM_GPIO,
-    VRM_SPI
+    VRM_SPI,
+
+    VRM_TIMER
 };
 
 struct vrm
@@ -73,21 +75,6 @@ struct vrm
     } path;
 
     /* System functions */
-
-    struct
-    {
-        bool (*count)(uint8_t id, uint8_t *ports, uint8_t *slots);
-        bool (*read)(uint8_t id, uint8_t port, uint32_t *data);
-        bool (*write)(uint8_t id, uint8_t port, uint32_t data);
-        bool (*info)(uint8_t id, uint8_t port, uint8_t slot, uint32_t *fields);
-        bool (*config)(uint8_t id, uint8_t port, uint8_t slot, uint32_t fields);
-    } gpio;
-
-    struct
-    {
-        bool (*alarm)(uint8_t id, uint32_t us, bool repeat,
-                      void (*handler)(void *), void *arg);
-    } timer;
 
     struct
     {

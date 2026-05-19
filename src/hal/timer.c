@@ -17,12 +17,13 @@
 #include <general/mem.h>
 #include <general/types.h>
 
-#include <hal/timer.h>
+#define VERMILLION_INTERNALS
+#include <vermillion/hal/timer.h>
 
 static dev_timer *dev_l = NULL;
 static u8 dev_c = 0;
 
-/* For devtree usage */
+/* Devtree setup */
 
 extern void
 timer_setup(dev_timer *list, u8 count)
@@ -31,10 +32,10 @@ timer_setup(dev_timer *list, u8 count)
     dev_c = count;
 }
 
-/* For external usage */
+/* Driver calls */
 
 #define TIMER_CALL(f, ...) \
-(id < dev_c) ? dev_l[id].driver->f(dev_l[id].context, ##__VA_ARGS__) : false;
+((id < dev_c) ? dev_l[id].driver->f(dev_l[id].context, ##__VA_ARGS__) : false)
 
 static bool flag = false;
 static void
@@ -56,6 +57,28 @@ timer_alarm(u8 id, u32 us, bool repeat, void (*handler)(void *), void *arg)
                 TIMER_CALL(wait);
             flag = false;
         } while (repeat);
+    }
+
+    return ret;
+}
+
+/* ABI definitions */
+
+static struct vrm_timer_v1 v1 =
+{
+    .alarm = timer_alarm
+};
+
+extern void *
+timer_driver(u8 version)
+{
+    void *ret = NULL;
+
+    switch (version)
+    {
+        case VRM_TIMER_V1:
+            ret = &v1;
+            break;
     }
 
     return ret;

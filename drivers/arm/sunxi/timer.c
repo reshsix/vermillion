@@ -19,7 +19,8 @@
 
 #include <hal/classes/pic.h>
 
-#include <hal/timer.h>
+#define VERMILLION_INTERNALS
+#include <vermillion/hal/timer.h>
 
 #define TMR_IRQ_EN(x)  *(volatile u32*)(x + 0x0)
 #define TMR_IRQ_STA(x) *(volatile u32*)(x + 0x4)

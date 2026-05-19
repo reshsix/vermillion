@@ -19,7 +19,6 @@
 #include <general/path.h>
 
 #include <hal/fs.h>
-#include <hal/timer.h>
 
 #include <system/libs.h>
 
@@ -34,6 +33,7 @@
 #include <vermillion/hal/spi.h>
 #include <vermillion/hal/gpio.h>
 #include <vermillion/hal/uart.h>
+#include <vermillion/hal/timer.h>
 
 static void *
 driver(u8 driver, u8 version)
@@ -50,6 +50,9 @@ driver(u8 driver, u8 version)
             break;
         case VRM_SPI:
             ret = spi_driver(version);
+            break;
+        case VRM_TIMER:
+            ret = timer_driver(version);
             break;
     }
 
@@ -85,7 +88,6 @@ main(void)
                     .path.dirname  = path_dirname,
                     .path.filename = path_filename,
 
-                    .timer.alarm  = timer_alarm,
                     .fs.open      = fs_open,
                     .fs.close     = fs_close,
                     .fs.stat      = fs_stat,

@@ -39,7 +39,13 @@ gpio_setup(dev_gpio *list, u8 count)
 extern bool
 gpio_info(u8 id, u8 port, u8 slot, u32 *fields)
 {
-    return GPIO_CALL(info, port, slot, fields);
+    u32 fields2 = 0;
+
+    bool ret = GPIO_CALL(info, port, slot, &fields2);
+    if (ret && fields)
+        *fields = fields2;
+
+    return ret;
 }
 
 extern bool

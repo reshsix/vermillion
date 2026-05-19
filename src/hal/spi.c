@@ -39,7 +39,18 @@ spi_setup(dev_spi *list, u8 count)
 extern bool
 spi_info(u8 id, u32 *freq, u32 *fields)
 {
-    return SPI_CALL(info, freq, fields);
+    u32 freq2 = 0, fields2 = 0;
+
+    bool ret = SPI_CALL(info, &freq2, &fields2);
+    if (ret)
+    {
+        if (freq)
+            *freq = freq2;
+        if (fields)
+            *fields = fields2;
+    }
+
+    return ret;
 }
 
 extern bool

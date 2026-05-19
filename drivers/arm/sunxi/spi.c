@@ -73,6 +73,7 @@ config(void *ctx, u32 freq, u32 fields)
     if (ret)
     {
         struct spi *spi = ctx;
+        while (SPI_TCR(spi->addr) & (1 << 31));
 
         u32 divider = 24000000 / freq;
         u8 mode  = (fields >> 0) & 0x3;

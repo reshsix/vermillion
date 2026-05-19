@@ -19,7 +19,6 @@
 
 #include <hal/fs.h>
 #include <hal/block.h>
-#include <hal/timer.h>
 #include <hal/classes/pic.h>
 
 #include <drivers/fs/mbr.h>
@@ -35,6 +34,7 @@
 #include <vermillion/hal/spi.h>
 #include <vermillion/hal/gpio.h>
 #include <vermillion/hal/uart.h>
+#include <vermillion/hal/timer.h>
 
 #define R_PRCM 0x01F01400
 #define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)

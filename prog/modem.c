@@ -19,7 +19,9 @@
 #include <vermillion/prog.h>
 
 #include <vermillion/hal/uart.h>
-static struct vrm_uart_v1 *uart = NULL;
+#include <vermillion/hal/timer.h>
+static struct vrm_uart_v1  *uart  = NULL;
+static struct vrm_timer_v1 *timer = NULL;
 
 #define SOH 0x01
 #define STX 0x02
@@ -182,7 +184,8 @@ vrm_prog(struct vrm *v, const char **args, int count)
 {
     bool ret = true;
 
-    uart = v->driver(VRM_UART, VRM_UART_V1);
+    uart  = v->driver(VRM_UART,  VRM_UART_V1);
+    timer = v->driver(VRM_TIMER, VRM_TIMER_V1);
 
     v->fs.create(0, "/recv", true);
     bool handshake = false;
@@ -205,7 +208,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
                     handshake = true;
                     break;
                 }
-                v->timer.alarm(0, 1000000, false, NULL, NULL);
+                timer->alarm(0, 1000000, false, NULL, NULL);
             }
         }
         else

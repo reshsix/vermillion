@@ -16,10 +16,11 @@
 
 #pragma once
 
+#ifdef VERMILLION_INTERNALS
 typedef struct
 {
     void *init, (*clean)(void *);
-    bool (*alarm)(void *ctx, u32 us, bool repeat,
+    bool (*alarm)(void *ctx, uint32_t us, bool repeat,
                   void (*handler)(void *), void *arg);
     void (*wait)(void *ctx);
 } drv_timer;
@@ -30,11 +31,21 @@ typedef struct
     void *context;
 } dev_timer;
 
-/* For devtree usage */
+void timer_setup(dev_timer *list, uint8_t count);
 
-void timer_setup(dev_timer *list, u8 count);
-
-/* For external usage */
-
-bool timer_alarm(u8 id, u32 us, bool repeat,
+bool timer_alarm(uint8_t id, uint32_t us, bool repeat,
                  void (*handler)(void *), void *arg);
+#endif
+
+struct vrm_timer_v1
+{
+    bool (*alarm)(uint8_t id, uint32_t us, bool repeat,
+                  void (*handler)(void *), void *arg);
+};
+
+enum
+{
+    VRM_TIMER_V1 = 0
+};
+
+void *timer_driver(uint8_t version);
