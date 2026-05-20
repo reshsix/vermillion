@@ -24,7 +24,7 @@
 extern void
 syslog_char(const char c)
 {
-    uart_write(0, c, VRM_UART_WAIT);
+    uart_write(0, c, 0);
 }
 
 extern void

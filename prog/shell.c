@@ -45,7 +45,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
     while (true)
     {
         char c = '\0';
-        uart->read(0, &c, VRM_UART_WAIT);
+        uart->read(0, &c, 0);
         if (c == '\r')
         {
             line[line_c++] = '\0';

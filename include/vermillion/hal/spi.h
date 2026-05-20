@@ -25,10 +25,10 @@
 #define VRM_SPI_CSL   (0 << 3)
 #define VRM_SPI_CSH   (1 << 3)
 
-#define VRM_SPI_WAIT     (0 << 0)
 #define VRM_SPI_NOWAIT   (1 << 0)
-#define VRM_SPI_COMPLETE (0 << 1)
 #define VRM_SPI_PARTIAL  (1 << 1)
+#define VRM_SPI_NO_TX    (1 << 2)
+#define VRM_SPI_NO_RX    (1 << 3)
 
 #ifdef VERMILLION_INTERNALS
 typedef struct
@@ -37,7 +37,7 @@ typedef struct
     bool (*info)    (void *ctx, uint32_t *freq, uint32_t *fields);
     bool (*config)  (void *ctx, uint32_t  freq, uint32_t  fields);
     bool (*limit)   (void *ctx, size_t *count);
-    bool (*transfer)(void *ctx, uint8_t *data, size_t count, bool partial);
+    bool (*transfer)(void *ctx, uint8_t *data, size_t count, uint32_t flags);
     bool (*poll)    (void *ctx);
 } drv_spi;
 

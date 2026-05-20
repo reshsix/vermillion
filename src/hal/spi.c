@@ -70,24 +70,23 @@ spi_transfer(u8 id, u8 *data, size_t count, uint32_t flags)
 {
     bool ret = false;
 
-    bool partial = flags & VRM_SPI_PARTIAL;
     if (flags & VRM_SPI_NOWAIT)
-        ret = SPI_CALL(transfer, data, count, partial);
+        ret = SPI_CALL(transfer, data, count, flags);
     else
     {
         size_t limit = 0;
         ret = spi_limit(id, &limit);
         if (ret)
         {
-            bool partial2 = true;
+            uint32_t flags2 = flags | VRM_SPI_PARTIAL;
             for (size_t i = 0; i < count; i += limit)
             {
                 if (i + limit >= count)
-                    partial2 = partial;
+                    flags2 = flags;
 
                 size_t remain = count - i;
                 size_t size = (remain > limit) ? limit : remain;
-                while (!SPI_CALL(transfer, &(data[i]), size, partial2));
+                while (!SPI_CALL(transfer, &(data[i]), size, flags2));
                 while (!spi_poll(id));
             }
         }

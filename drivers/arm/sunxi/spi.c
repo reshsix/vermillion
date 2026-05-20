@@ -44,6 +44,8 @@ struct spi
 
     u8 *data;
     size_t count;
+    bool partial;
+
     bool busy;
 };
 
@@ -82,11 +84,16 @@ config(void *ctx, u32 freq, u32 fields)
 
         if (divider > 512)
         {
-            u8 log2 = 0;
-            while (divider >>= 1)
-                log2++;
+            if ((divider & (divider - 1)) == 0)
+            {
+                u8 log2 = 0;
+                while (divider >>= 1)
+                    log2++;
 
-            divider = log2 << 8;
+                divider = log2 << 8;
+            }
+            else
+                ret = false;
         }
         else if (divider == 1)
             divider = 0;
@@ -95,21 +102,23 @@ config(void *ctx, u32 freq, u32 fields)
         else
             ret = false;
 
+        if (mode >= 4)
+            ret = false;
+
         if (ret)
         {
-            u32 freq2 = 24000000 / divider;
-            if ((freq == freq2) && (mode < 4))
-            {
-                SPI_CLK(spi->addr) = divider;
-                SPI_TCR(spi->addr) = (mode & 0x3) | (lsb << 12) |
-                                     (1   <<   6) | (1   << 13) ;
+            SPI_CLK(spi->addr) = divider;
+            SPI_TCR(spi->addr) = (mode & 0x3) | (lsb << 12) |
+                                 (1   <<   6) | (1   << 13) ;
+            spi->freq   = freq;
+            spi->fields = fields;
+            spi->csh    = csh;
 
-                spi->freq = 24000000 / divider;
-                spi->fields = fields;
-                spi->csh = csh;
-            }
+            /* Chip Select inactive */
+            if (spi->csh)
+                SPI_TCR(spi->addr) &= ~(1 << 7);
             else
-                ret = false;
+                SPI_TCR(spi->addr) |=  (1 << 7);
         }
     }
 
@@ -125,7 +134,7 @@ limit(void *ctx, size_t *count)
 }
 
 static bool
-transfer(void *ctx, u8 *data, size_t count, bool partial)
+transfer(void *ctx, u8 *data, size_t count, u32 flags)
 {
     bool ret = (count <= 64);
 
@@ -136,8 +145,9 @@ transfer(void *ctx, u8 *data, size_t count, bool partial)
 
     if (ret)
     {
-        spi->data  = data;
-        spi->count = count;
+        spi->data    = (flags & VRM_SPI_NO_RX) ? NULL : data;
+        spi->count   = count;
+        spi->partial = flags & VRM_SPI_PARTIAL;
 
         /* Set all counters */
         SPI_MBC(spi->addr) = count;
@@ -146,7 +156,7 @@ transfer(void *ctx, u8 *data, size_t count, bool partial)
 
         /* Write bytes to TXFIFO */
         for (size_t i = 0; i < count; i++)
-            SPI_TXD(spi->addr) = spi->data[i];
+            SPI_TXD(spi->addr) = (flags & VRM_SPI_NO_TX) ? 0 : data[i];
 
         /* Chip Select active */
         if (spi->csh)
@@ -156,15 +166,6 @@ transfer(void *ctx, u8 *data, size_t count, bool partial)
 
         /* Start transfer */
         SPI_TCR(spi->addr) |= (1 << 31);
-
-        /* Chip Select inactive */
-        if (!partial)
-        {
-            if (spi->csh)
-                SPI_TCR(spi->addr) &= ~(1 << 7);
-            else
-                SPI_TCR(spi->addr) |=  (1 << 7);
-        }
     }
 
     return ret;
@@ -183,8 +184,27 @@ poll(void *ctx)
     if (ret)
     {
         /* Read bytes from RXFIFO */
-        for (size_t i = 0; i < spi->count; i++)
-            spi->data[i] = SPI_RXD(spi->addr);
+        if (spi->data)
+        {
+            for (size_t i = 0; i < spi->count; i++)
+                spi->data[i] = SPI_RXD(spi->addr);
+        }
+        else
+        {
+            volatile u8 a = 0;
+            for (size_t i = 0; i < spi->count; i++)
+                a = SPI_RXD(spi->addr);
+            (void)a;
+        }
+
+        /* Chip Select inactive */
+        if (!(spi->partial))
+        {
+            if (spi->csh)
+                SPI_TCR(spi->addr) &= ~(1 << 7);
+            else
+                SPI_TCR(spi->addr) |=  (1 << 7);
+        }
     }
 
     return ret;

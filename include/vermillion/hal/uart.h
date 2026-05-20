@@ -29,7 +29,6 @@
 #define VRM_UART_1HS   (1 << 6)
 #define VRM_UART_2S    (2 << 6)
 
-#define VRM_UART_WAIT   (0 << 0)
 #define VRM_UART_NOWAIT (1 << 0)
 
 #ifdef VERMILLION_INTERNALS
