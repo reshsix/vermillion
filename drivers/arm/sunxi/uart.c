@@ -105,7 +105,7 @@ config(void *ctx, u32 baud, u32 fields)
         if (ret)
         {
             u8   bitses[4] = {3, 2, 1, 0};
-            u8 parities[3] = {0, 3, 1};
+            u8 parities[3] = {0, 1, 3};
             u8    stops[3] = {0, 1, 1};
 
             bits   = bitses[bits];

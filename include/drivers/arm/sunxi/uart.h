@@ -19,5 +19,7 @@
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/uart.h>
 
-extern dev_uart sunxi_uart_init(u8 id);
+#include <hal/classes/pic.h>
+
+extern dev_uart sunxi_uart_init(u8 id, dev_pic *pic);
 extern void sunxi_uart_clean(dev_uart *u);

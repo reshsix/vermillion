@@ -42,7 +42,9 @@
 #define CCU 0x01C20000
 #define CLK_SPI0   *(volatile u32*)(CCU + 0xA0)
 #define BUS0_GATE  *(volatile u32*)(CCU + 0x60)
+#define BUS3_GATE  *(volatile u32*)(CCU + 0x6C)
 #define BUS0_RESET *(volatile u32*)(CCU + 0x2C0)
+#define BUS4_RESET *(volatile u32*)(CCU + 0x2D8)
 
 #define ORANGEPI_ONE 0
 #define NANOPI_NEO 1
@@ -51,7 +53,7 @@ dev_fs fs[1];
 dev_pic pic;
 dev_spi spi[1];
 dev_gpio gpio[2];
-dev_uart uart[2];
+dev_uart uart[3];
 dev_block mmcblk0, mmcblk0p1;
 dev_timer timer[2];
 
@@ -93,11 +95,17 @@ devtree_init(void)
     pic = arm_gic_init(0x01c82000, 0x01c81000);
 
     /* Serial */
-    uart[0] = sunxi_uart_init(0);
-    uart[1] = sunxi_uart_init(1);
-    uart_setup(uart, 2);
+    uart[0] = sunxi_uart_init(0, &pic);
+    BUS3_GATE  |= 1 << 17;
+    BUS4_RESET |= 1 << 17;
+    BUS3_GATE  |= 1 << 18;
+    BUS4_RESET |= 1 << 18;
+    uart[1] = sunxi_uart_init(1, &pic);
+    uart[2] = sunxi_uart_init(2, &pic);
+    uart_setup(uart, 3);
     uart_config(0, 115200, VRM_UART_8B | VRM_UART_NONE | VRM_UART_1S);
     uart_config(1, 115200, VRM_UART_8B | VRM_UART_NONE | VRM_UART_1S);
+    uart_config(2, 115200, VRM_UART_8B | VRM_UART_NONE | VRM_UART_1S);
 
     /* GPIO initialization */
     gpio[0] = sunxi_gpio_init(0);
@@ -117,6 +125,11 @@ devtree_init(void)
     gpio_config(0, 6, 7, VRM_GPIO_MUX0);
     gpio_config(0, 6, 8, VRM_GPIO_MUX0);
     gpio_config(0, 6, 9, VRM_GPIO_MUX0);
+    /* UART2 on PA0 to PA3 */
+    gpio_config(0, 0, 0, VRM_GPIO_MUX0);
+    gpio_config(0, 0, 1, VRM_GPIO_MUX0);
+    gpio_config(0, 0, 2, VRM_GPIO_MUX0);
+    gpio_config(0, 0, 3, VRM_GPIO_MUX0);
     /* SPI0 on PC0 to PC3 */
     gpio_config(0, 2, 0, VRM_GPIO_MUX1);
     gpio_config(0, 2, 1, VRM_GPIO_MUX1);
