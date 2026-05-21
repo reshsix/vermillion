@@ -36,11 +36,13 @@
 typedef struct
 {
     void *init, (*clean)(void *);
-    bool (*info)  (void *ctx, u8 port, u8 slot, u32 *fields);
-    bool (*config)(void *ctx, u8 port, u8 slot, u32  fields);
-    bool (*count) (void *ctx, u8 *ports, u8 *slots);
-    bool (*read)  (void *ctx, u8 port, u32 *data);
-    bool (*write) (void *ctx, u8 port, u32  data);
+    bool (*info)  (void *ctx, uint8_t port, uint8_t slot, uint32_t *fields);
+    bool (*config)(void *ctx, uint8_t port, uint8_t slot, uint32_t  fields);
+    bool (*count) (void *ctx, uint8_t *ports, uint8_t *slots);
+    bool (*read)  (void *ctx, uint8_t port, uint32_t *data);
+    bool (*write) (void *ctx, uint8_t port, uint32_t  data);
+    bool (*get)   (void *ctx, uint8_t port, uint8_t pin, bool *data);
+    bool (*set)   (void *ctx, uint8_t port, uint8_t pin, bool  data);
 } drv_gpio;
 
 typedef struct
@@ -51,24 +53,28 @@ typedef struct
 
 /* For internal usage */
 
-void gpio_setup(dev_gpio *list, u8 count);
+void gpio_setup(dev_gpio *list, uint8_t count);
 
 /* For external usage */
 
-bool gpio_info  (u8 id, u8 port, u8 slot, u32 *fields);
-bool gpio_config(u8 id, u8 port, u8 slot, u32  fields);
-bool gpio_count (u8 id, u8 *ports, u8 *slots);
-bool gpio_read  (u8 id, u8 port, u32 *data);
-bool gpio_write (u8 id, u8 port, u32  data);
+bool gpio_info  (uint8_t id, uint8_t port, uint8_t slot, uint32_t *fields);
+bool gpio_config(uint8_t id, uint8_t port, uint8_t slot, uint32_t  fields);
+bool gpio_count (uint8_t id, uint8_t *ports, uint8_t *slots);
+bool gpio_read  (uint8_t id, uint8_t port, uint32_t *data);
+bool gpio_write (uint8_t id, uint8_t port, uint32_t  data);
+bool gpio_get   (uint8_t id, uint8_t port, uint8_t pin, bool *data);
+bool gpio_set   (uint8_t id, uint8_t port, uint8_t pin, bool  data);
 #endif
 
 struct vrm_gpio_v1
 {
-    bool (*info)  (u8 id, u8 port, u8 slot, u32 *fields);
-    bool (*config)(u8 id, u8 port, u8 slot, u32  fields);
-    bool (*count) (u8 id, u8 *ports, u8 *slots);
-    bool (*read)  (u8 id, u8 port, u32 *data);
-    bool (*write) (u8 id, u8 port, u32  data);
+    bool (*info)  (uint8_t id, uint8_t port, uint8_t slot, uint32_t *fields);
+    bool (*config)(uint8_t id, uint8_t port, uint8_t slot, uint32_t  fields);
+    bool (*count) (uint8_t id, uint8_t *ports, uint8_t *slots);
+    bool (*read)  (uint8_t id, uint8_t port, uint32_t *data);
+    bool (*write) (uint8_t id, uint8_t port, uint32_t  data);
+    bool (*get)   (uint8_t id, uint8_t port, uint8_t pin, bool *data);
+    bool (*set)   (uint8_t id, uint8_t port, uint8_t pin, bool  data);
 };
 
 enum

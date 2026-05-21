@@ -142,12 +142,45 @@ write(void *ctx, u8 port, u32 data)
     return ret;
 }
 
+static bool
+get(void *ctx, u8 port, u8 pin, bool *data)
+{
+    bool ret = true;
+
+    struct gpio *gpio = ctx;
+    if (port < gpio->io_ports && pin < 32)
+        *data = (PN_DAT(gpio->base, port) & (1 << pin));
+    else
+        ret = false;
+
+    return ret;
+}
+
+static bool
+set(void *ctx, u8 port, u8 pin, bool data)
+{
+    bool ret = true;
+
+    struct gpio *gpio = ctx;
+    if (port < gpio->io_ports && pin < 32)
+    {
+        if (data)
+            PN_DAT(gpio->base, port) |=  (1 << pin);
+        else
+            PN_DAT(gpio->base, port) &= ~(1 << pin);
+    }
+    else
+        ret = false;
+
+    return ret;
+}
 
 static const drv_gpio sunxi_gpio =
 {
     .info  = info, .config = config,
     .count = count,
-    .read  = read, .write  = write
+    .read  = read, .write  = write,
+    .get   = get,  .set    = set
 };
 
 /* Device creation */

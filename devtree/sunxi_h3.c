@@ -112,14 +112,11 @@ devtree_init(void)
     gpio[1] = sunxi_gpio_init(1);
     gpio_setup(gpio, 2);
     /* Power led ON */
-    u32 port = 0;
     gpio_config(power.id, power.port, power.slot, VRM_GPIO_OUT);
-    gpio_read(power.id, power.port, &port);
-    gpio_write(power.id, power.port, port | (1 << power.slot));
+    gpio_set(power.id, power.port, power.slot, true);
     /* Status led OFF */
     gpio_config(status.id, status.port, status.slot, VRM_GPIO_OUT);
-    gpio_read(status.id, status.port, &port);
-    gpio_write(status.id, status.port, port & ~(1 << status.slot));
+    gpio_set(status.id, status.port, status.slot, false);
     /* UART1 on PG6 to PG9 */
     gpio_config(0, 6, 6, VRM_GPIO_MUX0);
     gpio_config(0, 6, 7, VRM_GPIO_MUX0);
@@ -166,14 +163,11 @@ devtree_clean(void)
     pic_state(&pic, false);
 
     /* Power led OFF */
-    u32 port = 0;
     gpio_config(power.id, power.port, power.slot, VRM_GPIO_OUT);
-    gpio_read(power.id, power.port, &port);
-    gpio_write(power.id, power.port, port & ~(1 << power.slot));
+    gpio_set(power.id, power.port, power.slot, false);
     /* Status led ON */
     gpio_config(status.id, status.port, status.slot, VRM_GPIO_OUT);
-    gpio_read(status.id, status.port, &port);
-    gpio_write(status.id, status.port, port | (1 << status.slot));
+    gpio_set(status.id, status.port, status.slot, true);
 
     /* GPIO clean */
     sunxi_gpio_clean(&(gpio[0]));

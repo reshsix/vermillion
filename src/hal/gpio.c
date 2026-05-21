@@ -72,13 +72,26 @@ gpio_write(u8 id, u8 port, u32 data)
     return GPIO_CALL(write, port, data);
 }
 
+extern bool
+gpio_get(u8 id, u8 port, u8 pin, bool *data)
+{
+    return GPIO_CALL(get, port, pin, data);
+}
+
+extern bool
+gpio_set(u8 id, u8 port, u8 pin, bool data)
+{
+    return GPIO_CALL(set, port, pin, data);
+}
+
 /* ABI definitions */
 
 static struct vrm_gpio_v1 v1 =
 {
     .info  = gpio_info, .config = gpio_config,
     .count = gpio_count,
-    .read  = gpio_read, .write  = gpio_write
+    .read  = gpio_read, .write  = gpio_write,
+    .get   = gpio_get,  .set    = gpio_set
 };
 
 extern void *
