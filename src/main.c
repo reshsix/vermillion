@@ -31,6 +31,7 @@
 #include <vermillion/prog.h>
 
 #include <vermillion/hal/spi.h>
+#include <vermillion/hal/disk.h>
 #include <vermillion/hal/gpio.h>
 #include <vermillion/hal/uart.h>
 #include <vermillion/hal/timer.h>
@@ -50,6 +51,9 @@ driver(u8 driver, u8 version)
             break;
         case VRM_SPI:
             ret = spi_driver(version);
+            break;
+        case VRM_DISK:
+            ret = disk_driver(version);
             break;
         case VRM_TIMER:
             ret = timer_driver(version);

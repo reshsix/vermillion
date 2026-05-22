@@ -18,8 +18,6 @@
 
 #include <general/types.h>
 
-#include <hal/block.h>
-
 #define VRM_GPIO_OFF       (0 << 0)
 #define VRM_GPIO_IN        (1 << 0)
 #define VRM_GPIO_OUT       (2 << 0)

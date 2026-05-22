@@ -1,126 +1,102 @@
 /*
-This file is part of vermillion.
-
-Vermillion is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published
-by the Free Software Foundation, version 3.
-
-Vermillion is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+ *  This file is part of vermillion.
+ *
+ *  Vermillion is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3.
+ *
+ *  Vermillion is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <general/types.h>
 #include <general/mem.h>
 
-#include <hal/block.h>
+#define VERMILLION_INTERNALS
+#include <vermillion/hal/disk.h>
 
 /* Driver definition */
 
 struct mbr
 {
-    dev_block *storage;
+    u8 disk;
     u32 lba;
 
-    u32 width, depth;
+    u16 sector;
+    u32 count;
 };
 
 static struct mbr mbrs[1] = {0};
 
 static bool
-stat(void *ctx, u32 idx, u32 *width, u32 *depth)
+size(void *ctx, u16 *sector, u32 *count)
 {
-    bool ret = true;
+    struct mbr *mbr = ctx;
+    *sector = mbr->sector;
+    *count  = mbr->count;
+
+    return true;
+}
+
+static bool
+read(void *ctx, u8 *data, u32 block)
+{
+    bool ret = false;
 
     struct mbr *mbr = ctx;
-    switch (idx)
-    {
-        case 0:
-            *width = mbr->width;
-            *depth = mbr->depth;
-            break;
-        default:
-            ret = false;
-            break;
-    }
+    if (block < mbr->count)
+        ret = disk_read(mbr->disk, data, block + mbr->lba, 0);
 
     return ret;
 }
 
 static bool
-read(void *ctx, u32 idx, void *buffer, u32 block)
+write(void *ctx, u8 *data, u32 block)
 {
     bool ret = false;
 
     struct mbr *mbr = ctx;
-    switch (idx)
-    {
-        case 0:
-            ret = (block < mbr->depth);
-
-            if (ret)
-                ret = block_read(mbr->storage, BLOCK_COMMON,
-                                 buffer, block + mbr->lba);
-        break;
-    }
+    if (block < mbr->count)
+        ret = disk_write(mbr->disk, data, block + mbr->lba, 0);
 
     return ret;
 }
 
-static bool
-write(void *ctx, u32 idx, void *buffer, u32 block)
+static const drv_disk mbr =
 {
-    bool ret = false;
-
-    struct mbr *mbr = ctx;
-    switch (idx)
-    {
-        case 0:
-            ret = (block < mbr->depth);
-
-            if (ret)
-                ret = block_write(mbr->storage, BLOCK_COMMON,
-                                  buffer, block + mbr->lba);
-        break;
-    }
-
-    return ret;
-}
-
-static const drv_block mbr =
-{
-    .stat = stat, .read = read, .write = write
+    .size = size, .read = read, .write = write
 };
 
 /* Device creation */
 
-extern dev_block
-mbr_init(u8 id, dev_block *storage, u8 partition)
+extern dev_disk
+mbr_init(u8 id, u8 disk, u8 partition)
 {
     struct mbr *ret = NULL;
 
     if (id < (sizeof(mbrs) / sizeof(struct mbr)) &&
-        storage && partition > 0 && partition < 5)
+        partition > 0 && partition < 5)
         ret = &(mbrs[id]);
 
-    if (ret && !block_stat(storage, BLOCK_COMMON, &(ret->width), &(ret->depth)))
+    if (ret && !disk_size(disk, &(ret->sector), &(ret->count)))
         ret = NULL;
 
     if (ret)
     {
-        u8 *buffer = mem_new(ret->width);
+        u8 *buffer = mem_new(ret->sector);
 
-        if (buffer && block_read(storage, BLOCK_COMMON, buffer, 0))
+        if (buffer && disk_read(disk, buffer, 0, 0))
         {
             u8 *info = &(buffer[0x1BE + ((partition - 1) * 16)]);
             mem_copy(&(ret->lba),   &(info[sizeof(u32) * 2]), sizeof(u32));
-            mem_copy(&(ret->depth), &(info[sizeof(u32) * 3]), sizeof(u32));
+            mem_copy(&(ret->count), &(info[sizeof(u32) * 3]), sizeof(u32));
 
-            ret->storage = storage;
+            ret->disk = disk;
         }
         else
             ret = NULL;
@@ -128,12 +104,12 @@ mbr_init(u8 id, dev_block *storage, u8 partition)
         mem_del(buffer);
     }
 
-    return (dev_block){.driver = &mbr, .context = ret};
+    return (dev_disk){.driver = &mbr, .context = ret};
 }
 
 extern void
-mbr_clean(dev_block *b)
+mbr_clean(dev_disk *d)
 {
-    if (b)
-        b->context = mem_del(b->context);
+    if (d)
+        d->context = NULL;
 }

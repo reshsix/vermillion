@@ -30,9 +30,16 @@ enum
 {
     VRM_UART = 0,
     VRM_GPIO,
+    VRM_EINT,
     VRM_SPI,
+    VRM_I2C,
 
-    VRM_TIMER
+    VRM_DISK,
+    VRM_FS,
+
+    VRM_PIC,
+    VRM_TIMER,
+    VRM_POWER
 };
 
 struct vrm

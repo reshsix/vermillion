@@ -18,7 +18,6 @@
 #include <general/types.h>
 
 #include <hal/fs.h>
-#include <hal/block.h>
 #include <hal/classes/pic.h>
 
 #include <drivers/fs/mbr.h>
@@ -32,6 +31,7 @@
 
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/spi.h>
+#include <vermillion/hal/disk.h>
 #include <vermillion/hal/gpio.h>
 #include <vermillion/hal/uart.h>
 #include <vermillion/hal/timer.h>
@@ -54,7 +54,7 @@ dev_pic pic;
 dev_spi spi[1];
 dev_gpio gpio[2];
 dev_uart uart[3];
-dev_block mmcblk0, mmcblk0p1;
+dev_disk disk[2];
 dev_timer timer[2];
 
 struct led
@@ -138,10 +138,14 @@ devtree_init(void)
     timer[1] = sunxi_timer_init(1, &pic);
     timer_setup(timer, 2);
 
-    /* Storage */
-    mmcblk0 = sunxi_mmc_init(0);
-    mmcblk0p1 = mbr_init(0, &mmcblk0, 1);
-    fs[0] = fat32_init(&mmcblk0p1);
+    /* Disks */
+    disk[0] = sunxi_mmc_init(0);
+    disk_setup(disk, 1);
+    disk[1] = mbr_init(0, 0, 1);
+    disk_setup(disk, 2);
+
+    /* Filesystems */
+    fs[0] = fat32_init(1);
     fs_setup(fs, 1);
 
     /* Peripherals */
@@ -178,9 +182,9 @@ devtree_clean(void)
     sunxi_timer_clean(&(timer[1]));
 
     /* Storage clean */
-    sunxi_mmc_clean(&mmcblk0);
-    mbr_clean(&mmcblk0p1);
     fat32_clean(&(fs[0]));
+    mbr_clean(&(disk[1]));
+    sunxi_mmc_clean(&(disk[0]));
 
     /* Peripherals clean */
     sunxi_spi_clean(&(spi[0]));

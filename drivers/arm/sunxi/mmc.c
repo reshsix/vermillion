@@ -1,25 +1,26 @@
 /*
-This file is part of vermillion.
-
-Vermillion is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published
-by the Free Software Foundation, version 3.
-
-Vermillion is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+ *  This file is part of vermillion.
+ *
+ *  Vermillion is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3.
+ *
+ *  Vermillion is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-/* Considers card to have already been initialized by u-boot */
+/* Considers card to have been initialized by u-boot */
 
-#include <general/types.h>
 #include <general/mem.h>
+#include <general/types.h>
 
-#include <hal/block.h>
+#define VERMILLION_INTERNALS
+#include <vermillion/hal/disk.h>
 
 #define SD_CFG(x)   *(volatile u32*)(x + 0x00)
 #define SD_BLK(x)   *(volatile u32*)(x + 0x10)
@@ -45,103 +46,83 @@ struct card
 struct card cards[3] = {0};
 
 static bool
-stat(void *ctx, u32 idx, u32 *width, u32 *depth)
+size(void *ctx, u16 *sector, u32 *count)
+{
+    (void)ctx;
+    *sector = 0x200;
+    *count  = 0x800000;
+    return true;
+}
+
+static bool
+mmc_rw(void *ctx, u8 *buffer, u32 block, bool write)
 {
     bool ret = true;
 
-    (void)ctx;
-    switch (idx)
-    {
-        case BLOCK_COMMON:
-            *width = 0x200;
-            *depth = 0x800000;
-            break;
-        default:
-            ret = false;
-            break;
-    }
-
-    return ret;
-}
-
-static bool
-mmc_rw(void *ctx, u32 idx, void *buffer, u32 block, bool write)
-{
-    bool ret = false;
-
     struct card *card = ctx;
-    switch (idx)
+    while (SD_STA(card->base) & (1 << 9) ||
+           SD_STA(card->base) & (1 << 10));
+    while (SD_CMD(card->base) >> 31);
+
+    SD_BLK(card->base) = 0x200;
+    SD_CFG(card->base) = 1 << 31;
+
+    SD_CNT(card->base) = 0x200;
+    if (!(card->mmc))
+        SD_ARG(card->base) = block;
+    else
+        SD_ARG(card->base) = block * 0x200;
+
+    if (write)
+        SD_CMD(card->base) = 0x80002658;
+    else
+        SD_CMD(card->base) = 0x80002251;
+
+    while (SD_CMD(card->base) >> 31);
+
+    for (u32 i = 0; i < (0x200 / sizeof(u32)); i++)
     {
-        case BLOCK_COMMON:
-            ret = true;
-
-            while (SD_STA(card->base) & (1 << 9) ||
-                   SD_STA(card->base) & (1 << 10));
-            while (SD_CMD(card->base) >> 31);
-
-            SD_BLK(card->base) = 0x200;
-            SD_CFG(card->base) = 1 << 31;
-
-            SD_CNT(card->base) = 0x200;
-            if (!(card->mmc))
-                SD_ARG(card->base) = block;
-            else
-                SD_ARG(card->base) = block * 0x200;
-
-            if (write)
-                SD_CMD(card->base) = 0x80002658;
-            else
-                SD_CMD(card->base) = 0x80002251;
-
-            while (SD_CMD(card->base) >> 31);
-
-            for (u32 i = 0; i < (0x200 / sizeof(u32)); i++)
-            {
-                if (write)
-                {
-                    while (SD_STA(card->base) & (1 << 3));
-                    u8 *source = buffer;
-                    u32 x = 0;
-                    mem_copy(&x, &(source[(i * sizeof(u32))]), sizeof(u32));
-                    SD_FIFO(card->base) = x;
-                }
-                else
-                {
-                    while (SD_STA(card->base) & (1 << 2));
-                    u8 *dest = buffer;
-                    u32 x = SD_FIFO(card->base);
-                    mem_copy(&(dest[(i * sizeof(u32))]), &x, sizeof(u32));
-                }
-            }
-
-            while (SD_STA(card->base) & (1 << 9) ||
-                   SD_STA(card->base) & (1 << 10));
-            break;
+        if (write)
+        {
+            while (SD_STA(card->base) & (1 << 3));
+            u32 x = 0;
+            mem_copy(&x, &(buffer[(i * sizeof(u32))]), sizeof(u32));
+            SD_FIFO(card->base) = x;
+        }
+        else
+        {
+            while (SD_STA(card->base) & (1 << 2));
+            u32 x = SD_FIFO(card->base);
+            mem_copy(&(buffer[(i * sizeof(u32))]), &x, sizeof(u32));
+        }
     }
+
+    while (SD_STA(card->base) & (1 << 9) ||
+           SD_STA(card->base) & (1 << 10));
 
     return ret;
 }
 
 static bool
-read(void *ctx, u32 idx, void *buffer, u32 block)
+read(void *ctx, u8 *buffer, u32 block)
 {
-    return mmc_rw(ctx, idx, buffer, block, false);
+    return mmc_rw(ctx, buffer, block, false);
 }
 
 static bool
-write(void *ctx, u32 idx, void *buffer, u32 block)
+write(void *ctx, u8 *buffer, u32 block)
 {
-    return mmc_rw(ctx, idx, buffer, block, true);
+    return mmc_rw(ctx, buffer, block, true);
 }
 
-static const drv_block sunxi_mmc =
+static const drv_disk sunxi_mmc =
 {
-    .stat = stat, .read = read, .write = write
+    .size = size, .read = read, .write = write
 };
 
 /* Device creation */
 
-extern dev_block
+extern dev_disk
 sunxi_mmc_init(u8 id)
 {
     struct card *ret = NULL;
@@ -171,12 +152,12 @@ sunxi_mmc_init(u8 id)
                     SD_RES1(ret->base) & (1 << 2));
     }
 
-    return (dev_block){.driver = &sunxi_mmc, .context = ret};
+    return (dev_disk){.driver = &sunxi_mmc, .context = ret};
 }
 
 extern void
-sunxi_mmc_clean(dev_block *b)
+sunxi_mmc_clean(dev_disk *d)
 {
-    if (b)
-        b->context = NULL;
+    if (d)
+        d->context = NULL;
 }

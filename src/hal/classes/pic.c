@@ -18,10 +18,32 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #include <hal/classes/pic.h>
 
+static bool
+block_read(dev_pic *db, u32 idx, void *buf, u32 block)
+{
+    bool ret = (db != NULL);
+
+    if (ret)
+        ret = db->driver->read(db->context, idx, buf, block);
+
+    return ret;
+}
+
+static bool
+block_write(dev_pic *db, u32 idx, void *buf, u32 block)
+{
+    bool ret = (db != NULL);
+
+    if (ret)
+        ret = db->driver->write(db->context, idx, buf, block);
+
+    return ret;
+}
+
 extern bool
 pic_state(dev_pic *dp, bool enabled)
 {
-    return block_write((dev_block *)dp, PIC_STATE, &enabled, 0);
+    return block_write(dp, PIC_STATE, &enabled, 0);
 }
 
 extern bool
@@ -30,7 +52,7 @@ pic_info(dev_pic *dp, u16 n, bool *enabled, void (**handler)(void *),
 {
     struct pic_irq irq = {0};
 
-    bool ret = block_read((dev_block *)dp, PIC_CONFIG_IRQ, &irq, n);
+    bool ret = block_read(dp, PIC_CONFIG_IRQ, &irq, n);
 
     if (ret)
     {
@@ -53,7 +75,7 @@ pic_config(dev_pic *dp, u16 n, bool enabled, void (*handler)(void *),
 {
     struct pic_irq irq = {.enabled = enabled, .handler = handler,
                           .arg = arg, .level = level};
-    return block_write((dev_block *)dp, PIC_CONFIG_IRQ, &irq, n);
+    return block_write(dp, PIC_CONFIG_IRQ, &irq, n);
 }
 
 extern bool
@@ -62,7 +84,7 @@ pic_check(dev_pic *dp, u16 n, bool *enabled,
 {
     struct pic_swi swi = {0};
 
-    bool ret = block_read((dev_block *)dp, PIC_CONFIG_SWI, &swi, n);
+    bool ret = block_read(dp, PIC_CONFIG_SWI, &swi, n);
 
     if (ret)
     {
@@ -82,17 +104,17 @@ pic_setup(dev_pic *dp, u16 n, bool enabled,
           void (*handler)(void *, void *), void *arg)
 {
     struct pic_swi swi = {.enabled = enabled, .handler = handler, .arg = arg};
-    return block_write((dev_block *)dp, PIC_CONFIG_SWI, &swi, n);
+    return block_write(dp, PIC_CONFIG_SWI, &swi, n);
 }
 
 extern bool
 pic_wait(dev_pic *dp)
 {
-    return block_write((dev_block *)dp, PIC_WAIT, NULL, 0);
+    return block_write(dp, PIC_WAIT, NULL, 0);
 }
 
 extern bool
 pic_syscall(dev_pic *dp, u8 id, void *data)
 {
-    return block_write((dev_block *)dp, PIC_SYSCALL, (void *)&data, id);
+    return block_write(dp, PIC_SYSCALL, (void *)&data, id);
 }

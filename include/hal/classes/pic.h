@@ -16,19 +16,28 @@ along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <hal/block.h>
-
 enum pic_index
 {
-    PIC_STATE = BLOCK_COMMON + 1,
+    PIC_STATE = 0 + 1,
     PIC_CONFIG_IRQ,
     PIC_CONFIG_SWI,
     PIC_WAIT,
     PIC_SYSCALL
 };
 
-typedef drv_block drv_pic;
-typedef dev_block dev_pic;
+typedef struct
+{
+    void *init, (*clean)(void *);
+    bool (*stat) (void *ctx, u32 idx, u32 *width, u32 *length);
+    bool (*read) (void *ctx, u32 idx, void *buffer, u32 block);
+    bool (*write)(void *ctx, u32 idx, void *buffer, u32 block);
+} drv_pic;
+
+typedef struct
+{
+    const drv_pic *driver;
+    void *context;
+} dev_pic;
 
 enum pic_level
 {

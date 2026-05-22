@@ -35,12 +35,14 @@ void timer_setup(dev_timer *list, uint8_t count);
 
 bool timer_alarm(uint8_t id, uint32_t us, bool repeat,
                  void (*handler)(void *), void *arg);
+bool timer_sleep(uint8_t id, uint32_t us);
 #endif
 
 struct vrm_timer_v1
 {
     bool (*alarm)(uint8_t id, uint32_t us, bool repeat,
                   void (*handler)(void *), void *arg);
+    bool (*sleep)(uint8_t id, uint32_t us);
 };
 
 enum

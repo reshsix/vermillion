@@ -70,7 +70,7 @@ alarm(void *ctx, u32 us, bool repeat, void (*handler)(void *), void *arg)
         tmr->handler = handler;
         tmr->arg     = arg;
 
-        if (us)
+        if (us && handler)
         {
             TMR_IRQ_EN(tmr->base) |= 1 << tmr->id;
             TMR_CTRL(tmr->base, tmr->id) =

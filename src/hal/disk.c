@@ -14,19 +14,18 @@
  *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <general/mem.h>
 #include <general/types.h>
 
 #define VERMILLION_INTERNALS
-#include <vermillion/hal/timer.h>
-
-static dev_timer *dev_l = NULL;
-static u8 dev_c = 0;
+#include <vermillion/hal/disk.h>
 
 /* Devtree setup */
 
+static dev_disk *dev_l = NULL;
+static u8 dev_c = 0;
+
 extern void
-timer_setup(dev_timer *list, u8 count)
+disk_setup(dev_disk *list, u8 count)
 {
     dev_l = list;
     dev_c = count;
@@ -34,51 +33,56 @@ timer_setup(dev_timer *list, u8 count)
 
 /* Driver calls */
 
-#define TIMER_CALL(f, ...) \
+#define DISK_CALL(f, ...) \
 ((id < dev_c) ? dev_l[id].driver->f(dev_l[id].context, ##__VA_ARGS__) : false)
 
-static void
-sleep(void *arg)
-{
-    bool *flag = arg;
-    *flag = true;
-}
-
 extern bool
-timer_alarm(u8 id, u32 us, bool repeat, void (*handler)(void *), void *arg)
+disk_size(u8 id, u16 *sector, u32 *count)
 {
-    return TIMER_CALL(alarm, us, repeat, handler, arg);
-}
+    u16 sector2 = 0;
+    u32 count2  = 0;
 
-extern bool
-timer_sleep(u8 id, u32 us)
-{
-    volatile bool ret = false;
-
-    if (timer_alarm(id, us, false, sleep, (bool *)&ret))
+    bool ret = DISK_CALL(size, &sector2, &count2);
+    if (ret)
     {
-        while (!ret)
-            TIMER_CALL(wait);
+        if (sector)
+            *sector = sector2;
+        if (count)
+            *count  = count2;
     }
 
     return ret;
 }
 
+extern bool
+disk_read(u8 id, u8 *data, u32 block, u32 flags)
+{
+    (void)flags;
+    return DISK_CALL(read, data, block);
+}
+
+extern bool
+disk_write(u8 id, u8 *data, u32 block, u32 flags)
+{
+    (void)flags;
+    return DISK_CALL(write, data, block);
+}
+
 /* ABI definitions */
 
-static struct vrm_timer_v1 v1 =
+static struct vrm_disk_v1 v1 =
 {
-    .alarm = timer_alarm, .sleep = timer_sleep
+    .size = disk_size, .read = disk_read, .write  = disk_write
 };
 
 extern void *
-timer_driver(u8 version)
+disk_driver(u8 version)
 {
     void *ret = NULL;
 
     switch (version)
     {
-        case VRM_TIMER_V1:
+        case VRM_DISK_V1:
             ret = &v1;
             break;
     }
