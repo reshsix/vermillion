@@ -49,11 +49,7 @@ typedef struct
     void *context;
 } dev_gpio;
 
-/* For internal usage */
-
 void gpio_setup(dev_gpio *list, uint8_t count);
-
-/* For external usage */
 
 bool gpio_info  (uint8_t id, uint8_t port, uint8_t slot, uint32_t *fields);
 bool gpio_config(uint8_t id, uint8_t port, uint8_t slot, uint32_t  fields);

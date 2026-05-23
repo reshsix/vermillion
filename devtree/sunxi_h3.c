@@ -17,7 +17,6 @@
 #include <general/mem.h>
 #include <general/types.h>
 
-#include <hal/fs.h>
 #include <hal/classes/pic.h>
 
 #include <drivers/fs/mbr.h>
@@ -30,6 +29,7 @@
 #include <drivers/arm/sunxi/timer.h>
 
 #define VERMILLION_INTERNALS
+#include <vermillion/hal/fs.h>
 #include <vermillion/hal/spi.h>
 #include <vermillion/hal/disk.h>
 #include <vermillion/hal/gpio.h>

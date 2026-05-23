@@ -18,8 +18,11 @@
 #include <vermillion/vrm.h>
 #include <vermillion/prog.h>
 
+#include <vermillion/hal/fs.h>
 #include <vermillion/hal/uart.h>
 #include <vermillion/hal/timer.h>
+
+static struct vrm_fs_v1    *fs    = NULL;
 static struct vrm_uart_v1  *uart  = NULL;
 static struct vrm_timer_v1 *timer = NULL;
 
@@ -35,7 +38,7 @@ static char name[256] = {0};
 static char size[128] = {0};
 static size_t bytes = 0;
 
-static vrm_disk_f *current = NULL;
+static vrm_file *current = NULL;
 static const char *error   = NULL;
 
 static bool
@@ -61,7 +64,7 @@ soh(struct vrm *v, uint8_t *block, bool *started, bool *finished)
             if (length)
             {
                 if (*started)
-                    ret = v->fs.write(current, buffer, 128);
+                    ret = fs->write(current, buffer, 128);
                 else
                 {
                     v->str.copy(name, "/recv/", 0);
@@ -78,12 +81,12 @@ soh(struct vrm *v, uint8_t *block, bool *started, bool *finished)
                         bytes += size[i] - '0';
                     }
 
-                    if (v->fs.create(0, name, false))
+                    if (fs->create(0, name, false))
                     {
                         if (current)
-                            v->fs.close(current);
+                            fs->close(current);
 
-                        current = v->fs.open(0, name);
+                        current = fs->open(0, name);
                         if (!current)
                         {
                             error = "Failed to open file\r\n";
@@ -140,7 +143,7 @@ stx(struct vrm *v, uint8_t *block, bool *started)
         nblk = ~nblk;
         if ((blk == *block) && (nblk == *block))
         {
-            ret = v->fs.write(current, buffer, 1024);
+            ret = fs->write(current, buffer, 1024);
             (*block)++;
         }
         else
@@ -184,10 +187,11 @@ vrm_prog(struct vrm *v, const char **args, int count)
 {
     bool ret = true;
 
+    fs    = v->driver(VRM_FS,    VRM_FS_V1);
     uart  = v->driver(VRM_UART,  VRM_UART_V1);
     timer = v->driver(VRM_TIMER, VRM_TIMER_V1);
 
-    v->fs.create(0, "/recv", true);
+    fs->create(0, "/recv", true);
     bool handshake = false;
     bool started   = false;
     bool finished  = false;
@@ -251,7 +255,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
     }
 
     if (current)
-        v->fs.close(current);
+        fs->close(current);
 
     return ret;
 }

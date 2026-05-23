@@ -20,9 +20,8 @@
 #include <general/path.h>
 
 #define VERMILLION_INTERNALS
+#include <vermillion/hal/fs.h>
 #include <vermillion/hal/disk.h>
-
-#include <hal/fs.h>
 
 struct __attribute__((packed)) fat32br
 {

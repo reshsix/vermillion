@@ -20,13 +20,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#ifdef VERMILLION_INTERNALS
-typedef struct fs_file vrm_disk_f;
-#else
-typedef struct vrm_disk_f vrm_disk_f;
-#endif
-
-enum
+enum vrm_driver
 {
     VRM_UART = 0,
     VRM_GPIO,
@@ -35,16 +29,17 @@ enum
     VRM_I2C,
 
     VRM_DISK,
-    VRM_FS,
 
     VRM_PIC,
     VRM_TIMER,
-    VRM_POWER
+    VRM_POWER,
+
+    VRM_FS,
 };
 
 struct vrm
 {
-    void * (*driver)(uint8_t id, uint8_t version);
+    void * (*driver)(enum vrm_driver id, uint8_t version);
 
     /* General functions */
 
@@ -82,28 +77,6 @@ struct vrm
     } path;
 
     /* System functions */
-
-    struct
-    {
-        vrm_disk_f * (*open)(uint8_t id, const char *path);
-        vrm_disk_f * (*close)(vrm_disk_f *f);
-
-        bool (*stat)(vrm_disk_f *f, bool *dir, uint32_t *size);
-        void * (*walk)(vrm_disk_f *f, void *state,
-                       bool *dir, char *name, uint32_t *size);
-
-        bool (*seek)(vrm_disk_f *f, uint32_t  pos);
-        bool (*tell)(vrm_disk_f *f, uint32_t *pos);
-
-        uint32_t (*read)(vrm_disk_f *f, void *buffer, uint32_t bytes);
-        uint32_t (*write)(vrm_disk_f *f, void *buffer, uint32_t bytes);
-        bool (*flush)(vrm_disk_f *f);
-
-        bool (*resize)(vrm_disk_f *f, uint32_t size);
-
-        bool (*create)(uint8_t id, const char *path, bool dir);
-        bool (*remove)(uint8_t id, const char *path);
-    } fs;
 
     struct
     {

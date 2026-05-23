@@ -17,6 +17,7 @@
 #pragma once
 
 #define VERMILLION_INTERNALS
+#include <vermillion/hal/fs.h>
 #include <vermillion/hal/disk.h>
 
 dev_fs fat32_init(u8 disk);

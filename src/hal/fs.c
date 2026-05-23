@@ -19,9 +19,10 @@
 #include <general/str.h>
 #include <general/path.h>
 
-#include <hal/fs.h>
+#define VERMILLION_INTERNALS
+#include <vermillion/hal/fs.h>
 
-/* For devtree usage */
+/* Devtree setup */
 
 static dev_fs *dev_l = NULL;
 static u8 dev_c = 0;
@@ -33,7 +34,7 @@ fs_setup(dev_fs *list, u8 count)
     dev_c = count;
 }
 
-/* For external usage */
+/* Driver calls */
 
 static void *
 root(dev_fs *df)
@@ -408,6 +409,34 @@ fs_remove(u8 id, const char *path)
     }
     else
         fs_close(f);
+
+    return ret;
+}
+
+/* ABI definitions */
+
+static struct vrm_fs_v1 v1 =
+{
+    .open   = fs_open,   .close  = fs_close,
+    .stat   = fs_stat,   .walk   = fs_walk,
+    .seek   = fs_seek,   .tell   = fs_tell,
+    .read   = fs_read,   .write  = fs_write,
+    .flush  = fs_flush,
+    .resize = fs_resize,
+    .create = fs_create, .remove = fs_remove
+};
+
+extern void *
+fs_driver(u8 version)
+{
+    void *ret = NULL;
+
+    switch (version)
+    {
+        case VRM_FS_V1:
+            ret = &v1;
+            break;
+    }
 
     return ret;
 }

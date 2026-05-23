@@ -21,7 +21,8 @@
 #include <general/mem.h>
 #include <general/types.h>
 
-#include <hal/fs.h>
+#define VERMILLION_INTERNALS
+#include <vermillion/hal/fs.h>
 
 #include <syslog.h>
 

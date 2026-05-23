@@ -18,8 +18,6 @@
 #include <general/str.h>
 #include <general/path.h>
 
-#include <hal/fs.h>
-
 #include <system/libs.h>
 
 #include <loader.h>
@@ -30,6 +28,7 @@
 #include <vermillion/vrm.h>
 #include <vermillion/prog.h>
 
+#include <vermillion/hal/fs.h>
 #include <vermillion/hal/spi.h>
 #include <vermillion/hal/disk.h>
 #include <vermillion/hal/gpio.h>
@@ -54,6 +53,9 @@ driver(u8 driver, u8 version)
             break;
         case VRM_DISK:
             ret = disk_driver(version);
+            break;
+        case VRM_FS:
+            ret = fs_driver(version);
             break;
         case VRM_TIMER:
             ret = timer_driver(version);
@@ -92,18 +94,6 @@ main(void)
                     .path.dirname  = path_dirname,
                     .path.filename = path_filename,
 
-                    .fs.open      = fs_open,
-                    .fs.close     = fs_close,
-                    .fs.stat      = fs_stat,
-                    .fs.walk      = fs_walk,
-                    .fs.seek      = fs_seek,
-                    .fs.tell      = fs_tell,
-                    .fs.read      = fs_read,
-                    .fs.write     = fs_write,
-                    .fs.flush     = fs_flush,
-                    .fs.resize    = fs_resize,
-                    .fs.create    = fs_create,
-                    .fs.remove    = fs_remove,
                     .libs.load    = libs_load,
                     .libs.unload  = libs_unload,
                     .libs.pointer = libs_pointer,
