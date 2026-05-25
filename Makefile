@@ -64,11 +64,14 @@ PREFIX = src/general
 OBJS += $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/path.o
 
 PREFIX = src/hal
-OBJS += $(PREFIX)/uart.o  $(PREFIX)/spi.o  $(PREFIX)/fs.o \
+OBJS += $(PREFIX)/uart.o  $(PREFIX)/spi.o \
 		$(PREFIX)/timer.o $(PREFIX)/gpio.o $(PREFIX)/disk.o
 
 PREFIX = src/hal/classes
 OBJS += $(PREFIX)/pic.o
+
+PREFIX = src/sys
+OBJS += $(PREFIX)/file.o
 
 PREFIX = src/system
 OBJS += $(PREFIX)/libs.o
@@ -170,6 +173,7 @@ FOLDERS += $(BUILD)
 FOLDERS += $(BUILD)/src
 FOLDERS += $(BUILD)/src/general
 FOLDERS += $(BUILD)/src/hal/classes
+FOLDERS += $(BUILD)/src/sys
 FOLDERS += $(BUILD)/src/system
 FOLDERS += $(BUILD)/drivers
 FOLDERS += $(BUILD)/drivers/fs

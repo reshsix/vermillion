@@ -22,7 +22,7 @@
 #include <general/types.h>
 
 #define VERMILLION_INTERNALS
-#include <vermillion/hal/fs.h>
+#include <vermillion/sys/file.h>
 
 #include <syslog.h>
 
@@ -64,12 +64,12 @@ fdpic_loader(u8 id, const char *path, u32 *entry)
 {
     u8 ret = true;
 
-    struct fs_file *f = NULL;
+    struct vrm_file *f = NULL;
     struct elf header = {0};
     if (path)
     {
-        f = fs_open(id, path);
-        if (!f || fs_read(f, &header, sizeof(struct elf)) !=
+        f = file_open(id, path);
+        if (!f || file_read(f, &header, sizeof(struct elf)) !=
                   sizeof(struct elf))
             ret = false;
     }
@@ -92,8 +92,8 @@ fdpic_loader(u8 id, const char *path, u32 *entry)
         struct elfp pheader = {0};
         s32 offset = header.progs + (header.prog_s * i);
 
-        ret = fs_seek(f, offset) &&
-              fs_read(f, &pheader, sizeof(struct elfp)) ==
+        ret = file_seek(f, offset) &&
+              file_read(f, &pheader, sizeof(struct elfp)) ==
                         sizeof(struct elfp);
 
         if (ret && pheader.type == 1)
@@ -113,8 +113,8 @@ fdpic_loader(u8 id, const char *path, u32 *entry)
 
             if (ret)
             {
-                ret = fs_seek(f, pheader.offset) &&
-                      fs_read(f, &(buffer[pheader.vaddr]),
+                ret = file_seek(f, pheader.offset) &&
+                      file_read(f, &(buffer[pheader.vaddr]),
                                 pheader.size_f) == pheader.size_f;
             }
         }
@@ -126,7 +126,7 @@ fdpic_loader(u8 id, const char *path, u32 *entry)
         mem_del(buffer);
 
     if (f)
-        fs_close(f);
+        file_close(f);
 
     return ret ? buffer : NULL;
 }

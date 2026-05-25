@@ -20,7 +20,7 @@
 #include <general/path.h>
 
 #define VERMILLION_INTERNALS
-#include <vermillion/hal/fs.h>
+#include <vermillion/sys/file.h>
 
 /* Devtree setup */
 
@@ -28,7 +28,7 @@ static dev_fs *dev_l = NULL;
 static u8 dev_c = 0;
 
 extern void
-fs_setup(dev_fs *list, u8 count)
+file_setup(dev_fs *list, u8 count)
 {
     dev_l = list;
     dev_c = count;
@@ -104,28 +104,28 @@ remove(dev_fs *df, void *entry)
     return ret;
 }
 
-static char fs_buffer[PATH_MAX] = {0};
+static char file_buffer[PATH_MAX] = {0};
 
 static void *
-fs_dev(u8 id)
+file_dev(u8 id)
 {
     return (id < dev_c) ? &(dev_l[id]) : NULL;
 }
 
-extern struct fs_file *
-fs_open(u8 id, const char *path)
+extern struct vrm_file *
+file_open(u8 id, const char *path)
 {
-    struct fs_file *ret = mem_new(sizeof(struct fs_file));
+    struct vrm_file *ret = mem_new(sizeof(struct vrm_file));
 
-    dev_fs *df = fs_dev(id);
+    dev_fs *df = file_dev(id);
 
     bool success = false;
     if (ret && path_validate(path))
     {
         success = false;
 
-        str_copy(fs_buffer, path, 0);
-        path_cleanup(fs_buffer);
+        str_copy(file_buffer, path, 0);
+        path_cleanup(file_buffer);
 
         char *state = NULL;
 
@@ -135,7 +135,7 @@ fs_open(u8 id, const char *path)
             char name[255] = {0};
 
             success = true;
-            for (char *token = str_token(fs_buffer, "/", &state); token;
+            for (char *token = str_token(file_buffer, "/", &state); token;
                        token = str_token(NULL,      "/", &state))
             {
                 success = false;
@@ -185,12 +185,12 @@ fs_open(u8 id, const char *path)
     return ret;
 }
 
-extern struct fs_file *
-fs_close(struct fs_file *f)
+extern struct vrm_file *
+file_close(struct vrm_file *f)
 {
     if (f)
     {
-        fs_flush(f);
+        file_flush(f);
         mem_del(f->buffer);
     }
 
@@ -198,7 +198,7 @@ fs_close(struct fs_file *f)
 }
 
 extern bool
-fs_stat(struct fs_file *f, bool *dir, u32 *size)
+file_stat(struct vrm_file *f, bool *dir, u32 *size)
 {
     bool ret = (f != NULL);
 
@@ -214,13 +214,13 @@ fs_stat(struct fs_file *f, bool *dir, u32 *size)
 }
 
 extern void *
-fs_walk(struct fs_file *f, void *state, bool *dir, char *name, u32 *size)
+file_walk(struct vrm_file *f, void *state, bool *dir, char *name, u32 *size)
 {
     return walk(f->df, f->cache, state, dir, name, size);
 }
 
 extern bool
-fs_seek(struct fs_file *f, u32 pos)
+file_seek(struct vrm_file *f, u32 pos)
 {
     bool ret = (f && !(f->dir));
 
@@ -235,7 +235,7 @@ fs_seek(struct fs_file *f, u32 pos)
 }
 
 extern bool
-fs_tell(struct fs_file *f, u32 *pos)
+file_tell(struct vrm_file *f, u32 *pos)
 {
     bool ret = (f && !(f->dir));
 
@@ -246,7 +246,7 @@ fs_tell(struct fs_file *f, u32 *pos)
 }
 
 static u32
-fs_rw(struct fs_file *f, void *buffer, u32 bytes, bool w)
+file_rw(struct vrm_file *f, void *buffer, u32 bytes, bool w)
 {
     u32 ret = 0;
 
@@ -256,7 +256,7 @@ fs_rw(struct fs_file *f, void *buffer, u32 bytes, bool w)
         {
             u32 needed = f->pos + bytes;
             if (needed > f->size)
-                fs_resize(f, needed);
+                file_resize(f, needed);
         }
 
         while (bytes > 0 && f->pos < f->size)
@@ -303,19 +303,19 @@ fs_rw(struct fs_file *f, void *buffer, u32 bytes, bool w)
 }
 
 extern u32
-fs_read(struct fs_file *f, void *buffer, u32 bytes)
+file_read(struct vrm_file *f, void *buffer, u32 bytes)
 {
-    return fs_rw(f, buffer, bytes, false);
+    return file_rw(f, buffer, bytes, false);
 }
 
 extern u32
-fs_write(struct fs_file *f, void *buffer, u32 bytes)
+file_write(struct vrm_file *f, void *buffer, u32 bytes)
 {
-    return fs_rw(f, buffer, bytes, true);
+    return file_rw(f, buffer, bytes, true);
 }
 
 extern bool
-fs_flush(struct fs_file *f)
+file_flush(struct vrm_file *f)
 {
     if (f && f->flush)
         f->flush = !(write(f->df, f->cache, f->buffer, f->block));
@@ -324,7 +324,7 @@ fs_flush(struct fs_file *f)
 }
 
 extern bool
-fs_resize(struct fs_file *f, u32 size)
+file_resize(struct vrm_file *f, u32 size)
 {
     bool ret = (f && !(f->dir));
 
@@ -337,50 +337,50 @@ fs_resize(struct fs_file *f, u32 size)
 }
 
 extern bool
-fs_create(u8 id, const char *path, bool dir)
+file_create(u8 id, const char *path, bool dir)
 {
     bool ret = path_validate(path);
 
-    dev_fs *df = fs_dev(id);
+    dev_fs *df = file_dev(id);
     if (ret)
     {
-        struct fs_file *check = fs_open(id, path);
+        struct vrm_file *check = file_open(id, path);
 
         if (!check)
         {
-            str_copy(fs_buffer, path, 0);
-            path_dirname(fs_buffer);
+            str_copy(file_buffer, path, 0);
+            path_dirname(file_buffer);
 
-            struct fs_file *f = fs_open(id, fs_buffer);
+            struct vrm_file *f = file_open(id, file_buffer);
 
             if (f && f->dir)
             {
-                str_copy(fs_buffer, path, 0);
-                path_filename(fs_buffer);
-                ret = create(df, f->cache, fs_buffer, dir);
+                str_copy(file_buffer, path, 0);
+                path_filename(file_buffer);
+                ret = create(df, f->cache, file_buffer, dir);
             }
             else
                 ret = false;
 
-            fs_close(f);
+            file_close(f);
         }
         else
             ret = false;
 
-        fs_close(check);
+        file_close(check);
     }
 
     return ret;
 }
 
 extern bool
-fs_remove(u8 id, const char *path)
+file_remove(u8 id, const char *path)
 {
     bool ret = false;
 
-    dev_fs *df = fs_dev(id);
+    dev_fs *df = file_dev(id);
 
-    struct fs_file *f = fs_open(id, path);
+    struct vrm_file *f = file_open(id, path);
     if (f)
     {
         if (f->dir)
@@ -408,32 +408,32 @@ fs_remove(u8 id, const char *path)
         mem_del(f);
     }
     else
-        fs_close(f);
+        file_close(f);
 
     return ret;
 }
 
 /* ABI definitions */
 
-static struct vrm_fs_v1 v1 =
+static struct vrm_file_v1 v1 =
 {
-    .open   = fs_open,   .close  = fs_close,
-    .stat   = fs_stat,   .walk   = fs_walk,
-    .seek   = fs_seek,   .tell   = fs_tell,
-    .read   = fs_read,   .write  = fs_write,
-    .flush  = fs_flush,
-    .resize = fs_resize,
-    .create = fs_create, .remove = fs_remove
+    .open   = file_open,   .close  = file_close,
+    .stat   = file_stat,   .walk   = file_walk,
+    .seek   = file_seek,   .tell   = file_tell,
+    .read   = file_read,   .write  = file_write,
+    .flush  = file_flush,
+    .resize = file_resize,
+    .create = file_create, .remove = file_remove
 };
 
 extern void *
-fs_driver(u8 version)
+file_system(u8 version)
 {
     void *ret = NULL;
 
     switch (version)
     {
-        case VRM_FS_V1:
+        case VRM_FILE_V1:
             ret = &v1;
             break;
     }

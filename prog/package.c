@@ -16,7 +16,7 @@
 
 #include <vermillion/prog.h>
 
-#include <vermillion/hal/fs.h>
+#include <vermillion/sys/file.h>
 
 struct __attribute__((packed)) tar_h
 {
@@ -35,29 +35,29 @@ static uint8_t buffer [512] = {0};
 static uint8_t buffer2[256] = {0};
 static uint8_t buffer3[256] = {0};
 
-static struct vrm_fs_v1 *fs = NULL;
+static struct vrm_file_v1 *file = NULL;
 
 static bool
 exist_or_create(struct vrm *v, bool dir, const char *path, bool *created)
 {
     bool ret = false;
 
-    vrm_file *f = fs->open(0, path);
+    vrm_file *f = file->open(0, path);
     if (f)
     {
         bool dir2 = false;
-        if (fs->stat(f, &dir2, NULL) && (dir == dir2))
+        if (file->stat(f, &dir2, NULL) && (dir == dir2))
             ret = true;
         else
             v->syslog.string(": wrong type");
     }
     else
     {
-        ret = fs->create(0, path, dir);
+        ret = file->create(0, path, dir);
         if (ret)
             *created = true;
     }
-    fs->close(f);
+    file->close(f);
 
     return ret;
 }
@@ -94,8 +94,8 @@ tar_install(struct vrm *v, vrm_file *f, vrm_file *scr,
         if (ret && created)
         {
             char z = '\0';
-            fs->write(scr, &z, 1);
-            fs->write(scr, buffer2, len2);
+            file->write(scr, &z, 1);
+            file->write(scr, buffer2, len2);
         }
 
         state[-1] = '/';
@@ -105,8 +105,8 @@ tar_install(struct vrm *v, vrm_file *f, vrm_file *scr,
 
     if (ret && !dir)
     {
-        vrm_file *f2 = fs->open(0, buffer2);
-        if (f2 && fs->resize(f2, size))
+        vrm_file *f2 = file->open(0, buffer2);
+        if (f2 && file->resize(f2, size))
         {
             while (ret && size)
             {
@@ -114,8 +114,8 @@ tar_install(struct vrm *v, vrm_file *f, vrm_file *scr,
                 if (size < frac)
                     frac = size;
 
-                ret = ( fs->read(f,  buffer,  512) ==  512) &&
-                      (fs->write(f2, buffer, frac) == frac);
+                ret = ( file->read(f,  buffer,  512) ==  512) &&
+                      (file->write(f2, buffer, frac) == frac);
                 if (!ret)
                     v->syslog.string("Failed to unpack data\r\n");
 
@@ -124,7 +124,7 @@ tar_install(struct vrm *v, vrm_file *f, vrm_file *scr,
         }
         else
             v->syslog.string("Failed to open file\r\n");
-        fs->close(f2);
+        file->close(f2);
     }
 
     return ret;
@@ -135,7 +135,7 @@ tar_read(struct vrm *v, vrm_file *f, vrm_file *scr)
 {
     bool ret = true;
 
-    while (ret && fs->read(f, buffer, sizeof(buffer)))
+    while (ret && file->read(f, buffer, sizeof(buffer)))
     {
         struct tar_h *hdr = buffer;
         if (hdr->path[0] == '\0')
@@ -168,10 +168,10 @@ tar_read(struct vrm *v, vrm_file *f, vrm_file *scr)
             else if (!dir)
             {
                 uint32_t pos = 0;
-                if (fs->tell(f, &pos))
+                if (file->tell(f, &pos))
                 {
                     pos = (pos + size + 511) & ~511;
-                    if (!fs->seek(f, pos))
+                    if (!file->seek(f, pos))
                     {
                         v->syslog.string("ERROR: File seek failed\r\n");
                         ret = false;
@@ -204,7 +204,7 @@ script_read(struct vrm *v, vrm_file *f, bool remove)
 
     bool dir = false;
     uint32_t size = 0;
-    if (fs->stat(f, &dir, &size))
+    if (file->stat(f, &dir, &size))
     {
         if (!dir)
         {
@@ -213,8 +213,8 @@ script_read(struct vrm *v, vrm_file *f, bool remove)
                 size_t len = 0;
                 for (size_t i = 0; ret && i < 255; i++)
                 {
-                    ret = (fs->seek(f, size - 1) &&
-                           fs->read(f, &(buffer[i]), 1));
+                    ret = (file->seek(f, size - 1) &&
+                           file->read(f, &(buffer[i]), 1));
                     size--;
 
                     if (ret && buffer[i] == '\0')
@@ -241,7 +241,7 @@ script_read(struct vrm *v, vrm_file *f, bool remove)
 
                 if (ret && remove && len > 2)
                 {
-                    ret = fs->remove(0, buffer3);
+                    ret = file->remove(0, buffer3);
                     if (!ret)
                         v->syslog.string("ERROR: Failed to remove file\r\n");
                 }
@@ -261,7 +261,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
 {
     bool ret = false;
 
-    fs = v->driver(VRM_FS, VRM_FS_V1);
+    file = v->module(VRM_SYS, VRM_FILE, VRM_FILE_V1);
 
     if (count == 3)
     {
@@ -287,12 +287,12 @@ vrm_prog(struct vrm *v, const char **args, int count)
             v->str.concat(buffer2, args[2], v->str.length(args[2]));
             v->str.concat(buffer2, ".script", 0);
 
-            vrm_file *f = fs->open(0, (op < 3) ? buffer : buffer2);
+            vrm_file *f = file->open(0, (op < 3) ? buffer : buffer2);
             if (f)
             {
                 bool dir = false;
                 uint32_t size = 0;
-                if (fs->stat(f, &dir, &size))
+                if (file->stat(f, &dir, &size))
                 {
                     if (!dir)
                     {
@@ -302,15 +302,15 @@ vrm_prog(struct vrm *v, const char **args, int count)
                                 ret = tar_read(v, f, NULL);
                                 break;
                             case 2:
-                                if (fs->create(0, buffer2, false))
+                                if (file->create(0, buffer2, false))
                                 {
-                                    vrm_file *f2 = fs->open(0, buffer2);
+                                    vrm_file *f2 = file->open(0, buffer2);
                                     if (f2)
                                         ret = tar_read(v, f, f2);
                                     else
                                         v->syslog.string(
                                             "ERROR: Failed to open file\r\n");
-                                    fs->close(f2);
+                                    file->close(f2);
                                 }
                                 else
                                     v->syslog.string(
@@ -323,10 +323,10 @@ vrm_prog(struct vrm *v, const char **args, int count)
                                 ret = script_read(v, f, true);
                                 if (ret)
                                 {
-                                    fs->close(f);
+                                    file->close(f);
                                     f = NULL;
 
-                                    ret = fs->remove(0, buffer2);
+                                    ret = file->remove(0, buffer2);
                                     if (!ret)
                                         v->syslog.string(
                                             "ERROR: Failed to remove file\r\n");
@@ -342,7 +342,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
             }
             else
                 v->syslog.string("ERROR: File not found\r\n");
-            fs->close(f);
+            file->close(f);
         }
         else
             v->syslog.string(

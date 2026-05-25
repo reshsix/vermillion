@@ -27,38 +27,47 @@
 #define VERMILLION_INTERNALS
 #include <vermillion/vrm.h>
 #include <vermillion/prog.h>
-
-#include <vermillion/hal/fs.h>
 #include <vermillion/hal/spi.h>
 #include <vermillion/hal/disk.h>
 #include <vermillion/hal/gpio.h>
 #include <vermillion/hal/uart.h>
 #include <vermillion/hal/timer.h>
+#include <vermillion/sys/file.h>
 
 static void *
-driver(u8 driver, u8 version)
+module(u8 type, u8 id, u8 version)
 {
     void *ret = NULL;
 
-    switch (driver)
+    switch (type)
     {
-        case VRM_UART:
-            ret = uart_driver(version);
+        case VRM_HAL:
+            switch (id)
+            {
+                case VRM_UART:
+                    ret = uart_driver(version);
+                    break;
+                case VRM_GPIO:
+                    ret = gpio_driver(version);
+                    break;
+                case VRM_SPI:
+                    ret = spi_driver(version);
+                    break;
+                case VRM_DISK:
+                    ret = disk_driver(version);
+                    break;
+                case VRM_TIMER:
+                    ret = timer_driver(version);
+                    break;
+            }
             break;
-        case VRM_GPIO:
-            ret = gpio_driver(version);
-            break;
-        case VRM_SPI:
-            ret = spi_driver(version);
-            break;
-        case VRM_DISK:
-            ret = disk_driver(version);
-            break;
-        case VRM_FS:
-            ret = fs_driver(version);
-            break;
-        case VRM_TIMER:
-            ret = timer_driver(version);
+        case VRM_SYS:
+            switch (id)
+            {
+                case VRM_FILE:
+                    ret = file_system(version);
+                    break;
+            }
             break;
     }
 
@@ -70,7 +79,7 @@ main(void)
 {
     devtree_init();
 
-    struct vrm v = {.driver = driver,
+    struct vrm v = {.module = module,
 
                     .mem.new       = mem_new,
                     .mem.renew     = mem_renew,
@@ -105,13 +114,13 @@ main(void)
                     .syslog.signed_   = syslog_signed};
     syslog_string("\033[2J\033[H");
 
-    struct fs_file *f = fs_open(0, "/NOTICE");
+    struct vrm_file *f = file_open(0, "/NOTICE");
     if (f)
     {
         u8 buf[128] = {0};
         for (;;)
         {
-            u32 read = fs_read(f, buf, sizeof(buf));
+            u32 read = file_read(f, buf, sizeof(buf));
             if (read == 0)
                 break;
 
@@ -145,7 +154,7 @@ main(void)
     }
     else
         syslog_string("NOTICE missing\r\n");
-    fs_close(f);
+    file_close(f);
 
     devtree_clean();
 }

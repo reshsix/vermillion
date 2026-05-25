@@ -29,12 +29,12 @@
 #include <drivers/arm/sunxi/timer.h>
 
 #define VERMILLION_INTERNALS
-#include <vermillion/hal/fs.h>
 #include <vermillion/hal/spi.h>
 #include <vermillion/hal/disk.h>
 #include <vermillion/hal/gpio.h>
 #include <vermillion/hal/uart.h>
 #include <vermillion/hal/timer.h>
+#include <vermillion/sys/file.h>
 
 #define R_PRCM 0x01F01400
 #define APB0_GATE *(volatile u32*)(R_PRCM + 0x28)
@@ -146,7 +146,7 @@ devtree_init(void)
 
     /* Filesystems */
     fs[0] = fat32_init(1);
-    fs_setup(fs, 1);
+    file_setup(fs, 1);
 
     /* Peripherals */
     CLK_SPI0    = 1 << 31;

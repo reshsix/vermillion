@@ -20,7 +20,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-enum vrm_driver
+enum
+{
+    VRM_HAL,
+    VRM_SYS
+};
+
+enum
 {
     VRM_UART = 0,
     VRM_GPIO,
@@ -32,14 +38,17 @@ enum vrm_driver
 
     VRM_PIC,
     VRM_TIMER,
-    VRM_POWER,
+    VRM_POWER
+};
 
-    VRM_FS,
+enum
+{
+    VRM_FILE
 };
 
 struct vrm
 {
-    void * (*driver)(enum vrm_driver id, uint8_t version);
+    void * (*module)(uint8_t type, uint8_t id, uint8_t version);
 
     /* General functions */
 

@@ -41,7 +41,7 @@ vrm_prog(struct vrm *v, const char **args, int count)
     v->syslog.char_('>');
     v->syslog.char_(' ');
 
-    struct vrm_uart_v1 *uart = v->driver(VRM_UART, 0);
+    struct vrm_uart_v1 *uart = v->module(VRM_HAL, VRM_UART, VRM_UART_V1);
     while (true)
     {
         char c = '\0';

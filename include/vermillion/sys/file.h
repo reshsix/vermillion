@@ -38,7 +38,7 @@ typedef struct
     void *context;
 } dev_fs;
 
-struct fs_file
+struct vrm_file
 {
     dev_fs *df;
     void *cache;
@@ -52,34 +52,34 @@ struct fs_file
 
     uint32_t pos;
 };
-typedef struct fs_file vrm_file;
-
-void fs_setup(dev_fs *list, uint8_t count);
-
-vrm_file *fs_open(uint8_t id, const char *path);
-vrm_file *fs_close(vrm_file *f);
-
-bool fs_stat(vrm_file *f, bool *dir, uint32_t *size);
-void *fs_walk(vrm_file *f, void *state, bool *dir, char *name, uint32_t *size);
-
-bool fs_seek(vrm_file *f, uint32_t pos);
-bool fs_tell(vrm_file *f, uint32_t *pos);
-
-uint32_t fs_read (vrm_file *f, void *buffer, uint32_t bytes);
-uint32_t fs_write(vrm_file *f, void *buffer, uint32_t bytes);
-bool fs_flush(vrm_file *f);
-
-bool fs_resize(vrm_file *f, uint32_t size);
-
-bool fs_create(uint8_t id, const char *path, bool dir);
-bool fs_remove(uint8_t id, const char *path);
-#else
 typedef struct vrm_file vrm_file;
+
+void file_setup(dev_fs *list, uint8_t count);
+
+vrm_file *file_open(uint8_t id, const char *path);
+vrm_file *file_close(vrm_file *f);
+
+bool file_stat(vrm_file *f, bool *dir, uint32_t *size);
+void *file_walk(vrm_file *f, void *state, bool *dir, char *name, uint32_t *size);
+
+bool file_seek(vrm_file *f, uint32_t pos);
+bool file_tell(vrm_file *f, uint32_t *pos);
+
+uint32_t file_read (vrm_file *f, void *buffer, uint32_t bytes);
+uint32_t file_write(vrm_file *f, void *buffer, uint32_t bytes);
+bool file_flush(vrm_file *f);
+
+bool file_resize(vrm_file *f, uint32_t size);
+
+bool file_create(uint8_t id, const char *path, bool dir);
+bool file_remove(uint8_t id, const char *path);
 #endif
 
-struct vrm_fs_v1
+typedef struct vrm_file vrm_file;
+
+struct vrm_file_v1
 {
-    vrm_file * (*open)(uint8_t id, const char *path);
+    vrm_file * (*open)(uint8_t volume, const char *path);
     vrm_file * (*close)(vrm_file *f);
 
     bool   (*stat)(vrm_file *f, bool *dir, uint32_t *size);
@@ -101,7 +101,7 @@ struct vrm_fs_v1
 
 enum
 {
-    VRM_FS_V1 = 0
+    VRM_FILE_V1 = 0
 };
 
-void *fs_driver(uint8_t version);
+void *file_system(uint8_t version);
