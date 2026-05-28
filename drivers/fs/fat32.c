@@ -14,80 +14,78 @@
  *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <general/types.h>
-#include <general/mem.h>
-#include <general/str.h>
-#include <general/path.h>
-
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/disk.h>
 #include <vermillion/sys/file.h>
+#include <vermillion/util/mem.h>
+#include <vermillion/util/str.h>
+#include <vermillion/util/types.h>
 
 struct __attribute__((packed)) fat32br
 {
-    u8 jmp[3];
+    uint8_t jmp[3];
     char oem[8];
-    u16 bytepersect;
-    u8 sectspercluster;
-    u16 reservedsects;
-    u8 tablecount;
-    u16 rootentries;
-    u16 sectsvolume;
-    u8 mediatype;
-    u16 _unused;
-    u16 sectspertrack;
-    u16 headcount;
-    u32 hiddensects;
-    u32 sectsvolume32;
-    u32 sectspertable;
-    u16 flags;
-    u16 version;
-    u32 rootcluster;
-    u16 fsinfosect;
-    u16 backupsect;
-    u8 _reserved[12];
-    u8 drivenum;
-    u8 flagsnt;
-    u8 signature;
-    u32 volumeid;
+    uint16_t bytepersect;
+    uint8_t sectspercluster;
+    uint16_t reservedsects;
+    uint8_t tablecount;
+    uint16_t rootentries;
+    uint16_t sectsvolume;
+    uint8_t mediatype;
+    uint16_t _unused;
+    uint16_t sectspertrack;
+    uint16_t headcount;
+    uint32_t hiddensects;
+    uint32_t sectsvolume32;
+    uint32_t sectspertable;
+    uint16_t flags;
+    uint16_t version;
+    uint32_t rootcluster;
+    uint16_t fsinfosect;
+    uint16_t backupsect;
+    uint8_t _reserved[12];
+    uint8_t drivenum;
+    uint8_t flagsnt;
+    uint8_t signature;
+    uint32_t volumeid;
     char label[11];
     char system[8];
 };
 
 struct fat32e
 {
-    u8 attributes;
+    uint8_t attributes;
 
-    u32 location;
+    uint32_t location;
 
-    u32 cluster;
+    uint32_t cluster;
     size_t size;
 
-    u32 sect;
-    u32 idx;
+    uint32_t sect;
+    uint32_t idx;
 };
 
 struct fat32
 {
-    u8 disk;
+    uint8_t disk;
 
     struct fat32br br;
-    u8 *buffer;
+    uint8_t *buffer;
     struct fat32e root;
 
     struct fat32e *current;
 };
 
-static u32 fat32_buf[0x80];
-s64 fat32_buf_n = -1;
-static u8 fat32_buf2[0x200];
+static uint32_t fat32_buf[0x80];
+int64_t fat32_buf_n = -1;
+static uint8_t fat32_buf2[0x200];
 
 /* Helper functions */
 
-static u32
-utf8_to_unicode(u8 **buf)
+static uint32_t
+utf8_to_unicode(uint8_t **buf)
 {
-    u32 ret = 0;
+    uint32_t ret = 0;
 
     if ((*buf)[0] < 0x80)
     {
@@ -118,10 +116,10 @@ utf8_to_unicode(u8 **buf)
     return ret;
 }
 
-static u32
-utf16_to_unicode(u16 **buf)
+static uint32_t
+utf16_to_unicode(uint16_t **buf)
 {
-    u32 ret = (*buf)[0];
+    uint32_t ret = (*buf)[0];
 
     if ((ret >> 10) == 0x36)
     {
@@ -140,7 +138,7 @@ utf16_to_unicode(u16 **buf)
 }
 
 static size_t
-unicode_to_utf8(u32 code, char* buf)
+unicode_to_utf8(uint32_t code, char* buf)
 {
     size_t ret = 0;
 
@@ -171,7 +169,7 @@ unicode_to_utf8(u32 code, char* buf)
 }
 
 static size_t
-unicode_to_utf16(u32 code, char *buf)
+unicode_to_utf16(uint32_t code, char *buf)
 {
     size_t ret = 0;
 
@@ -183,8 +181,8 @@ unicode_to_utf16(u32 code, char *buf)
     else
     {
         code -= 0x10000;
-        u16 high = 0xD800 + (code >> 10);
-        u16 low = 0xDC00 + (code & 0x3FF);
+        uint16_t high = 0xD800 + (code >> 10);
+        uint16_t low = 0xDC00 + (code & 0x3FF);
         buf[ret++] = high & 0xFF;
         buf[ret++] = high >> 8;
         buf[ret++] = low & 0xFF;
@@ -199,10 +197,10 @@ utf8to16_length(const char *str)
 {
     size_t ret = 0;
 
-    u8 *buf = (u8*)str;
+    uint8_t *buf = (uint8_t*)str;
     while (buf[0] != '\0')
     {
-        u32 code = utf8_to_unicode(&buf);
+        uint32_t code = utf8_to_unicode(&buf);
         if (code < 0x10000)
             ret += 2;
         else
@@ -213,7 +211,7 @@ utf8to16_length(const char *str)
 }
 
 static size_t
-id83_to_string(u8 *code, char* buf)
+id83_to_string(uint8_t *code, char* buf)
 {
     size_t ret = 0;
 
@@ -221,44 +219,44 @@ id83_to_string(u8 *code, char* buf)
     char name8[9] = {0};
     char ext3[4] = {0};
 
-    mem_copy(name8, code, 8);
+    vrm_mem_copy(name8, code, 8);
     for (int k = 7; k >= 0 && name8[k] == ' '; k--)
         name8[k] = '\0';
 
-    mem_copy(ext3, &(code[8]), 3);
+    vrm_mem_copy(ext3, &(code[8]), 3);
     for (int k = 2; k >= 0 && ext3[k] == ' '; k--)
         ext3[k] = '\0';
 
-    str_copy(id83, name8, 0);
+    vrm_str_copy(id83, name8, 0);
     if (ext3[0] != '\0')
-        str_concat(id83, ".", 0);
-    str_concat(id83, ext3, 0);
+        vrm_str_concat(id83, ".", 0);
+    vrm_str_concat(id83, ext3, 0);
 
-    ret = str_length(id83) + 1;
-    mem_copy(buf, id83, ret);
+    ret = vrm_str_length(id83) + 1;
+    vrm_mem_copy(buf, id83, ret);
 
     return ret;
 }
 
 static void
-string_to_id83(const char *str, u8 *buf)
+string_to_id83(const char *str, uint8_t *buf)
 {
-    u32 len = str_length(str);
-    if (str_length(str) <= 11)
+    uint32_t len = vrm_str_length(str);
+    if (vrm_str_length(str) <= 11)
     {
-        mem_fill(buf, 0x20, 11);
-        mem_copy(buf, str, len);
+        vrm_mem_fill(buf, 0x20, 11);
+        vrm_mem_copy(buf, str, len);
     }
     else
-        mem_copy(buf, str, 11);
+        vrm_mem_copy(buf, str, 11);
 }
 
-static u8
-lfn_checksum(u8 *buf)
+static uint8_t
+lfn_checksum(uint8_t *buf)
 {
-    u8 ret = 0;
+    uint8_t ret = 0;
 
-    for (u8 i = 11; i != 0; i--)
+    for (uint8_t i = 11; i != 0; i--)
         ret = ((ret & 1) << 7) + (ret >> 1) + buf[11 - i];
 
     return ret;
@@ -274,26 +272,27 @@ enum
 };
 
 static bool
-cluster_eof(u32 cluster)
+cluster_eof(uint32_t cluster)
 {
     return (cluster & 0x0FFFFFFF) >= 0x0FFFFFF8;
 }
 
 static bool
-cluster_set(struct fat32 *f, u32 cluster, u32 value)
+cluster_set(struct fat32 *f, uint32_t cluster, uint32_t value)
 {
     bool ret = true;
 
-    u32 idx = f->br.reservedsects + (cluster / 0x80);
-    for (u32 i = 0; ret && i < f->br.tablecount; i++)
+    uint32_t idx = f->br.reservedsects + (cluster / 0x80);
+    for (uint32_t i = 0; ret && i < f->br.tablecount; i++)
     {
-        if ((fat32_buf_n == idx) || disk_read(f->disk, (u8*)fat32_buf, idx, 0))
+        if ((fat32_buf_n == idx) ||
+            vrm_disk_read(f->disk, (uint8_t*)fat32_buf, idx, 0))
         {
-            u32 org = fat32_buf[cluster % 0x80];
-            u32 value2 = (org & ~CLUSTER_MASK) | (value & CLUSTER_MASK);
+            uint32_t org = fat32_buf[cluster % 0x80];
+            uint32_t value2 = (org & ~CLUSTER_MASK) | (value & CLUSTER_MASK);
             fat32_buf[cluster % 0x80] = value2;
 
-            ret = disk_write(f->disk, (u8*)fat32_buf, idx, 0);
+            ret = vrm_disk_write(f->disk, (uint8_t*)fat32_buf, idx, 0);
             fat32_buf_n = idx;
         }
         else
@@ -305,13 +304,14 @@ cluster_set(struct fat32 *f, u32 cluster, u32 value)
     return ret;
 }
 
-static u32
-cluster_get(struct fat32 *f, u32 cluster)
+static uint32_t
+cluster_get(struct fat32 *f, uint32_t cluster)
 {
-    u32 ret = CLUSTER_EOF;
+    uint32_t ret = CLUSTER_EOF;
 
-    u32 idx = f->br.reservedsects + (cluster / 0x80);
-    if ((fat32_buf_n == idx) || disk_read(f->disk, (u8*)fat32_buf, idx, 0))
+    uint32_t idx = f->br.reservedsects + (cluster / 0x80);
+    if ((fat32_buf_n == idx) ||
+        vrm_disk_read(f->disk, (uint8_t *)fat32_buf, idx, 0))
     {
         ret = fat32_buf[cluster % 0x80] & CLUSTER_MASK;
         fat32_buf_n = idx;
@@ -320,12 +320,12 @@ cluster_get(struct fat32 *f, u32 cluster)
     return ret;
 }
 
-static u32
-cluster_find(struct fat32 *f, u32 value)
+static uint32_t
+cluster_find(struct fat32 *f, uint32_t value)
 {
-    u32 ret = 0;
+    uint32_t ret = 0;
 
-    for (u32 i = 2; i < 0x200 * f->br.sectspertable / 4; i++)
+    for (uint32_t i = 2; i < 0x200 * f->br.sectspertable / 4; i++)
     {
         if (cluster_get(f, i) == value)
         {
@@ -339,29 +339,30 @@ cluster_find(struct fat32 *f, u32 value)
 
 /* Parsing functions */
 
-static u32
-fat32_next(struct fat32 *f, u32 cluster)
+static uint32_t
+fat32_next(struct fat32 *f, uint32_t cluster)
 {
-    u32 ret = 0xFFFFFFFF;
+    uint32_t ret = 0xFFFFFFFF;
 
-    u32 length = (f->br.sectsvolume) ? f->br.sectsvolume : f->br.sectsvolume32;
+    uint32_t length = (f->br.sectsvolume) ? f->br.sectsvolume  :
+                                            f->br.sectsvolume32;
     if (cluster < length)
         ret = cluster_get(f, cluster);
 
     return ret;
 }
 
-static u32
-fat32_fsector(struct fat32 *f, u32 cluster)
+static uint32_t
+fat32_fsector(struct fat32 *f, uint32_t cluster)
 {
-    u32 datasect = f->br.reservedsects +
+    uint32_t datasect = f->br.reservedsects +
                                       (f->br.tablecount * f->br.sectspertable);
     return datasect + ((cluster - 2) * f->br.sectspercluster);
 }
 
 static bool
-fat32_walk(struct fat32 *f, u32 cluster, u32 sect, u32 idx,
-           struct fat32e *out, bool *dir, char *name, u32 *size)
+fat32_walk(struct fat32 *f, uint32_t cluster, uint32_t sect, uint32_t idx,
+           struct fat32e *out, bool *dir, char *name, uint32_t *size)
 {
     bool ret = true;
 
@@ -369,13 +370,13 @@ fat32_walk(struct fat32 *f, u32 cluster, u32 sect, u32 idx,
     if (!name)
         name = name2;
 
-    static u16 lfn[255] = {0};
-    static u8 lfn_last = 0;
-    mem_fill(lfn, 0xFF, sizeof(lfn));
+    static uint16_t lfn[255] = {0};
+    static uint8_t lfn_last = 0;
+    vrm_mem_fill(lfn, 0xFF, sizeof(lfn));
 
     bool found = false;
-    u32 firstsect = 0;
-    for (u32 i = 0x200 * f->br.sectspercluster; ret; i += 32)
+    uint32_t firstsect = 0;
+    for (uint32_t i = 0x200 * f->br.sectspercluster; ret; i += 32)
     {
         if (i >= (0x200 * f->br.sectspercluster))
         {
@@ -384,9 +385,9 @@ fat32_walk(struct fat32 *f, u32 cluster, u32 sect, u32 idx,
                 firstsect = fat32_fsector(f, cluster);
                 if (firstsect >= sect)
                 {
-                    for (u8 k = 0; ret && k < f->br.sectspercluster; k++)
-                        ret = disk_read(f->disk, &(f->buffer[0x200 * k]),
-                                        firstsect + k, 0);
+                    for (uint8_t k = 0; ret && k < f->br.sectspercluster; k++)
+                        ret = vrm_disk_read(f->disk, &(f->buffer[0x200 * k]),
+                                            firstsect + k, 0);
                 }
                 if (!ret)
                     break;
@@ -409,15 +410,15 @@ fat32_walk(struct fat32 *f, u32 cluster, u32 sect, u32 idx,
 
         if (f->buffer[i + 11] == 0x0F)
         {
-            u16 idx = f->buffer[i] & 0x1F;
+            uint16_t idx = f->buffer[i] & 0x1F;
             if (idx > 0 && idx < 256)
             {
                 idx = (idx - 1) * 13;
-                mem_copy(&(lfn[idx]),      &(f->buffer[i + 1]),  5 * 2);
-                mem_copy(&(lfn[idx + 5]),  &(f->buffer[i + 14]), 6 * 2);
-                mem_copy(&(lfn[idx + 11]), &(f->buffer[i + 28]), 2 * 2);
+                vrm_mem_copy(&(lfn[idx]),      &(f->buffer[i + 1]),  5 * 2);
+                vrm_mem_copy(&(lfn[idx + 5]),  &(f->buffer[i + 14]), 6 * 2);
+                vrm_mem_copy(&(lfn[idx + 11]), &(f->buffer[i + 28]), 2 * 2);
 
-                u8 last = idx + 13;
+                uint8_t last = idx + 13;
                 if (last > lfn_last)
                     lfn_last = last;
             }
@@ -425,31 +426,32 @@ fat32_walk(struct fat32 *f, u32 cluster, u32 sect, u32 idx,
         }
 
         size_t j = 0;
-        for (u16 *lfn_p = lfn; lfn_p <= &(lfn[lfn_last]); lfn_p = &(lfn_p[1]))
+        for (uint16_t *lfn_p = lfn; lfn_p <= &(lfn[lfn_last]);
+                                    lfn_p  = &(lfn_p[1]))
         {
             if (*lfn_p == 0xFFFF)
                 continue;
 
             j += unicode_to_utf8(utf16_to_unicode(&lfn_p), &(name[j]));
         }
-        mem_fill(lfn, 0xFF, sizeof(lfn));
+        vrm_mem_fill(lfn, 0xFF, sizeof(lfn));
 
         if (j > 0)
             name[j] = '\0';
         else
             id83_to_string(&(f->buffer[i]), name);
 
-        u8 *entry = &(f->buffer[i]);
+        uint8_t *entry = &(f->buffer[i]);
 
         out->sect = firstsect;
         out->idx  = i;
         out->location = (firstsect * 0x200) + i;
         out->attributes = entry[11];
-        mem_copy(&(out->size), &(entry[28]), 4);
+        vrm_mem_copy(&(out->size), &(entry[28]), 4);
 
-        u16 cluster_l, cluster_h;
-        mem_copy(&cluster_l, &(entry[26]), 2);
-        mem_copy(&cluster_h, &(entry[20]), 2);
+        uint16_t cluster_l, cluster_h;
+        vrm_mem_copy(&cluster_l, &(entry[26]), 2);
+        vrm_mem_copy(&cluster_h, &(entry[20]), 2);
         out->cluster = cluster_l | (cluster_h << 16);
 
         if (dir)
@@ -467,10 +469,10 @@ fat32_walk(struct fat32 *f, u32 cluster, u32 sect, u32 idx,
 
 /* Allocation functions */
 
-static u32
+static uint32_t
 fat32_alloc(struct fat32 *f)
 {
-    u32 ret = cluster_find(f, CLUSTER_FREE);
+    uint32_t ret = cluster_find(f, CLUSTER_FREE);
 
     if (ret)
         if (!cluster_set(f, ret, CLUSTER_EOF))
@@ -479,14 +481,14 @@ fat32_alloc(struct fat32 *f)
     return ret;
 }
 
-static u32
-fat32_alloc2(struct fat32 *f, u32 cluster)
+static uint32_t
+fat32_alloc2(struct fat32 *f, uint32_t cluster)
 {
-    u32 ret = fat32_next(f, cluster);
+    uint32_t ret = fat32_next(f, cluster);
 
     if (cluster_eof(ret))
     {
-        u32 cluster2 = cluster_find(f, CLUSTER_FREE);
+        uint32_t cluster2 = cluster_find(f, CLUSTER_FREE);
         if (cluster2 && !cluster_eof(cluster))
         {
             if (cluster_set(f, cluster,  cluster2) &&
@@ -501,13 +503,13 @@ fat32_alloc2(struct fat32 *f, u32 cluster)
 }
 
 static bool
-fat32_free(struct fat32 *f, u32 cluster, u32 depth)
+fat32_free(struct fat32 *f, uint32_t cluster, uint32_t depth)
 {
     bool ret = true;
 
-    for (u32 i = 0; ret && !cluster_eof(cluster); i++)
+    for (uint32_t i = 0; ret && !cluster_eof(cluster); i++)
     {
-        u32 prev = cluster;
+        uint32_t prev = cluster;
         cluster = fat32_next(f, cluster);
 
         if ((i + 1) == depth)
@@ -534,20 +536,20 @@ fat32_del(struct fat32 *f)
 }
 
 static struct fat32 *
-fat32_new(u8 disk)
+fat32_new(uint8_t disk)
 {
     struct fat32 *ret = mem_new(sizeof(struct fat32));
 
     if (ret)
     {
         ret->disk = disk;
-        if (!disk_read(ret->disk, (u8*)fat32_buf, 0, 0))
+        if (!vrm_disk_read(ret->disk, (uint8_t*)fat32_buf, 0, 0))
             ret = fat32_del(ret);
     }
 
     if (ret)
     {
-        mem_copy(&(ret->br), fat32_buf, sizeof(struct fat32br));
+        vrm_mem_copy(&(ret->br), fat32_buf, sizeof(struct fat32br));
 
         ret->buffer = mem_new(0x200 * ret->br.sectspercluster);
         if (!(ret->buffer))
@@ -564,25 +566,26 @@ fat32_new(u8 disk)
 }
 
 static bool
-fat32_rw(struct fat32 *f, struct fat32e *fe, u32 sector, u8 *data, bool write)
+fat32_rw(struct fat32 *f, struct fat32e *fe,
+         uint32_t sector, uint8_t *data, bool write)
 {
     bool ret = !(fe->attributes & 0x10);
 
     if (ret)
     {
-        u32 cluster_n = sector / f->br.sectspercluster;
-        u32 sector_n = sector % f->br.sectspercluster;
+        uint32_t cluster_n = sector / f->br.sectspercluster;
+        uint32_t sector_n = sector % f->br.sectspercluster;
 
-        u32 cluster = fe->cluster;
-        for (u32 i = 0; i < cluster_n && !cluster_eof(cluster); i++)
+        uint32_t cluster = fe->cluster;
+        for (uint32_t i = 0; i < cluster_n && !cluster_eof(cluster); i++)
             cluster = fat32_next(f, cluster);
 
         if (!cluster_eof(cluster))
         {
             cluster &= 0xFFFFFFF;
-            u32 firstsect = fat32_fsector(f, cluster);
-            ret = ((write) ? disk_write : disk_read)(f->disk, data,
-                                                     firstsect + sector_n, 0);
+            uint32_t firstsect = fat32_fsector(f, cluster);
+            ret = ((write) ? vrm_disk_write : vrm_disk_read)
+                  (f->disk, data, firstsect + sector_n, 0);
         }
     }
 
@@ -594,53 +597,53 @@ entry_update(struct fat32 *f, struct fat32e *fe, bool unused)
 {
     bool ret = true;
 
-    u32 sector = fe->location / 0x200;
-    u32 index = fe->location % 0x200;
-    ret = disk_read(f->disk, f->buffer, sector, 0);
+    uint32_t sector = fe->location / 0x200;
+    uint32_t index = fe->location % 0x200;
+    ret = vrm_disk_read(f->disk, f->buffer, sector, 0);
 
     if (ret)
     {
         if (unused)
         {
-            for (s64 i = index; true; i -= 32)
+            for (int64_t i = index; true; i -= 32)
             {
                 if (i != index && f->buffer[i + 11] != 0x0F)
                     break;
 
-                mem_fill(&(f->buffer[i]), 0xE5, 1);
-                mem_fill(&(f->buffer[i + 1]), 0x00, 31);
+                vrm_mem_fill(&(f->buffer[i]), 0xE5, 1);
+                vrm_mem_fill(&(f->buffer[i + 1]), 0x00, 31);
 
                 if (i == 0)
                 {
-                    ret = disk_write(f->disk, f->buffer, sector--, 0) &&
-                          disk_read (f->disk, f->buffer, sector,   0);
+                    ret = vrm_disk_write(f->disk, f->buffer, sector--, 0) &&
+                          vrm_disk_read (f->disk, f->buffer, sector,   0);
                     i = 0x200;
                 }
             }
         }
         else
         {
-            u32 size = fe->size;
-            mem_copy(&(f->buffer[index + 28]), &size, sizeof(u32));
+            uint32_t size = fe->size;
+            vrm_mem_copy(&(f->buffer[index + 28]), &size, sizeof(uint32_t));
         }
 
         if (ret)
-            ret = disk_write(f->disk, f->buffer, sector, 0);
+            ret = vrm_disk_write(f->disk, f->buffer, sector, 0);
     }
 
     return ret;
 }
 
 static bool
-fat32_resize(struct fat32 *f, struct fat32e *fe, u32 size)
+fat32_resize(struct fat32 *f, struct fat32e *fe, uint32_t size)
 {
     bool ret = true;
 
-    u32 cluster_n = 0;
-    for (u32 c = fe->cluster; !cluster_eof(c); c = fat32_next(f, c))
+    uint32_t cluster_n = 0;
+    for (uint32_t c = fe->cluster; !cluster_eof(c); c = fat32_next(f, c))
         cluster_n++;
 
-    u32 cluster_n2 = (size / 0x200) / f->br.sectspercluster;
+    uint32_t cluster_n2 = (size / 0x200) / f->br.sectspercluster;
     if (cluster_n != cluster_n2)
     {
         if (cluster_n2 < cluster_n)
@@ -650,8 +653,8 @@ fat32_resize(struct fat32 *f, struct fat32e *fe, u32 size)
         }
         else if (cluster_n2 > cluster_n)
         {
-            u32 cluster = fe->cluster;
-            for (u32 i = 0; ret && i <= cluster_n2; i++)
+            uint32_t cluster = fe->cluster;
+            for (uint32_t i = 0; ret && i <= cluster_n2; i++)
             {
                 cluster = fat32_alloc2(f, cluster);
                 if (cluster_eof(cluster))
@@ -672,34 +675,35 @@ fat32_resize(struct fat32 *f, struct fat32e *fe, u32 size)
 }
 
 static void
-fill_entry(u8 *buf, const char *name, bool dir, u8 entries, u32 cluster)
+fill_entry(uint8_t *buf, const char *name,
+           bool dir, uint8_t entries, uint32_t cluster)
 {
-    mem_fill(buf, 0x0, 0x200);
+    vrm_mem_fill(buf, 0x0, 0x200);
 
-    u8 id83[11] = {0};
+    uint8_t id83[11] = {0};
     string_to_id83(name, id83);
 
-    u8 *name2 = (u8*)name;
-    u8 lfn_c = entries - 1;
-    u8 checksum = lfn_checksum(id83);
-    for (u32 n = 0; n < lfn_c; n++)
+    uint8_t *name2 = (uint8_t*)name;
+    uint8_t lfn_c = entries - 1;
+    uint8_t checksum = lfn_checksum(id83);
+    for (uint32_t n = 0; n < lfn_c; n++)
     {
-        u32 i = ((lfn_c - n - 1) * 32);
+        uint32_t i = ((lfn_c - n - 1) * 32);
 
-        buf[i] = n + 1 + ((n == (u32)(lfn_c - 1)) ? 0x40 : 0x0);
+        buf[i] = n + 1 + ((n == (uint32_t)(lfn_c - 1)) ? 0x40 : 0x0);
         buf[i + 11] = 0xF;
         buf[i + 13] = checksum;
 
         bool last = true;
-        u8 start[] = {1, 14, 28}, end[] = {11, 26, 32};
-        for (u8 j = 0; j < 3; j++)
+        uint8_t start[] = {1, 14, 28}, end[] = {11, 26, 32};
+        for (uint8_t j = 0; j < 3; j++)
         {
-            u8 *cur = &(buf[i + start[j]]);
+            uint8_t *cur = &(buf[i + start[j]]);
             while (cur < &(buf[i + end[j]]))
             {
                 if (name2[0])
                 {
-                    u32 code = utf8_to_unicode(&name2);
+                    uint32_t code = utf8_to_unicode(&name2);
                     cur += unicode_to_utf16(code, (char *)cur);
                 }
                 else
@@ -717,8 +721,8 @@ fill_entry(u8 *buf, const char *name, bool dir, u8 entries, u32 cluster)
         }
     }
 
-    u32 i = lfn_c * 32;
-    mem_copy(&(buf[i]), id83, 11);
+    uint32_t i = lfn_c * 32;
+    vrm_mem_copy(&(buf[i]), id83, 11);
     buf[i + 11] = 0x20 | ((dir) ? 0x10 : 0x0);
     buf[i + 26] = (cluster >> 0) & 0xFF;
     buf[i + 27] = (cluster >> 8) & 0xFF;
@@ -732,29 +736,29 @@ fill_entry(u8 *buf, const char *name, bool dir, u8 entries, u32 cluster)
 }
 
 static bool
-chain_write(struct fat32 *f, u8 *buf, u32 cluster, u32 sector_idx,
-            u32 pos, u32 bytes)
+chain_write(struct fat32 *f, uint8_t *buf, uint32_t cluster,
+            uint32_t sector_idx, uint32_t pos, uint32_t bytes)
 {
     bool ret = true;
 
-    u32 idx = 0;
+    uint32_t idx = 0;
     while (ret && bytes)
     {
-        u32 sector = fat32_fsector(f, cluster) + sector_idx;
-        ret = disk_read(f->disk, f->buffer, sector, 0);
+        uint32_t sector = fat32_fsector(f, cluster) + sector_idx;
+        ret = vrm_disk_read(f->disk, f->buffer, sector, 0);
 
         if (ret)
         {
-            u32 write = (bytes < (0x200 - pos)) ? bytes : (0x200 - pos);
+            uint32_t write = (bytes < (0x200 - pos)) ? bytes : (0x200 - pos);
             if (pos + bytes <= 0x200)
             {
-                mem_copy(&(f->buffer[pos]), &(buf[idx]), write);
+                vrm_mem_copy(&(f->buffer[pos]), &(buf[idx]), write);
                 idx += write;
                 bytes -= write;
             }
             else
-                mem_fill(&(f->buffer[pos]), 0xE5, write);
-            ret = disk_write(f->disk, f->buffer, sector, 0);
+                vrm_mem_fill(&(f->buffer[pos]), 0xE5, write);
+            ret = vrm_disk_write(f->disk, f->buffer, sector, 0);
         }
 
         if (ret && bytes)
@@ -777,19 +781,19 @@ chain_write(struct fat32 *f, u8 *buf, u32 cluster, u32 sector_idx,
 }
 
 static bool
-directory_dots(struct fat32 *f, u32 cluster, u32 pcluster)
+directory_dots(struct fat32 *f, uint32_t cluster, uint32_t pcluster)
 {
     bool ret = false;
 
-    u32 sector = fat32_fsector(f, cluster);
-    ret = disk_read(f->disk, f->buffer, sector, 0);
+    uint32_t sector = fat32_fsector(f, cluster);
+    ret = vrm_disk_read(f->disk, f->buffer, sector, 0);
     if (ret)
     {
-        u8 *buf = f->buffer;
-        mem_fill(buf, 0x0, 32 * 3);
+        uint8_t *buf = f->buffer;
+        vrm_mem_fill(buf, 0x0, 32 * 3);
 
-        u32 i = 0;
-        mem_fill(&(buf[i]), 0x20, 11);
+        uint32_t i = 0;
+        vrm_mem_fill(&(buf[i]), 0x20, 11);
         buf[i] = '.';
         buf[i + 11] = 0x30;
         buf[i + 26] = (cluster >> 0) & 0xFF;
@@ -798,7 +802,7 @@ directory_dots(struct fat32 *f, u32 cluster, u32 pcluster)
         buf[i + 21] = (cluster >> 24) & 0xFF;
 
         i += 32;
-        mem_fill(&(buf[i]), 0x20, 11);
+        vrm_mem_fill(&(buf[i]), 0x20, 11);
         buf[i] = '.';
         buf[i + 1] = '.';
         buf[i + 11] = 0x30;
@@ -807,22 +811,22 @@ directory_dots(struct fat32 *f, u32 cluster, u32 pcluster)
         buf[i + 20] = (pcluster >> 16) & 0xFF;
         buf[i + 21] = (pcluster >> 24) & 0xFF;
 
-        ret = disk_write(f->disk, f->buffer, sector, 0);
+        ret = vrm_disk_write(f->disk, f->buffer, sector, 0);
     }
 
     return ret;
 }
 
 static bool
-fat32_create(struct fat32 *f, u32 pcluster,
-             bool dir, const char *name, u32 cluster)
+fat32_create(struct fat32 *f, uint32_t pcluster,
+             bool dir, const char *name, uint32_t cluster)
 {
     bool ret = (f && name);
 
-    u32 entries = 0;
+    uint32_t entries = 0;
     if (ret)
     {
-        u32 length = utf8to16_length(name);
+        uint32_t length = utf8to16_length(name);
         if (length <= 255)
             entries = (length / 13) + 2;
         else
@@ -831,15 +835,15 @@ fat32_create(struct fat32 *f, u32 pcluster,
 
     if (ret)
     {
-        u16 pos = 0;
+        uint16_t pos = 0;
         bool found = false;
-        u32 sector = fat32_fsector(f, pcluster), sector_idx = 0;
-        u16 unused_st = 0, unused_c = 0;
+        uint32_t sector = fat32_fsector(f, pcluster), sector_idx = 0;
+        uint16_t unused_st = 0, unused_c = 0;
         while (!found)
         {
-            if (disk_read(f->disk, f->buffer, sector, 0))
+            if (vrm_disk_read(f->disk, f->buffer, sector, 0))
             {
-                for (u32 i = 0; i < 0x200; i += 32)
+                for (uint32_t i = 0; i < 0x200; i += 32)
                 {
                     if (f->buffer[i] == 0x0)
                     {
@@ -906,7 +910,7 @@ fat32_create(struct fat32 *f, u32 pcluster,
                 fill_entry(fat32_buf2, name, dir, entries, cluster);
                 fat32_buf_n = -1;
 
-                u32 bytes = (entries * 32) + ((unused_st != pos) ? 32 : 0);
+                uint32_t bytes = (entries * 32) + ((unused_st != pos) ? 32 : 0);
                 ret = chain_write(f, fat32_buf2, pcluster,
                                   sector_idx, pos, bytes);
             }
@@ -951,7 +955,7 @@ root(void *ctx)
 
 static void *
 walk(void *ctx, void *parent, void *entry,
-     bool *dir, char *name, u32 *size)
+     bool *dir, char *name, uint32_t *size)
 {
     void *ret = NULL;
 
@@ -960,7 +964,7 @@ walk(void *ctx, void *parent, void *entry,
     {
         struct fat32e *fe = entry;
 
-        u32 sect = 0, idx = 0;
+        uint32_t sect = 0, idx = 0;
         if (fe)
         {
             sect = fe->sect;
@@ -980,19 +984,19 @@ walk(void *ctx, void *parent, void *entry,
 }
 
 static bool
-read(void *ctx, void *entry, u8 *data, u32 block)
+read(void *ctx, void *entry, uint8_t *data, uint32_t block)
 {
     return fat32_rw(ctx, entry, block, data, false);
 }
 
 static bool
-write(void *ctx, void *entry, u8 *data, u32 block)
+write(void *ctx, void *entry, uint8_t *data, uint32_t block)
 {
     return fat32_rw(ctx, entry, block, data, true);
 }
 
 static bool
-resize(void *ctx, void *entry, u32 size)
+resize(void *ctx, void *entry, uint32_t size)
 {
     bool ret = (ctx && entry);
 
@@ -1038,12 +1042,12 @@ static const drv_fs fat32 =
 /* Device creation */
 
 extern dev_fs
-fat32_init(u8 disk)
+fat32_init(uint8_t disk)
 {
     void *ret = NULL;
 
-    u16 sector = 0;
-    if (disk_size(disk, &sector, NULL) && sector == 0x200)
+    uint16_t sector = 0;
+    if (vrm_disk_size(disk, &sector, NULL) && sector == 0x200)
         ret = fat32_new(disk);
 
     return (dev_fs){.driver = &fat32, .context = ret};

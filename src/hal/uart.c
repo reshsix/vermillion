@@ -14,18 +14,17 @@
  *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <general/types.h>
-
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/uart.h>
+#include <vermillion/util/types.h>
 
 /* Devtree setup */
 
 static dev_uart *dev_l = NULL;
-static u8 dev_c = 0;
+static uint8_t dev_c = 0;
 
 extern void
-uart_setup(dev_uart *list, u8 count)
+uart_setup(dev_uart *list, uint8_t count)
 {
     dev_l = list;
     dev_c = count;
@@ -37,9 +36,9 @@ uart_setup(dev_uart *list, u8 count)
 ((id < dev_c) ? dev_l[id].driver->f(dev_l[id].context, ##__VA_ARGS__) : false)
 
 extern bool
-uart_info(u8 id, u32 *baud, u32 *fields)
+vrm_uart_info(uint8_t id, uint32_t *baud, uint32_t *fields)
 {
-    u32 baud2 = 0, fields2 = 0;
+    uint32_t baud2 = 0, fields2 = 0;
 
     bool ret = UART_CALL(info, &baud2, &fields2);
     if (ret)
@@ -54,7 +53,7 @@ uart_info(u8 id, u32 *baud, u32 *fields)
 }
 
 extern bool
-uart_config(u8 id, u32 baud, u32 fields)
+vrm_uart_config(uint8_t id, uint32_t baud, uint32_t fields)
 {
     if (baud == 0)
         baud = 115200;
@@ -63,7 +62,7 @@ uart_config(u8 id, u32 baud, u32 fields)
 }
 
 extern bool
-uart_read(u8 id, u8 *data, u32 flags)
+vrm_uart_read(uint8_t id, uint8_t *data, uint32_t flags)
 {
     bool ret = false;
 
@@ -79,7 +78,7 @@ uart_read(u8 id, u8 *data, u32 flags)
 }
 
 extern bool
-uart_write(u8 id, u8 data, u32 flags)
+vrm_uart_write(uint8_t id, uint8_t data, uint32_t flags)
 {
     bool ret = false;
 
@@ -89,29 +88,6 @@ uart_write(u8 id, u8 data, u32 flags)
     {
         while (!UART_CALL(write, data));
         ret = true;
-    }
-
-    return ret;
-}
-
-/* ABI definitions */
-
-static struct vrm_uart_v1 v1 =
-{
-    .info = uart_info, .config = uart_config,
-    .read = uart_read, .write  = uart_write
-};
-
-extern void *
-uart_driver(u8 version)
-{
-    void *ret = NULL;
-
-    switch (version)
-    {
-        case VRM_UART_V1:
-            ret = &v1;
-            break;
     }
 
     return ret;

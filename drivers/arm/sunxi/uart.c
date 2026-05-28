@@ -14,49 +14,47 @@
  *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <general/types.h>
-#include <general/mem.h>
-
-#include <hal/classes/pic.h>
+#include <arch/gic.h>
 
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/uart.h>
+#include <vermillion/util/mem.h>
+#include <vermillion/util/types.h>
 
-#define IO_BUF(p) *(volatile u32*)(p + 0x00)
-#define IO_DLL(p) *(volatile u32*)(p + 0x00)
-#define IO_DLH(p) *(volatile u32*)(p + 0x04)
-#define IO_IER(p) *(volatile u32*)(p + 0x04)
-#define IO_IIR(p) *(volatile u32*)(p + 0x08)
-#define IO_FCR(p) *(volatile u32*)(p + 0x08)
-#define IO_LCR(p) *(volatile u32*)(p + 0x0C)
-#define IO_MCR(p) *(volatile u32*)(p + 0x10)
-#define IO_LSR(p) *(volatile u32*)(p + 0x14)
-#define IO_MSR(p) *(volatile u32*)(p + 0x18)
-#define IO_SCH(p) *(volatile u32*)(p + 0x1C)
-#define IO_USR(p) *(volatile u32*)(p + 0x7C)
-#define IO_TFL(p) *(volatile u32*)(p + 0x80)
-#define IO_RFL(p) *(volatile u32*)(p + 0x84)
-#define IO_HLT(p) *(volatile u32*)(p + 0xA4)
+#define IO_BUF(p) *(volatile uint32_t*)(p + 0x00)
+#define IO_DLL(p) *(volatile uint32_t*)(p + 0x00)
+#define IO_DLH(p) *(volatile uint32_t*)(p + 0x04)
+#define IO_IER(p) *(volatile uint32_t*)(p + 0x04)
+#define IO_IIR(p) *(volatile uint32_t*)(p + 0x08)
+#define IO_FCR(p) *(volatile uint32_t*)(p + 0x08)
+#define IO_LCR(p) *(volatile uint32_t*)(p + 0x0C)
+#define IO_MCR(p) *(volatile uint32_t*)(p + 0x10)
+#define IO_LSR(p) *(volatile uint32_t*)(p + 0x14)
+#define IO_MSR(p) *(volatile uint32_t*)(p + 0x18)
+#define IO_SCH(p) *(volatile uint32_t*)(p + 0x1C)
+#define IO_USR(p) *(volatile uint32_t*)(p + 0x7C)
+#define IO_TFL(p) *(volatile uint32_t*)(p + 0x80)
+#define IO_RFL(p) *(volatile uint32_t*)(p + 0x84)
+#define IO_HLT(p) *(volatile uint32_t*)(p + 0xA4)
 
 /* Driver definition */
 
 struct uart
 {
-    u32 port;
-    u32 baud;
-    u32 fields;
+    uint32_t port;
+    uint32_t baud;
+    uint32_t fields;
 
-    dev_pic *pic;
-    u8 irq;
+    uint8_t irq;
 
-    u8 buffer[0x400];
+    uint8_t buffer[0x400];
     size_t head, tail;
 };
 
 struct uart serials[5] = {0};
-static const u32 ports[5] = {0x01c28000, 0x01c28400,
+static const uint32_t ports[5] = {0x01c28000, 0x01c28400,
                              0x01c28800, 0x01c28c00, 0x01f02800};
-static const u8 irqs[5] = {32, 33, 34, 35, 70};
+static const uint8_t irqs[5] = {32, 33, 34, 35, 70};
 
 static void
 uart_handler(void *arg)
@@ -75,7 +73,7 @@ uart_handler(void *arg)
 }
 
 static bool
-info(void *ctx, u32 *baud, u32 *fields)
+info(void *ctx, uint32_t *baud, uint32_t *fields)
 {
     struct uart *u = ctx;
     *baud   = u->baud;
@@ -84,7 +82,7 @@ info(void *ctx, u32 *baud, u32 *fields)
 }
 
 static bool
-config(void *ctx, u32 baud, u32 fields)
+config(void *ctx, uint32_t baud, uint32_t fields)
 {
     bool ret = (baud <= 1500000 && baud >= 23);
 
@@ -93,10 +91,10 @@ config(void *ctx, u32 baud, u32 fields)
         struct uart *u = ctx;
         while (IO_USR(u->port) & 1);
 
-        u16 divider = 1500000 / baud;
-        u8     bits = (fields >> 0) & 0x7;
-        u8   parity = (fields >> 3) & 0x7;
-        u8     stop = (fields >> 6) & 0x3;
+        uint16_t divider = 1500000 / baud;
+        uint8_t     bits = (fields >> 0) & 0x7;
+        uint8_t   parity = (fields >> 3) & 0x7;
+        uint8_t     stop = (fields >> 6) & 0x3;
         ret = ((bits   <= VRM_UART_5B)   &&
                (parity <= VRM_UART_EVEN) &&
                (stop   <= VRM_UART_2S)   &&
@@ -104,9 +102,9 @@ config(void *ctx, u32 baud, u32 fields)
 
         if (ret)
         {
-            u8   bitses[4] = {3, 2, 1, 0};
-            u8 parities[3] = {0, 1, 3};
-            u8    stops[3] = {0, 1, 1};
+            uint8_t   bitses[4] = {3, 2, 1, 0};
+            uint8_t parities[3] = {0, 1, 3};
+            uint8_t    stops[3] = {0, 1, 1};
 
             bits   = bitses[bits];
             parity = parities[parity];
@@ -127,7 +125,7 @@ config(void *ctx, u32 baud, u32 fields)
 }
 
 static bool
-read(void *ctx, u8 *data)
+read(void *ctx, uint8_t *data)
 {
     bool ret = false;
 
@@ -148,7 +146,7 @@ read(void *ctx, u8 *data)
 }
 
 static bool
-write(void *ctx, u8 data)
+write(void *ctx, uint8_t data)
 {
     bool ret = false;
 
@@ -169,7 +167,7 @@ static const drv_uart sunxi_uart =
 /* Device creation */
 
 extern dev_uart
-sunxi_uart_init(u8 id, dev_pic *pic)
+sunxi_uart_init(uint8_t id)
 {
     struct uart *ret = NULL;
 
@@ -178,9 +176,8 @@ sunxi_uart_init(u8 id, dev_pic *pic)
         ret = &(serials[id]);
         ret->port = ports[id];
 
-        ret->pic = pic;
         ret->irq = irqs[id];
-        pic_config(pic, ret->irq, true, uart_handler, ret, PIC_LEVEL_H);
+        gic_config(ret->irq, uart_handler, ret, false, true);
 
         /* FIFOs with RX 1/2 full interrupt */
         IO_FCR(ret->port) = (1 << 7) | (1 << 0);
@@ -196,7 +193,7 @@ sunxi_uart_clean(dev_uart *u)
     if (u)
     {
         struct uart *u2 = u->context;
-        pic_config(u2->pic, u2->irq, false, NULL, NULL, PIC_LEVEL_H);
+        gic_config(u2->irq, NULL, NULL, false, true);
         u->context = NULL;
     }
 }

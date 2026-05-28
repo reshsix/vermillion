@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <general/types.h>
+#include <vermillion/util/types.h>
 
 #ifdef VERMILLION_INTERNALS
 typedef struct
@@ -34,22 +34,8 @@ typedef struct
 } dev_disk;
 
 void disk_setup(dev_disk *list, uint8_t count);
-
-bool disk_size (uint8_t id, uint16_t *sector, uint32_t *count);
-bool disk_read (uint8_t id, uint8_t  *data, uint32_t  block, uint32_t flags);
-bool disk_write(uint8_t id, uint8_t  *data, uint32_t  block, uint32_t flags);
 #endif
 
-struct vrm_disk_v1
-{
-    bool (*size) (uint8_t id, uint16_t *sector, uint32_t *count);
-    bool (*read) (uint8_t id, uint8_t  *data, uint32_t  block, uint32_t flags);
-    bool (*write)(uint8_t id, uint8_t  *data, uint32_t  block, uint32_t flags);
-};
-
-enum
-{
-    VRM_DISK_V1 = 0
-};
-
-void *disk_driver(uint8_t version);
+bool vrm_disk_size (uint8_t id, uint16_t *sector, uint32_t *count);
+bool vrm_disk_read (uint8_t id, uint8_t *data, uint32_t block, uint32_t flags);
+bool vrm_disk_write(uint8_t id, uint8_t *data, uint32_t block, uint32_t flags);

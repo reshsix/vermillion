@@ -18,24 +18,16 @@
 
 #include <vermillion/util/types.h>
 
-#ifdef VERMILLION_INTERNALS
-typedef struct
-{
-    void *init, (*clean)(void *);
-    bool (*alarm)(void *ctx, uint32_t us, bool repeat,
-                  void (*handler)(void *), void *arg);
-    void (*wait)(void *ctx);
-} drv_timer;
+size_t vrm_str_length(const char *str);
+int    vrm_str_comp(const char *str, const char *str2,  size_t length);
+size_t vrm_str_span(const char *str, const char *chars, bool complement);
 
-typedef struct
-{
-    const drv_timer *driver;
-    void *context;
-} dev_timer;
+char *vrm_str_find_l(const char *str, char c);
+char *vrm_str_find_r(const char *str, char c);
+char *vrm_str_find_m(const char *str, const char *chars);
+char *vrm_str_find_s(const char *str, const char *str2);
 
-void timer_setup(dev_timer *list, uint8_t count);
-#endif
+char *vrm_str_token(char *str, const char *chars, char **saveptr);
 
-bool vrm_timer_alarm(uint8_t id, uint32_t us, bool repeat,
-                     void (*handler)(void *), void *arg);
-bool vrm_timer_sleep(uint8_t id, uint32_t us);
+void vrm_str_copy  (char *dest, const char *src, size_t length);
+void vrm_str_concat(char *dest, const char *src, size_t length);

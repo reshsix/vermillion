@@ -14,27 +14,26 @@
  *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <general/types.h>
-#include <general/mem.h>
-
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/disk.h>
+#include <vermillion/util/mem.h>
+#include <vermillion/util/types.h>
 
 /* Driver definition */
 
 struct mbr
 {
-    u8 disk;
-    u32 lba;
+    uint8_t disk;
+    uint32_t lba;
 
-    u16 sector;
-    u32 count;
+    uint16_t sector;
+    uint32_t count;
 };
 
 static struct mbr mbrs[1] = {0};
 
 static bool
-size(void *ctx, u16 *sector, u32 *count)
+size(void *ctx, uint16_t *sector, uint32_t *count)
 {
     struct mbr *mbr = ctx;
     *sector = mbr->sector;
@@ -44,25 +43,25 @@ size(void *ctx, u16 *sector, u32 *count)
 }
 
 static bool
-read(void *ctx, u8 *data, u32 block)
+read(void *ctx, uint8_t *data, uint32_t block)
 {
     bool ret = false;
 
     struct mbr *mbr = ctx;
     if (block < mbr->count)
-        ret = disk_read(mbr->disk, data, block + mbr->lba, 0);
+        ret = vrm_disk_read(mbr->disk, data, block + mbr->lba, 0);
 
     return ret;
 }
 
 static bool
-write(void *ctx, u8 *data, u32 block)
+write(void *ctx, uint8_t *data, uint32_t block)
 {
     bool ret = false;
 
     struct mbr *mbr = ctx;
     if (block < mbr->count)
-        ret = disk_write(mbr->disk, data, block + mbr->lba, 0);
+        ret = vrm_disk_write(mbr->disk, data, block + mbr->lba, 0);
 
     return ret;
 }
@@ -75,7 +74,7 @@ static const drv_disk mbr =
 /* Device creation */
 
 extern dev_disk
-mbr_init(u8 id, u8 disk, u8 partition)
+mbr_init(uint8_t id, uint8_t disk, uint8_t partition)
 {
     struct mbr *ret = NULL;
 
@@ -83,18 +82,20 @@ mbr_init(u8 id, u8 disk, u8 partition)
         partition > 0 && partition < 5)
         ret = &(mbrs[id]);
 
-    if (ret && !disk_size(disk, &(ret->sector), &(ret->count)))
+    if (ret && !vrm_disk_size(disk, &(ret->sector), &(ret->count)))
         ret = NULL;
 
     if (ret)
     {
-        u8 *buffer = mem_new(ret->sector);
+        uint8_t *buffer = mem_new(ret->sector);
 
-        if (buffer && disk_read(disk, buffer, 0, 0))
+        if (buffer && vrm_disk_read(disk, buffer, 0, 0))
         {
-            u8 *info = &(buffer[0x1BE + ((partition - 1) * 16)]);
-            mem_copy(&(ret->lba),   &(info[sizeof(u32) * 2]), sizeof(u32));
-            mem_copy(&(ret->count), &(info[sizeof(u32) * 3]), sizeof(u32));
+            uint8_t *info = &(buffer[0x1BE + ((partition - 1) * 16)]);
+            vrm_mem_copy(&(ret->lba),
+                         &(info[sizeof(uint32_t) * 2]), sizeof(uint32_t));
+            vrm_mem_copy(&(ret->count),
+                         &(info[sizeof(uint32_t) * 3]), sizeof(uint32_t));
 
             ret->disk = disk;
         }

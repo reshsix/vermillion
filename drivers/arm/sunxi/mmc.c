@@ -16,37 +16,36 @@
 
 /* Considers card to have been initialized by u-boot */
 
-#include <general/mem.h>
-#include <general/types.h>
-
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/disk.h>
+#include <vermillion/util/mem.h>
+#include <vermillion/util/types.h>
 
-#define SD_CFG(x)   *(volatile u32*)(x + 0x00)
-#define SD_BLK(x)   *(volatile u32*)(x + 0x10)
-#define SD_CNT(x)   *(volatile u32*)(x + 0x14)
-#define SD_CMD(x)   *(volatile u32*)(x + 0x18)
-#define SD_ARG(x)   *(volatile u32*)(x + 0x1C)
-#define SD_RES0(x)  *(volatile u32*)(x + 0x20)
-#define SD_RES1(x)  *(volatile u32*)(x + 0x24)
-#define SD_RES2(x)  *(volatile u32*)(x + 0x28)
-#define SD_RES3(x)  *(volatile u32*)(x + 0x2C)
-#define SD_RAW(x)   *(volatile u32*)(x + 0x38)
-#define SD_STA(x)   *(volatile u32*)(x + 0x3C)
-#define SD_FIFO(x)  *(volatile u32*)(x + 0x200)
+#define SD_CFG(x)   *(volatile uint32_t*)(x + 0x00)
+#define SD_BLK(x)   *(volatile uint32_t*)(x + 0x10)
+#define SD_CNT(x)   *(volatile uint32_t*)(x + 0x14)
+#define SD_CMD(x)   *(volatile uint32_t*)(x + 0x18)
+#define SD_ARG(x)   *(volatile uint32_t*)(x + 0x1C)
+#define SD_RES0(x)  *(volatile uint32_t*)(x + 0x20)
+#define SD_RES1(x)  *(volatile uint32_t*)(x + 0x24)
+#define SD_RES2(x)  *(volatile uint32_t*)(x + 0x28)
+#define SD_RES3(x)  *(volatile uint32_t*)(x + 0x2C)
+#define SD_RAW(x)   *(volatile uint32_t*)(x + 0x38)
+#define SD_STA(x)   *(volatile uint32_t*)(x + 0x3C)
+#define SD_FIFO(x)  *(volatile uint32_t*)(x + 0x200)
 
 /* Driver definition */
 
 struct card
 {
-    u32 base;
+    uint32_t base;
     bool mmc;
 };
 
 struct card cards[3] = {0};
 
 static bool
-size(void *ctx, u16 *sector, u32 *count)
+size(void *ctx, uint16_t *sector, uint32_t *count)
 {
     (void)ctx;
     *sector = 0x200;
@@ -55,7 +54,7 @@ size(void *ctx, u16 *sector, u32 *count)
 }
 
 static bool
-mmc_rw(void *ctx, u8 *buffer, u32 block, bool write)
+mmc_rw(void *ctx, uint8_t *buffer, uint32_t block, bool write)
 {
     bool ret = true;
 
@@ -80,20 +79,22 @@ mmc_rw(void *ctx, u8 *buffer, u32 block, bool write)
 
     while (SD_CMD(card->base) >> 31);
 
-    for (u32 i = 0; i < (0x200 / sizeof(u32)); i++)
+    for (uint32_t i = 0; i < (0x200 / sizeof(uint32_t)); i++)
     {
         if (write)
         {
             while (SD_STA(card->base) & (1 << 3));
-            u32 x = 0;
-            mem_copy(&x, &(buffer[(i * sizeof(u32))]), sizeof(u32));
+            uint32_t x = 0;
+            vrm_mem_copy(&x,
+                         &(buffer[(i * sizeof(uint32_t))]), sizeof(uint32_t));
             SD_FIFO(card->base) = x;
         }
         else
         {
             while (SD_STA(card->base) & (1 << 2));
-            u32 x = SD_FIFO(card->base);
-            mem_copy(&(buffer[(i * sizeof(u32))]), &x, sizeof(u32));
+            uint32_t x = SD_FIFO(card->base);
+            vrm_mem_copy(&(buffer[(i * sizeof(uint32_t))]),
+                         &x, sizeof(uint32_t));
         }
     }
 
@@ -104,13 +105,13 @@ mmc_rw(void *ctx, u8 *buffer, u32 block, bool write)
 }
 
 static bool
-read(void *ctx, u8 *buffer, u32 block)
+read(void *ctx, uint8_t *buffer, uint32_t block)
 {
     return mmc_rw(ctx, buffer, block, false);
 }
 
 static bool
-write(void *ctx, u8 *buffer, u32 block)
+write(void *ctx, uint8_t *buffer, uint32_t block)
 {
     return mmc_rw(ctx, buffer, block, true);
 }
@@ -123,7 +124,7 @@ static const drv_disk sunxi_mmc =
 /* Device creation */
 
 extern dev_disk
-sunxi_mmc_init(u8 id)
+sunxi_mmc_init(uint8_t id)
 {
     struct card *ret = NULL;
 

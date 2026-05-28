@@ -14,30 +14,27 @@
  *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <general/types.h>
-#include <general/mem.h>
-
-#include <hal/classes/pic.h>
+#include <arch/gic.h>
 
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/timer.h>
+#include <vermillion/util/mem.h>
+#include <vermillion/util/types.h>
 
-#define TMR_IRQ_EN(x)  *(volatile u32*)(x + 0x0)
-#define TMR_IRQ_STA(x) *(volatile u32*)(x + 0x4)
-#define TMR_CTRL(x, n) *(volatile u32*)(x + ((n + 1) * 0x10))
-#define TMR_INTV(x, n) *(volatile u32*)(x + ((n + 1) * 0x10) + 0x4)
-#define TMR_CUR(x, n)  *(volatile u32*)(x + ((n + 1) * 0x10) + 0x8)
+#define TMR_IRQ_EN(x)  *(volatile uint32_t*)(x + 0x0)
+#define TMR_IRQ_STA(x) *(volatile uint32_t*)(x + 0x4)
+#define TMR_CTRL(x, n) *(volatile uint32_t*)(x + ((n + 1) * 0x10))
+#define TMR_INTV(x, n) *(volatile uint32_t*)(x + ((n + 1) * 0x10) + 0x4)
+#define TMR_CUR(x, n)  *(volatile uint32_t*)(x + ((n + 1) * 0x10) + 0x8)
 
 /* Driver definition */
 
 struct timer
 {
-    u32 base;
-    u8 id;
+    uint32_t base;
+    uint8_t id;
 
-    dev_pic *pic;
-    u16 irq;
-
+    uint8_t irq;
     void (*handler)(void *), *arg;
 };
 
@@ -54,38 +51,35 @@ callback(void *arg)
 }
 
 static bool
-alarm(void *ctx, u32 us, bool repeat, void (*handler)(void *), void *arg)
+alarm(void *ctx, uint32_t us, bool repeat, void (*handler)(void *), void *arg)
 {
-    bool ret = false;
-
     struct timer *tmr = ctx;
+
     TMR_CTRL(tmr->base, tmr->id) &= ~(1 << 0);
     TMR_IRQ_EN(tmr->base) &= ~(1 << tmr->id);
 
     TMR_INTV(tmr->base, tmr->id) = 24 * us;
     TMR_CUR(tmr->base, tmr->id) = 0;
-    ret = pic_config(tmr->pic, tmr->irq, (handler), callback, tmr, PIC_EDGE_L);
-    if (ret)
-    {
-        tmr->handler = handler;
-        tmr->arg     = arg;
 
-        if (us && handler)
-        {
-            TMR_IRQ_EN(tmr->base) |= 1 << tmr->id;
-            TMR_CTRL(tmr->base, tmr->id) =
-                (!repeat) << 7 | 1 << 2 | 1 << 1 | 1 << 0;
-        }
+    gic_config(tmr->irq, (handler) ? callback : NULL, tmr, true, false);
+    tmr->handler = handler;
+    tmr->arg     = arg;
+
+    if (us && handler)
+    {
+        TMR_IRQ_EN(tmr->base) |= 1 << tmr->id;
+        TMR_CTRL(tmr->base, tmr->id) =
+            (!repeat) << 7 | 1 << 2 | 1 << 1 | 1 << 0;
     }
 
-    return ret;
+    return true;
 }
 
 static void
 wait(void *ctx)
 {
-    struct timer *tmr = ctx;
-    pic_wait(tmr->pic);
+    (void)ctx;
+    gic_wait();
 }
 
 static const drv_timer sunxi_timer =
@@ -96,7 +90,7 @@ static const drv_timer sunxi_timer =
 /* Device creation */
 
 extern dev_timer
-sunxi_timer_init(u8 id, dev_pic *pic)
+sunxi_timer_init(uint8_t id)
 {
     struct timer *ret = NULL;
 
@@ -107,7 +101,6 @@ sunxi_timer_init(u8 id, dev_pic *pic)
         ret->base = 0x01c20c00;
         ret->id = id;
 
-        ret->pic = pic;
         ret->irq = (id == 0) ? 50 : 51;
     }
 
@@ -124,7 +117,7 @@ sunxi_timer_clean(dev_timer *t)
         TMR_CTRL(tmr->base, tmr->id) &= ~(1 << 0);
         TMR_IRQ_EN(tmr->base)  &= ~(1 << tmr->id);
 
-        pic_config(tmr->pic, tmr->irq, false, NULL, NULL, PIC_EDGE_L);
+        gic_config(tmr->irq, NULL, NULL, true, false);
         t->context = NULL;
     }
 }

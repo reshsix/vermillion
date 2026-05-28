@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <vermillion/util/types.h>
+
 #define VRM_SPI_MODE0 (0 << 0)
 #define VRM_SPI_MODE1 (1 << 0)
 #define VRM_SPI_MODE2 (2 << 0)
@@ -48,26 +50,10 @@ typedef struct
 } dev_spi;
 
 void spi_setup(dev_spi *list, uint8_t count);
-
-bool spi_info    (uint8_t id, uint32_t *freq, uint32_t *fields);
-bool spi_config  (uint8_t id, uint32_t  freq, uint32_t  fields);
-bool spi_limit   (uint8_t id, size_t *count);
-bool spi_transfer(uint8_t id, uint8_t *data, size_t count, uint32_t flags);
-bool spi_poll    (uint8_t id);
 #endif
 
-struct vrm_spi_v1
-{
-    bool (*info)    (uint8_t id, uint32_t *freq, uint32_t *fields);
-    bool (*config)  (uint8_t id, uint32_t  freq, uint32_t  fields);
-    bool (*limit)   (uint8_t id, size_t *count);
-    bool (*transfer)(uint8_t id, uint8_t *data, size_t count, uint32_t flags);
-    bool (*poll)    (uint8_t id);
-};
-
-enum
-{
-    VRM_SPI_V1 = 0
-};
-
-void *spi_driver(uint8_t version);
+bool vrm_spi_info    (uint8_t id, uint32_t *freq, uint32_t *fields);
+bool vrm_spi_config  (uint8_t id, uint32_t  freq, uint32_t  fields);
+bool vrm_spi_limit   (uint8_t id, size_t *count);
+bool vrm_spi_transfer(uint8_t id, uint8_t *data, size_t count, uint32_t flags);
+bool vrm_spi_poll    (uint8_t id);

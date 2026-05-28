@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <general/types.h>
+#include <vermillion/util/types.h>
 
 #ifdef VERMILLION_INTERNALS
 typedef struct
@@ -52,56 +52,27 @@ struct vrm_file
 
     uint32_t pos;
 };
-typedef struct vrm_file vrm_file;
 
 void file_setup(dev_fs *list, uint8_t count);
-
-vrm_file *file_open(uint8_t id, const char *path);
-vrm_file *file_close(vrm_file *f);
-
-bool file_stat(vrm_file *f, bool *dir, uint32_t *size);
-void *file_walk(vrm_file *f, void *state, bool *dir, char *name, uint32_t *size);
-
-bool file_seek(vrm_file *f, uint32_t pos);
-bool file_tell(vrm_file *f, uint32_t *pos);
-
-uint32_t file_read (vrm_file *f, void *buffer, uint32_t bytes);
-uint32_t file_write(vrm_file *f, void *buffer, uint32_t bytes);
-bool file_flush(vrm_file *f);
-
-bool file_resize(vrm_file *f, uint32_t size);
-
-bool file_create(uint8_t id, const char *path, bool dir);
-bool file_remove(uint8_t id, const char *path);
 #endif
 
 typedef struct vrm_file vrm_file;
 
-struct vrm_file_v1
-{
-    vrm_file * (*open)(uint8_t volume, const char *path);
-    vrm_file * (*close)(vrm_file *f);
+vrm_file *vrm_file_open(uint8_t id, const char *path);
+vrm_file *vrm_file_close(vrm_file *f);
 
-    bool   (*stat)(vrm_file *f, bool *dir, uint32_t *size);
-    void * (*walk)(vrm_file *f, void *state,
-                   bool *dir, char *name, uint32_t *size);
+bool vrm_file_stat(vrm_file *f, bool *dir, uint32_t *size);
+void *vrm_file_walk(vrm_file *f, void *state,
+                    bool *dir, char *name, uint32_t *size);
 
-    bool (*seek)(vrm_file *f, uint32_t pos);
-    bool (*tell)(vrm_file *f, uint32_t *pos);
+bool vrm_file_seek(vrm_file *f, uint32_t pos);
+bool vrm_file_tell(vrm_file *f, uint32_t *pos);
 
-    uint32_t (*read) (vrm_file *f, void *buffer, uint32_t bytes);
-    uint32_t (*write)(vrm_file *f, void *buffer, uint32_t bytes);
-    bool (*flush)(vrm_file *f);
+uint32_t vrm_file_read (vrm_file *f, void *buffer, uint32_t bytes);
+uint32_t vrm_file_write(vrm_file *f, void *buffer, uint32_t bytes);
+bool vrm_file_flush(vrm_file *f);
 
-    bool (*resize)(vrm_file *f, uint32_t size);
+bool vrm_file_resize(vrm_file *f, uint32_t size);
 
-    bool (*create)(uint8_t id, const char *path, bool dir);
-    bool (*remove)(uint8_t id, const char *path);
-};
-
-enum
-{
-    VRM_FILE_V1 = 0
-};
-
-void *file_system(uint8_t version);
+bool vrm_file_create(uint8_t id, const char *path, bool dir);
+bool vrm_file_remove(uint8_t id, const char *path);

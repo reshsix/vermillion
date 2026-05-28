@@ -1,0 +1,32 @@
+# This file is part of vermillion.
+
+# Vermillion is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published
+# by the Free Software Foundation, version 3.
+
+# Vermillion is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+
+CONFIG_NAME="sunxi_h3"
+CONFIG_CFLAGS="-nostdlib -ffreestanding -fpic -mcpu=cortex-a7 -mfloat-abi=soft"
+CONFIG_DEVICE_TREE="devtree/sunxi_h3.c"
+
+CONFIG_RAM_ADDRESS=0x40000000
+CONFIG_RAM_SIZE=0x20000000
+CONFIG_STACK_SIZE=0x8000
+
+CONFIG_ARM_GIC=y
+
+CONFIG_FS_MBR=y
+CONFIG_FS_FAT32=y
+
+CONFIG_STORAGE_SUNXI_MMC=y
+CONFIG_SERIAL_SUNXI_UART=y
+CONFIG_TIMER_SUNXI_TIMER=y
+CONFIG_GPIO_SUNXI_GPIO=y
+CONFIG_SPI_SUNXI_SPI=y

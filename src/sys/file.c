@@ -14,21 +14,20 @@
  *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <general/types.h>
-#include <general/mem.h>
-#include <general/str.h>
-#include <general/path.h>
-
 #define VERMILLION_INTERNALS
 #include <vermillion/sys/file.h>
+#include <vermillion/util/mem.h>
+#include <vermillion/util/str.h>
+#include <vermillion/util/path.h>
+#include <vermillion/util/types.h>
 
 /* Devtree setup */
 
 static dev_fs *dev_l = NULL;
-static u8 dev_c = 0;
+static uint8_t dev_c = 0;
 
 extern void
-file_setup(dev_fs *list, u8 count)
+file_setup(dev_fs *list, uint8_t count)
 {
     dev_l = list;
     dev_c = count;
@@ -44,13 +43,13 @@ root(dev_fs *df)
 
 static void *
 walk(dev_fs *df, void *parent, void *entry,
-     bool *dir, char *name, u32 *size)
+     bool *dir, char *name, uint32_t *size)
 {
     return df->driver->walk(df->context, parent, entry, dir, name, size);
 }
 
 static bool
-read(dev_fs *df, void *entry, void *buf, u32 fs)
+read(dev_fs *df, void *entry, void *buf, uint32_t fs)
 {
     bool ret = (df != NULL);
 
@@ -61,7 +60,7 @@ read(dev_fs *df, void *entry, void *buf, u32 fs)
 }
 
 static bool
-write(dev_fs *df, void *entry, void *buf, u32 fs)
+write(dev_fs *df, void *entry, void *buf, uint32_t fs)
 {
     bool ret = (df != NULL);
 
@@ -72,7 +71,7 @@ write(dev_fs *df, void *entry, void *buf, u32 fs)
 }
 
 static bool
-resize(dev_fs *df, void *entry, u32 size)
+resize(dev_fs *df, void *entry, uint32_t size)
 {
     bool ret = (df != NULL);
 
@@ -104,28 +103,28 @@ remove(dev_fs *df, void *entry)
     return ret;
 }
 
-static char file_buffer[PATH_MAX] = {0};
+static char vrm_file_buffer[VRM_PATH_MAX] = {0};
 
 static void *
-file_dev(u8 id)
+file_dev(uint8_t id)
 {
     return (id < dev_c) ? &(dev_l[id]) : NULL;
 }
 
 extern struct vrm_file *
-file_open(u8 id, const char *path)
+vrm_file_open(uint8_t id, const char *path)
 {
     struct vrm_file *ret = mem_new(sizeof(struct vrm_file));
 
     dev_fs *df = file_dev(id);
 
     bool success = false;
-    if (ret && path_validate(path))
+    if (ret && vrm_path_validate(path))
     {
         success = false;
 
-        str_copy(file_buffer, path, 0);
-        path_cleanup(file_buffer);
+        vrm_str_copy(vrm_file_buffer, path, 0);
+        vrm_path_cleanup(vrm_file_buffer);
 
         char *state = NULL;
 
@@ -135,8 +134,8 @@ file_open(u8 id, const char *path)
             char name[255] = {0};
 
             success = true;
-            for (char *token = str_token(file_buffer, "/", &state); token;
-                       token = str_token(NULL,      "/", &state))
+            for (char *token = vrm_str_token(vrm_file_buffer, "/", &state); token;
+                       token = vrm_str_token(NULL,        "/", &state))
             {
                 success = false;
                 while (true)
@@ -145,7 +144,7 @@ file_open(u8 id, const char *path)
                                       &(ret->dir), name, &(ret->size));
                     if (ret->cache)
                     {
-                        if (str_comp(name, token, 0) == 0)
+                        if (vrm_str_comp(name, token, 0) == 0)
                         {
                             success = true;
                             cur = ret->cache;
@@ -186,11 +185,11 @@ file_open(u8 id, const char *path)
 }
 
 extern struct vrm_file *
-file_close(struct vrm_file *f)
+vrm_file_close(struct vrm_file *f)
 {
     if (f)
     {
-        file_flush(f);
+        vrm_file_flush(f);
         mem_del(f->buffer);
     }
 
@@ -198,7 +197,7 @@ file_close(struct vrm_file *f)
 }
 
 extern bool
-file_stat(struct vrm_file *f, bool *dir, u32 *size)
+vrm_file_stat(struct vrm_file *f, bool *dir, uint32_t *size)
 {
     bool ret = (f != NULL);
 
@@ -214,13 +213,14 @@ file_stat(struct vrm_file *f, bool *dir, u32 *size)
 }
 
 extern void *
-file_walk(struct vrm_file *f, void *state, bool *dir, char *name, u32 *size)
+vrm_file_walk(struct vrm_file *f, void *state,
+          bool *dir, char *name, uint32_t *size)
 {
     return walk(f->df, f->cache, state, dir, name, size);
 }
 
 extern bool
-file_seek(struct vrm_file *f, u32 pos)
+vrm_file_seek(struct vrm_file *f, uint32_t pos)
 {
     bool ret = (f && !(f->dir));
 
@@ -235,7 +235,7 @@ file_seek(struct vrm_file *f, u32 pos)
 }
 
 extern bool
-file_tell(struct vrm_file *f, u32 *pos)
+vrm_file_tell(struct vrm_file *f, uint32_t *pos)
 {
     bool ret = (f && !(f->dir));
 
@@ -245,18 +245,18 @@ file_tell(struct vrm_file *f, u32 *pos)
     return ret;
 }
 
-static u32
-file_rw(struct vrm_file *f, void *buffer, u32 bytes, bool w)
+static uint32_t
+vrm_file_rw(struct vrm_file *f, void *buffer, uint32_t bytes, bool w)
 {
-    u32 ret = 0;
+    uint32_t ret = 0;
 
     if (f && !(f->dir))
     {
         if (w)
         {
-            u32 needed = f->pos + bytes;
+            uint32_t needed = f->pos + bytes;
             if (needed > f->size)
-                file_resize(f, needed);
+                vrm_file_resize(f, needed);
         }
 
         while (bytes > 0 && f->pos < f->size)
@@ -276,21 +276,22 @@ file_rw(struct vrm_file *f, void *buffer, u32 bytes, bool w)
                     break;
             }
 
-            u32 rel = f->pos % f->width;
-            u32 slice = (bytes < (f->width - rel)) ? bytes : f->width - rel;
+            uint32_t rel = f->pos % f->width;
+            uint32_t slice = (bytes < (f->width - rel)) ? bytes :
+                                                          f->width - rel;
             if (f->pos + slice >= f->size)
                 slice = f->size - f->pos;
 
             if (w)
             {
-                u8 *source = buffer;
-                mem_copy(&(f->buffer[rel]), &(source[ret]), slice);
+                uint8_t *source = buffer;
+                vrm_mem_copy(&(f->buffer[rel]), &(source[ret]), slice);
                 f->flush = true;
             }
             else
             {
-                u8 *dest = buffer;
-                mem_copy(&(dest[ret]), &(f->buffer[rel]), slice);
+                uint8_t *dest = buffer;
+                vrm_mem_copy(&(dest[ret]), &(f->buffer[rel]), slice);
             }
 
             ret += slice;
@@ -302,20 +303,20 @@ file_rw(struct vrm_file *f, void *buffer, u32 bytes, bool w)
     return ret;
 }
 
-extern u32
-file_read(struct vrm_file *f, void *buffer, u32 bytes)
+extern uint32_t
+vrm_file_read(struct vrm_file *f, void *buffer, uint32_t bytes)
 {
-    return file_rw(f, buffer, bytes, false);
+    return vrm_file_rw(f, buffer, bytes, false);
 }
 
-extern u32
-file_write(struct vrm_file *f, void *buffer, u32 bytes)
+extern uint32_t
+vrm_file_write(struct vrm_file *f, void *buffer, uint32_t bytes)
 {
-    return file_rw(f, buffer, bytes, true);
+    return vrm_file_rw(f, buffer, bytes, true);
 }
 
 extern bool
-file_flush(struct vrm_file *f)
+vrm_file_flush(struct vrm_file *f)
 {
     if (f && f->flush)
         f->flush = !(write(f->df, f->cache, f->buffer, f->block));
@@ -324,7 +325,7 @@ file_flush(struct vrm_file *f)
 }
 
 extern bool
-file_resize(struct vrm_file *f, u32 size)
+vrm_file_resize(struct vrm_file *f, uint32_t size)
 {
     bool ret = (f && !(f->dir));
 
@@ -337,50 +338,50 @@ file_resize(struct vrm_file *f, u32 size)
 }
 
 extern bool
-file_create(u8 id, const char *path, bool dir)
+vrm_file_create(uint8_t id, const char *path, bool dir)
 {
-    bool ret = path_validate(path);
+    bool ret = vrm_path_validate(path);
 
     dev_fs *df = file_dev(id);
     if (ret)
     {
-        struct vrm_file *check = file_open(id, path);
+        struct vrm_file *check = vrm_file_open(id, path);
 
         if (!check)
         {
-            str_copy(file_buffer, path, 0);
-            path_dirname(file_buffer);
+            vrm_str_copy(vrm_file_buffer, path, 0);
+            vrm_path_dirname(vrm_file_buffer);
 
-            struct vrm_file *f = file_open(id, file_buffer);
+            struct vrm_file *f = vrm_file_open(id, vrm_file_buffer);
 
             if (f && f->dir)
             {
-                str_copy(file_buffer, path, 0);
-                path_filename(file_buffer);
-                ret = create(df, f->cache, file_buffer, dir);
+                vrm_str_copy(vrm_file_buffer, path, 0);
+                vrm_path_filename(vrm_file_buffer);
+                ret = create(df, f->cache, vrm_file_buffer, dir);
             }
             else
                 ret = false;
 
-            file_close(f);
+            vrm_file_close(f);
         }
         else
             ret = false;
 
-        file_close(check);
+        vrm_file_close(check);
     }
 
     return ret;
 }
 
 extern bool
-file_remove(u8 id, const char *path)
+vrm_file_remove(uint8_t id, const char *path)
 {
     bool ret = false;
 
     dev_fs *df = file_dev(id);
 
-    struct vrm_file *f = file_open(id, path);
+    struct vrm_file *f = vrm_file_open(id, path);
     if (f)
     {
         if (f->dir)
@@ -408,35 +409,7 @@ file_remove(u8 id, const char *path)
         mem_del(f);
     }
     else
-        file_close(f);
-
-    return ret;
-}
-
-/* ABI definitions */
-
-static struct vrm_file_v1 v1 =
-{
-    .open   = file_open,   .close  = file_close,
-    .stat   = file_stat,   .walk   = file_walk,
-    .seek   = file_seek,   .tell   = file_tell,
-    .read   = file_read,   .write  = file_write,
-    .flush  = file_flush,
-    .resize = file_resize,
-    .create = file_create, .remove = file_remove
-};
-
-extern void *
-file_system(u8 version)
-{
-    void *ret = NULL;
-
-    switch (version)
-    {
-        case VRM_FILE_V1:
-            ret = &v1;
-            break;
-    }
+        vrm_file_close(f);
 
     return ret;
 }

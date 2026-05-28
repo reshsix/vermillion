@@ -18,24 +18,10 @@
 
 #include <vermillion/util/types.h>
 
-#ifdef VERMILLION_INTERNALS
-typedef struct
-{
-    void *init, (*clean)(void *);
-    bool (*alarm)(void *ctx, uint32_t us, bool repeat,
-                  void (*handler)(void *), void *arg);
-    void (*wait)(void *ctx);
-} drv_timer;
+#define VRM_PLATFORM_SUNXI_H3 0
 
-typedef struct
-{
-    const drv_timer *driver;
-    void *context;
-} dev_timer;
+#define VRM_BOARD_ORANGEPI_ONE 0
+#define VRM_BOARD_NANOPI_NEO   1
 
-void timer_setup(dev_timer *list, uint8_t count);
-#endif
-
-bool vrm_timer_alarm(uint8_t id, uint32_t us, bool repeat,
-                     void (*handler)(void *), void *arg);
-bool vrm_timer_sleep(uint8_t id, uint32_t us);
+bool vrm_devtree_init(uint8_t platform, uint8_t board, uint32_t flags);
+void vrm_devtree_clean(void);

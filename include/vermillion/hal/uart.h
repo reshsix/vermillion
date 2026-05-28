@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <vermillion/util/types.h>
+
 #define VRM_UART_8B    (0 << 0)
 #define VRM_UART_7B    (1 << 0)
 #define VRM_UART_6B    (2 << 0)
@@ -48,24 +50,9 @@ typedef struct
 } dev_uart;
 
 void uart_setup(dev_uart *list, uint8_t count);
-
-bool uart_info  (uint8_t id, uint32_t *baud, uint32_t *fields);
-bool uart_config(uint8_t id, uint32_t  baud, uint32_t  fields);
-bool uart_read  (uint8_t id, uint8_t  *data, uint32_t   flags);
-bool uart_write (uint8_t id, uint8_t   data, uint32_t   flags);
 #endif
 
-struct vrm_uart_v1
-{
-    bool (*info)  (uint8_t id, uint32_t *baud, uint32_t *fields);
-    bool (*config)(uint8_t id, uint32_t baud,  uint32_t  fields);
-    bool (*read)  (uint8_t id, uint8_t *data,  uint32_t   flags);
-    bool (*write) (uint8_t id, uint8_t  data,  uint32_t   flags);
-};
-
-enum
-{
-    VRM_UART_V1 = 0
-};
-
-void *uart_driver(uint8_t version);
+bool vrm_uart_info  (uint8_t id, uint32_t *baud, uint32_t *fields);
+bool vrm_uart_config(uint8_t id, uint32_t  baud, uint32_t  fields);
+bool vrm_uart_read  (uint8_t id, uint8_t  *data, uint32_t   flags);
+bool vrm_uart_write (uint8_t id, uint8_t   data, uint32_t   flags);

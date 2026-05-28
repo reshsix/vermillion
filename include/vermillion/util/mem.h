@@ -19,23 +19,15 @@
 #include <vermillion/util/types.h>
 
 #ifdef VERMILLION_INTERNALS
-typedef struct
-{
-    void *init, (*clean)(void *);
-    bool (*alarm)(void *ctx, uint32_t us, bool repeat,
-                  void (*handler)(void *), void *arg);
-    void (*wait)(void *ctx);
-} drv_timer;
+void mem_init(void);
+void mem_clean(void);
 
-typedef struct
-{
-    const drv_timer *driver;
-    void *context;
-} dev_timer;
-
-void timer_setup(dev_timer *list, uint8_t count);
+void *mem_new(size_t size);
+void *mem_renew(void *mem, size_t size);
+void *mem_del(void *mem);
 #endif
 
-bool vrm_timer_alarm(uint8_t id, uint32_t us, bool repeat,
-                     void (*handler)(void *), void *arg);
-bool vrm_timer_sleep(uint8_t id, uint32_t us);
+int   vrm_mem_comp(const void *mem, const void *mem2, size_t length);
+void *vrm_mem_find(const void *mem, uint8_t c,        size_t length);
+void  vrm_mem_fill(void *mem,       uint8_t c,        size_t length);
+void  vrm_mem_copy(void *dest,      const void *src,  size_t length);

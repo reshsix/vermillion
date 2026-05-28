@@ -1,97 +1,33 @@
 # Vermillion
-**Status: 1.2β**
+
+**Status: 1.2γ**
 
 ## Features
-- [x] Shell/Programs
-- [x] Libraries
-- [x] Packages
-- [x] Modem
+- [x] HAL
+- [x] Filesystem
+- [ ] Multitasking
 
-## Packages
-[Antimony](https://github.com/reshsix/antimony) - Core tools
-(Incompatible with this version)
-
-## Devices
-- nanopi\_neo\_defconfig (NanoPi NEO)
-- orangepi\_one\_defconfig (OrangePi One)
-
-## Assembling
-
-| Stage       | Dependencies                   |
-|-------------|--------------------------------|
-| Versioning  | git                            |
-| Compilation | gcc-arm-none-eabi              |
-| Build       | make moreutils bc              |
-| Formatting  | mtools                         |
-| U-Boot      | bison flex swig u-boot-tools   |
-| Debug       | qemu-system-arm gdb-multiarch  |
-
-```sh
-make nanopi_neo_defconfig
-make all
-make debug
-dd if=build/vermillion.img of=/dev/mmcblk0
-```
+## Libraries
+[Antimony](https://github.com/reshsix/antimony) - Shell tools
+(Incompatible with current version)
 
 ## Example
-
-`struct vrm` is defined in `<vermillion/vrm.h>`
-
-### prog/test.c
-
 ```c
-#include <vermillion/prog.h>
+/* main.c */
 
-extern bool
-vrm_prog(struct vrm *v, const char **args, int count)
+#include <vermillion/devtree.h>
+#include <vermillion/util/debug.h>
+
+void main(void)
 {
-    const char msg[] = "vrm_prog message\r\n";
-    for (int i = 0; i < sizeof(msg) - 1; i++)
-        v->comm.write0(msg[i]);
+    if (vrm_devtree_init(VRM_PLATFORM_SUNXI_H3, VRM_BOARD_NANOPI_NEO, 0))
+    {
+        vrm_debug_string("Hello World\r\n");
 
-    return true;
+        vrm_devtree_clean();
+    }
 }
 ```
 
-### lib/test.c
-
-```c
-#include <vermillion/lib.h>
-
-static int
-test(struct vrm *v)
-{
-    const char msg[] = "vrm_lib message\r\n";
-    for (int i = 0; i < sizeof(msg) - 1; i++)
-        v->comm.write0(msg[i]);
-
-    return 0;
-}
-
-struct lib
-{
-    int (*test)(struct vrm *v);
-};
-
-extern void *
-vrm_lib(void)
-{
-    static struct lib l = {0};
-    l.test = test;
-    return &l;
-}
-```
-
-### Makefile
-
-```make
-# Package configuration
-
-PROJECT = test
-PROGS   = test.elf
-LIBS    = test.elf
-
-# Default makefile
-
--include vermillion/package.mk
-```
+## Instructions
+- [Sunxi H3 boards](docs/boards/sunxi_h3.md)

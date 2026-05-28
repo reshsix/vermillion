@@ -14,35 +14,34 @@
  *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <general/types.h>
-#include <general/mem.h>
-
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/spi.h>
+#include <vermillion/util/mem.h>
+#include <vermillion/util/types.h>
 
-#define SPI_GCR(x) *(volatile u32*)(x + 0x04)
-#define SPI_TCR(x) *(volatile u32*)(x + 0x08)
-#define SPI_ICR(x) *(volatile u32*)(x + 0x10)
-#define SPI_ISR(x) *(volatile u32*)(x + 0x14)
-#define SPI_FCR(x) *(volatile u32*)(x + 0x18)
-#define SPI_CLK(x) *(volatile u32*)(x + 0x24)
-#define SPI_MBC(x) *(volatile u32*)(x + 0x30)
-#define SPI_MTC(x) *(volatile u32*)(x + 0x34)
-#define SPI_BCC(x) *(volatile u32*)(x + 0x38)
-#define SPI_TXD(x) *(volatile u8*)(x + 0x200)
-#define SPI_RXD(x) *(volatile u8*)(x + 0x300)
+#define SPI_GCR(x) *(volatile uint32_t *)(x + 0x04)
+#define SPI_TCR(x) *(volatile uint32_t *)(x + 0x08)
+#define SPI_ICR(x) *(volatile uint32_t *)(x + 0x10)
+#define SPI_ISR(x) *(volatile uint32_t *)(x + 0x14)
+#define SPI_FCR(x) *(volatile uint32_t *)(x + 0x18)
+#define SPI_CLK(x) *(volatile uint32_t *)(x + 0x24)
+#define SPI_MBC(x) *(volatile uint32_t *)(x + 0x30)
+#define SPI_MTC(x) *(volatile uint32_t *)(x + 0x34)
+#define SPI_BCC(x) *(volatile uint32_t *)(x + 0x38)
+#define SPI_TXD(x) *(volatile uint8_t *)(x + 0x200)
+#define SPI_RXD(x) *(volatile uint8_t *)(x + 0x300)
 
 /* Driver definition */
 
 struct spi
 {
-    u32 addr;
+    uint32_t addr;
 
-    u32 freq;
-    u32 fields;
+    uint32_t freq;
+    uint32_t fields;
     bool csh;
 
-    u8 *data;
+    uint8_t *data;
     size_t count;
     bool partial;
 
@@ -52,7 +51,7 @@ struct spi
 static struct spi spis[2] = {0};
 
 static bool
-info(void *ctx, u32 *freq, u32 *fields)
+info(void *ctx, uint32_t *freq, uint32_t *fields)
 {
     bool ret = false;
 
@@ -68,7 +67,7 @@ info(void *ctx, u32 *freq, u32 *fields)
 }
 
 static bool
-config(void *ctx, u32 freq, u32 fields)
+config(void *ctx, uint32_t freq, uint32_t fields)
 {
     bool ret = (freq <= 24000000 && freq >= 367);
 
@@ -77,8 +76,8 @@ config(void *ctx, u32 freq, u32 fields)
         struct spi *spi = ctx;
         while (SPI_TCR(spi->addr) & (1 << 31));
 
-        u32 divider = 24000000 / freq;
-        u8 mode  = (fields >> 0) & 0x3;
+        uint32_t divider = 24000000 / freq;
+        uint8_t mode  = (fields >> 0) & 0x3;
         bool lsb = (fields >> 2) & 0x1;
         bool csh = (fields >> 3) & 0x1;
 
@@ -86,7 +85,7 @@ config(void *ctx, u32 freq, u32 fields)
         {
             if ((divider & (divider - 1)) == 0)
             {
-                u8 log2 = 0;
+                uint8_t log2 = 0;
                 while (divider >>= 1)
                     log2++;
 
@@ -134,7 +133,7 @@ limit(void *ctx, size_t *count)
 }
 
 static bool
-transfer(void *ctx, u8 *data, size_t count, u32 flags)
+transfer(void *ctx, uint8_t *data, size_t count, uint32_t flags)
 {
     bool ret = (count <= 64);
 
@@ -191,7 +190,7 @@ poll(void *ctx)
         }
         else
         {
-            volatile u8 a = 0;
+            volatile uint8_t a = 0;
             for (size_t i = 0; i < spi->count; i++)
                 a = SPI_RXD(spi->addr);
             (void)a;
@@ -219,7 +218,7 @@ static const drv_spi sunxi_spi =
 /* Device creation */
 
 extern dev_spi
-sunxi_spi_init(u8 id)
+sunxi_spi_init(uint8_t id)
 {
     struct spi *ret = NULL;
 

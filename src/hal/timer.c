@@ -14,19 +14,18 @@
  *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <general/mem.h>
-#include <general/types.h>
-
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/timer.h>
+#include <vermillion/util/mem.h>
+#include <vermillion/util/types.h>
 
 static dev_timer *dev_l = NULL;
-static u8 dev_c = 0;
+static uint8_t dev_c = 0;
 
 /* Devtree setup */
 
 extern void
-timer_setup(dev_timer *list, u8 count)
+timer_setup(dev_timer *list, uint8_t count)
 {
     dev_l = list;
     dev_c = count;
@@ -45,42 +44,21 @@ sleep(void *arg)
 }
 
 extern bool
-timer_alarm(u8 id, u32 us, bool repeat, void (*handler)(void *), void *arg)
+vrm_timer_alarm(uint8_t id, uint32_t us,
+                bool repeat, void (*handler)(void *), void *arg)
 {
     return TIMER_CALL(alarm, us, repeat, handler, arg);
 }
 
 extern bool
-timer_sleep(u8 id, u32 us)
+vrm_timer_sleep(uint8_t id, uint32_t us)
 {
     volatile bool ret = false;
 
-    if (timer_alarm(id, us, false, sleep, (bool *)&ret))
+    if (vrm_timer_alarm(id, us, false, sleep, (bool *)&ret))
     {
         while (!ret)
             TIMER_CALL(wait);
-    }
-
-    return ret;
-}
-
-/* ABI definitions */
-
-static struct vrm_timer_v1 v1 =
-{
-    .alarm = timer_alarm, .sleep = timer_sleep
-};
-
-extern void *
-timer_driver(u8 version)
-{
-    void *ret = NULL;
-
-    switch (version)
-    {
-        case VRM_TIMER_V1:
-            ret = &v1;
-            break;
     }
 
     return ret;

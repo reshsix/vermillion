@@ -1,56 +1,59 @@
 /*
-This file is part of vermillion.
-
-Vermillion is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published
-by the Free Software Foundation, version 3.
-
-Vermillion is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with vermillion. If not, see <https://www.gnu.org/licenses/>.
+ *  This file is part of vermillion.
+ *
+ *  Vermillion is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3.
+ *
+ *  Vermillion is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
-
-#include <general/mem.h>
-#include <general/types.h>
 
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/gpio.h>
+#include <vermillion/util/mem.h>
+#include <vermillion/util/types.h>
 
-#define PN_CFG(c, n, i) *(volatile u32 *)(c + (n * 0x24) + (0x4 * i))
-#define PN_DAT(c, n)    *(volatile u32 *)(c + (n * 0x24) + 0x10)
-#define PN_PUL(c, n, i) *(volatile u32 *)(c + (n * 0x24) + 0x1C + (0x4 * i))
+#define PN_CFG(c, n, i) \
+    *(volatile uint32_t *)(c + (n * 0x24) + (0x4 * i))
+#define PN_DAT(c, n)    \
+    *(volatile uint32_t *)(c + (n * 0x24) + 0x10)
+#define PN_PUL(c, n, i) \
+    *(volatile uint32_t *)(c + (n * 0x24) + 0x1C + (0x4 * i))
 
 /* Driver definition */
 
 struct gpio
 {
-    u32 base;
-    u8 io_ports;
+    uint32_t base;
+    uint8_t io_ports;
 };
 
 static struct gpio gpios[2] = {0};
 
 static bool
-info(void *ctx, u8 port, u8 slot, u32 *flags)
+info(void *ctx, uint8_t port, uint8_t slot, uint32_t *flags)
 {
     bool ret = true;
 
     struct gpio *gpio = ctx;
     if (port < gpio->io_ports && slot < 32)
     {
-        u8 reg = slot / 8, pos = slot % 8;
-        u8 role = (PN_CFG(gpio->base, port, reg) >> (pos * 4)) & 0x7;
-        u8 roles[8] = {VRM_GPIO_IN, VRM_GPIO_OUT, VRM_GPIO_MUX0, VRM_GPIO_MUX1,
-                                                  VRM_GPIO_MUX2, VRM_GPIO_MUX3,
-                                                  VRM_GPIO_MUX4, VRM_GPIO_OFF};
+        uint8_t reg = slot / 8, pos = slot % 8;
+        uint8_t role = (PN_CFG(gpio->base, port, reg) >> (pos * 4)) & 0x7;
+        uint8_t roles[8] = {VRM_GPIO_IN,   VRM_GPIO_OUT,
+                            VRM_GPIO_MUX0, VRM_GPIO_MUX1,
+                            VRM_GPIO_MUX2, VRM_GPIO_MUX3,
+                            VRM_GPIO_MUX4, VRM_GPIO_OFF};
         role = roles[role];
 
         reg = slot / 16, pos = slot % 16;
-        u8 pull = (PN_PUL(gpio->base, port, reg) >> (pos * 2)) & 0x3;
+        uint8_t pull = (PN_PUL(gpio->base, port, reg) >> (pos * 2)) & 0x3;
         if (pull > VRM_GPIO_PULLDOWN)
             pull = 0;
 
@@ -63,31 +66,31 @@ info(void *ctx, u8 port, u8 slot, u32 *flags)
 }
 
 static bool
-config(void *ctx, u8 port, u8 slot, u32 flags)
+config(void *ctx, uint8_t port, uint8_t slot, uint32_t flags)
 {
     bool ret = true;
 
     struct gpio *gpio = ctx;
     if (port < gpio->io_ports && slot < 32)
     {
-        u8 role = (flags >> 0) & 0xF;
+        uint8_t role = (flags >> 0) & 0xF;
         if (role < VRM_GPIO_MUX4)
         {
-            u8 roles[8] = {7, 0, 1, 2, 3, 4, 5, 6};
+            uint8_t roles[8] = {7, 0, 1, 2, 3, 4, 5, 6};
             role = roles[role];
         }
         else
             ret = false;
 
-        u8 pull = (flags >> 4) & 0x3;
+        uint8_t pull = (flags >> 4) & 0x3;
         if (pull > VRM_GPIO_PULLDOWN)
             ret = false;
 
         if (ret)
         {
-            u8 reg = slot / 8, pos = slot % 8;
-            u32 data = role << (pos * 4);
-            u32 mask = 0xF  << (pos * 4);
+            uint8_t reg = slot / 8, pos = slot % 8;
+            uint32_t data = role << (pos * 4);
+            uint32_t mask = 0xF  << (pos * 4);
             PN_CFG(gpio->base, port, reg) &= ~mask;
             PN_CFG(gpio->base, port, reg) |= (data & mask);
 
@@ -105,7 +108,7 @@ config(void *ctx, u8 port, u8 slot, u32 flags)
 }
 
 static bool
-count(void *ctx, u8 *ports, u8 *slots)
+count(void *ctx, uint8_t *ports, uint8_t *slots)
 {
     struct gpio *gpio = ctx;
     *ports = gpio->io_ports;
@@ -115,7 +118,7 @@ count(void *ctx, u8 *ports, u8 *slots)
 }
 
 static bool
-read(void *ctx, u8 port, u32 *data)
+read(void *ctx, uint8_t port, uint32_t *data)
 {
     bool ret = true;
 
@@ -129,7 +132,7 @@ read(void *ctx, u8 port, u32 *data)
 }
 
 static bool
-write(void *ctx, u8 port, u32 data)
+write(void *ctx, uint8_t port, uint32_t data)
 {
     bool ret = true;
 
@@ -143,7 +146,7 @@ write(void *ctx, u8 port, u32 data)
 }
 
 static bool
-get(void *ctx, u8 port, u8 pin, bool *data)
+get(void *ctx, uint8_t port, uint8_t pin, bool *data)
 {
     bool ret = true;
 
@@ -157,7 +160,7 @@ get(void *ctx, u8 port, u8 pin, bool *data)
 }
 
 static bool
-set(void *ctx, u8 port, u8 pin, bool data)
+set(void *ctx, uint8_t port, uint8_t pin, bool data)
 {
     bool ret = true;
 
@@ -186,7 +189,7 @@ static const drv_gpio sunxi_gpio =
 /* Device creation */
 
 extern dev_gpio
-sunxi_gpio_init(u8 id)
+sunxi_gpio_init(uint8_t id)
 {
     struct gpio *ret = NULL;
 

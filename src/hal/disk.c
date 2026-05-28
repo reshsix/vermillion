@@ -14,18 +14,17 @@
  *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <general/types.h>
-
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/disk.h>
+#include <vermillion/util/types.h>
 
 /* Devtree setup */
 
 static dev_disk *dev_l = NULL;
-static u8 dev_c = 0;
+static uint8_t dev_c = 0;
 
 extern void
-disk_setup(dev_disk *list, u8 count)
+disk_setup(dev_disk *list, uint8_t count)
 {
     dev_l = list;
     dev_c = count;
@@ -37,10 +36,10 @@ disk_setup(dev_disk *list, u8 count)
 ((id < dev_c) ? dev_l[id].driver->f(dev_l[id].context, ##__VA_ARGS__) : false)
 
 extern bool
-disk_size(u8 id, u16 *sector, u32 *count)
+vrm_disk_size(uint8_t id, uint16_t *sector, uint32_t *count)
 {
-    u16 sector2 = 0;
-    u32 count2  = 0;
+    uint16_t sector2 = 0;
+    uint32_t count2  = 0;
 
     bool ret = DISK_CALL(size, &sector2, &count2);
     if (ret)
@@ -55,37 +54,15 @@ disk_size(u8 id, u16 *sector, u32 *count)
 }
 
 extern bool
-disk_read(u8 id, u8 *data, u32 block, u32 flags)
+vrm_disk_read(uint8_t id, uint8_t *data, uint32_t block, uint32_t flags)
 {
     (void)flags;
     return DISK_CALL(read, data, block);
 }
 
 extern bool
-disk_write(u8 id, u8 *data, u32 block, u32 flags)
+vrm_disk_write(uint8_t id, uint8_t *data, uint32_t block, uint32_t flags)
 {
     (void)flags;
     return DISK_CALL(write, data, block);
-}
-
-/* ABI definitions */
-
-static struct vrm_disk_v1 v1 =
-{
-    .size = disk_size, .read = disk_read, .write  = disk_write
-};
-
-extern void *
-disk_driver(u8 version)
-{
-    void *ret = NULL;
-
-    switch (version)
-    {
-        case VRM_DISK_V1:
-            ret = &v1;
-            break;
-    }
-
-    return ret;
 }

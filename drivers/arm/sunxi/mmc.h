@@ -16,26 +16,9 @@
 
 #pragma once
 
+#define VERMILLION_INTERNALS
+#include <vermillion/hal/disk.h>
 #include <vermillion/util/types.h>
 
-#ifdef VERMILLION_INTERNALS
-typedef struct
-{
-    void *init, (*clean)(void *);
-    bool (*alarm)(void *ctx, uint32_t us, bool repeat,
-                  void (*handler)(void *), void *arg);
-    void (*wait)(void *ctx);
-} drv_timer;
-
-typedef struct
-{
-    const drv_timer *driver;
-    void *context;
-} dev_timer;
-
-void timer_setup(dev_timer *list, uint8_t count);
-#endif
-
-bool vrm_timer_alarm(uint8_t id, uint32_t us, bool repeat,
-                     void (*handler)(void *), void *arg);
-bool vrm_timer_sleep(uint8_t id, uint32_t us);
+extern dev_disk sunxi_mmc_init(uint8_t id);
+extern void sunxi_mmc_clean(dev_disk *d);
