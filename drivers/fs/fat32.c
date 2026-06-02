@@ -528,8 +528,8 @@ fat32_del(struct fat32 *f)
 {
     if (f)
     {
-        mem_del(f->buffer);
-        mem_del(f);
+        vrm_mem_del(f->buffer);
+        vrm_mem_del(f);
     }
 
     return NULL;
@@ -538,10 +538,12 @@ fat32_del(struct fat32 *f)
 static struct fat32 *
 fat32_new(uint8_t disk)
 {
-    struct fat32 *ret = mem_new(sizeof(struct fat32));
+    struct fat32 *ret = vrm_mem_new(sizeof(struct fat32));
 
     if (ret)
     {
+        vrm_mem_fill(ret, 0, sizeof(struct fat32));
+
         ret->disk = disk;
         if (!vrm_disk_read(ret->disk, (uint8_t*)fat32_buf, 0, 0))
             ret = fat32_del(ret);
@@ -551,8 +553,10 @@ fat32_new(uint8_t disk)
     {
         vrm_mem_copy(&(ret->br), fat32_buf, sizeof(struct fat32br));
 
-        ret->buffer = mem_new(0x200 * ret->br.sectspercluster);
-        if (!(ret->buffer))
+        ret->buffer = vrm_mem_new(0x200 * ret->br.sectspercluster);
+        if (ret->buffer)
+            vrm_mem_fill(ret->buffer, 0, 0x200 * ret->br.sectspercluster);
+        else
             ret = fat32_del(ret);
     }
 
@@ -971,13 +975,17 @@ walk(void *ctx, void *parent, void *entry,
             idx  = fe->idx;
         }
 
-        struct fat32e *new = mem_new(sizeof(struct fat32e));
-        if (fat32_walk(ctx, fd->cluster, sect, idx, new, dir, name, size))
-            ret = new;
-        else
-            mem_del(new);
+        struct fat32e *new = vrm_mem_new(sizeof(struct fat32e));
+        if (new)
+        {
+            vrm_mem_fill(new, 0, sizeof(struct fat32e));
+            if (fat32_walk(ctx, fd->cluster, sect, idx, new, dir, name, size))
+                ret = new;
+            else
+                vrm_mem_del(new);
+        }
 
-        mem_del(entry);
+        vrm_mem_del(entry);
     }
 
     return ret;
@@ -990,9 +998,9 @@ read(void *ctx, void *entry, uint8_t *data, uint32_t block)
 }
 
 static bool
-write(void *ctx, void *entry, uint8_t *data, uint32_t block)
+write(void *ctx, void *entry, const uint8_t *data, uint32_t block)
 {
-    return fat32_rw(ctx, entry, block, data, true);
+    return fat32_rw(ctx, entry, block, (uint8_t *)data, true);
 }
 
 static bool

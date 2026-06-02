@@ -21,11 +21,10 @@
 #ifdef VERMILLION_INTERNALS
 void mem_init(void);
 void mem_clean(void);
-
-void *mem_new(size_t size);
-void *mem_renew(void *mem, size_t size);
-void *mem_del(void *mem);
 #endif
+
+void *vrm_mem_new(size_t size);
+void *vrm_mem_del(void *mem);
 
 int   vrm_mem_comp(const void *mem, const void *mem2, size_t length);
 void *vrm_mem_find(const void *mem, uint8_t c,        size_t length);

@@ -14,34 +14,36 @@
  *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <stdarg.h>
+
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/uart.h>
 #include <vermillion/util/types.h>
 
 #include <vermillion/util/debug.h>
 
-extern void
-vrm_debug_char(char c)
+static void
+debug_chr(char c)
 {
     vrm_uart_write(0, c, 0);
 }
 
-extern void
-vrm_debug_string(const char *s)
+static void
+debug_str(const char *s)
 {
     for (; s[0] != '\0'; s = &(s[1]))
     {
         if (s[0] != '\0')
-            vrm_debug_char(s[0]);
+            debug_chr(s[0]);
     }
 }
 
-extern void
-vrm_debug_unsigned(uint64_t n)
+static void
+debug_hex(uint64_t n)
 {
     bool started = false;
 
-    vrm_debug_string("0x");
+    debug_str("0x");
     for (uint8_t i = 0; i < 16; i++)
     {
         uint8_t x = (n >> ((15 - i) * 4)) & 0xF;
@@ -51,24 +53,24 @@ vrm_debug_unsigned(uint64_t n)
         if (started)
         {
             if (x < 10)
-                vrm_debug_char(x + '0');
+                debug_chr(x + '0');
             else
-                vrm_debug_char(x - 10 + 'A');
+                debug_chr(x - 10 + 'A');
         }
     }
 
     if (!started)
-        vrm_debug_char('0');
+        debug_chr('0');
 }
 
 extern void
-vrm_debug_signed(int64_t n)
+debug_dec(int64_t n)
 {
     bool started = false;
 
     if (n < 0)
     {
-        vrm_debug_char('-');
+        debug_chr('-');
         n = -n;
     }
 
@@ -81,7 +83,7 @@ vrm_debug_signed(int64_t n)
 
         if (started)
         {
-            vrm_debug_char(d + '0');
+            debug_chr(d + '0');
             a -= i * d;
         }
 
@@ -90,5 +92,53 @@ vrm_debug_signed(int64_t n)
     }
 
     if (!started)
-        vrm_debug_char('0');
+        debug_chr('0');
+}
+
+extern void
+vrm_debug(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    for (size_t i = 0; fmt[i]; i++)
+    {
+        if (fmt[i] == '~')
+        {
+            i++;
+            switch (fmt[i])
+            {
+                case 'd':
+                    debug_dec(va_arg(ap, int));
+                    break;
+                case 'D':
+                    debug_dec(va_arg(ap, long));
+                    break;
+                case 'x':
+                    debug_hex(va_arg(ap, int));
+                    break;
+                case 'X':
+                    debug_hex(va_arg(ap, long));
+                    break;
+                case 'c':
+                    debug_chr(va_arg(ap, int));
+                    break;
+                case 's':
+                    debug_str(va_arg(ap, char *));
+                    break;
+                case 'p':
+                    debug_hex((uintptr_t)va_arg(ap, void *));
+                    break;
+                default:
+                    debug_chr('~');
+                    debug_chr(fmt[i]);
+                    break;
+            }
+        }
+        else
+            debug_chr(fmt[i]);
+    }
+    va_end(ap);
+
+    debug_str("\r\n");
 }

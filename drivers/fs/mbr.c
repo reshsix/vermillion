@@ -87,7 +87,7 @@ mbr_init(uint8_t id, uint8_t disk, uint8_t partition)
 
     if (ret)
     {
-        uint8_t *buffer = mem_new(ret->sector);
+        uint8_t *buffer = vrm_mem_new(ret->sector);
 
         if (buffer && vrm_disk_read(disk, buffer, 0, 0))
         {
@@ -102,7 +102,7 @@ mbr_init(uint8_t id, uint8_t disk, uint8_t partition)
         else
             ret = NULL;
 
-        mem_del(buffer);
+        vrm_mem_del(buffer);
     }
 
     return (dev_disk){.driver = &mbr, .context = ret};

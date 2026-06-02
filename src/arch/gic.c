@@ -188,28 +188,28 @@ static struct gic gic = {0};
 
 INTERRUPT(undef) handler_undef(void)
 {
-    vrm_debug_string("Undefined Instruction\r\n");
+    vrm_debug("Undefined Instruction");
     for (;;)
         arm_wait_interrupts();
 }
 
 INTERRUPT(swi) handler_swi(void)
 {
-    vrm_debug_string("Unhandled supervisor call\r\n");
+    vrm_debug("Unhandled supervisor call");
     for (;;)
         arm_wait_interrupts();
 }
 
 INTERRUPT(abort) handler_prefetch(void)
 {
-    vrm_debug_string("Prefetch Abort\r\n");
+    vrm_debug("Prefetch Abort");
     for (;;)
         arm_wait_interrupts();
 }
 
 INTERRUPT(abort) handler_data(void)
 {
-    vrm_debug_string("Data Abort\r\n");
+    vrm_debug("Data Abort");
     for (;;)
         arm_wait_interrupts();
 }
@@ -226,7 +226,7 @@ INTERRUPT(irq) handler_irq(void)
 
 INTERRUPT(fiq) handler_fiq(void)
 {
-    vrm_debug_string("Unexpected FIQ\r\n");
+    vrm_debug("Unexpected FIQ");
     for (;;)
         arm_wait_interrupts();
 }

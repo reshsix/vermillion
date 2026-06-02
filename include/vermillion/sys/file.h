@@ -25,8 +25,10 @@ typedef struct
     void * (*root)(void *ctx);
     void * (*walk)(void *ctx, void *parent, void *entry,
                    bool *dir, char *name, uint32_t *size);
-    bool   (*read)  (void *ctx, void *entry,  uint8_t *data, uint32_t block);
-    bool   (*write) (void *ctx, void *entry,  uint8_t *data, uint32_t block);
+    bool   (*read)  (void *ctx, void *entry,
+                           uint8_t *data, uint32_t block);
+    bool   (*write) (void *ctx, void *entry,
+                     const uint8_t *data, uint32_t block);
     bool   (*resize)(void *ctx, void *entry,  uint32_t size);
     bool   (*create)(void *ctx, void *parent, const char *name, bool dir);
     bool   (*remove)(void *ctx, void *entry);
@@ -68,8 +70,8 @@ void *vrm_file_walk(vrm_file *f, void *state,
 bool vrm_file_seek(vrm_file *f, uint32_t pos);
 bool vrm_file_tell(vrm_file *f, uint32_t *pos);
 
-uint32_t vrm_file_read (vrm_file *f, void *buffer, uint32_t bytes);
-uint32_t vrm_file_write(vrm_file *f, void *buffer, uint32_t bytes);
+uint32_t vrm_file_read (vrm_file *f,       void *buffer, uint32_t bytes);
+uint32_t vrm_file_write(vrm_file *f, const void *buffer, uint32_t bytes);
 bool vrm_file_flush(vrm_file *f);
 
 bool vrm_file_resize(vrm_file *f, uint32_t size);

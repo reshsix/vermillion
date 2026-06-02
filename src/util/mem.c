@@ -21,18 +21,14 @@
 struct memblk
 {
     uint32_t size;
+    bool last, free;
+    struct memblk *phys;
+    struct memblk *prev;
     struct memblk *next;
 };
 
-#define MEMHEAD(addr, offset) \
-((struct memblk *)((uint32_t)(addr) + \
-    (int32_t)(offset) - sizeof(struct memblk)))
 #define MEMBODY(addr, offset) \
-((void *)((uint32_t)(addr) + (int32_t)(offset) + sizeof(struct memblk)))
-#define MEMTOTAL(size) \
-((size_t)size + sizeof(struct memblk))
-#define MEMEND(head) \
-((struct memblk *)((uint32_t)(head) + MEMTOTAL(((struct memblk *)head)->size)))
+((void *)((uint32_t)(addr) + (offset) + sizeof(struct memblk)))
 
 /* For devtree usage */
 
@@ -42,8 +38,14 @@ extern void
 mem_init(void)
 {
     head = &__free;
-    head->size = CONFIG_RAM_ADDRESS + CONFIG_RAM_SIZE + CONFIG_STACK_SIZE;
-    head->size -= (uint32_t)MEMBODY(head, 0);
+    head->size = (CONFIG_RAM_ADDRESS + CONFIG_RAM_SIZE +
+                  CONFIG_STACK_SIZE  - (uint32_t)MEMBODY(head, 0));
+
+    head->last = true;
+    head->free = true;
+
+    head->phys = NULL;
+    head->prev = NULL;
     head->next = NULL;
 }
 
@@ -56,176 +58,102 @@ mem_clean(void)
 /* For external usage */
 
 extern void *
-mem_new(size_t size)
+vrm_mem_new(size_t size)
 {
     void *ret = NULL;
 
-    if (size > 0 && head != NULL)
+    size = (size >= 16) ? size : 16;
+
+    struct memblk *blk = NULL;
+    for (struct memblk *cur = head; cur != NULL; cur = cur->next)
     {
-        size = (size >= 32) ? size : 32;
-
-        struct memblk *blk = NULL, *prev = NULL;
-        for (struct memblk *cur = head; cur != NULL; cur = cur->next)
+        if ((size_t)(cur->size) >= size)
         {
-            if (cur->size >= size)
-            {
-                blk = cur;
-                break;
-            }
-            prev = cur;
-        }
-
-        if (blk != NULL)
-        {
-            struct memblk *next = blk->next;
-            if ((blk->size - size) >= 32)
-            {
-                struct memblk *new = MEMBODY(blk, size);
-                new->size = blk->size - MEMTOTAL(size);
-                new->next = blk->next;
-                next = new;
-
-                blk->size = size;
-            }
-
-            if (prev == NULL || prev == blk)
-                head = next;
-            else
-                prev->next = next;
-
-            ret = MEMBODY(blk, 0);
-            vrm_mem_fill(ret, 0, size);
+            blk = cur;
+            break;
         }
     }
 
-    return ret;
-}
-
-extern void *
-mem_renew(void *mem, size_t size)
-{
-    void *ret = NULL;
-
-    struct memblk *blk = MEMHEAD(mem, 0);
-    if (size > blk->size)
+    if (blk)
     {
-        struct memblk *target = NULL, *prev = NULL;
-        if (mem != NULL)
+        if (blk->size >= (16 + size + sizeof(struct memblk)))
         {
-            for (struct memblk *cur = head; cur != NULL; cur = cur->next)
-            {
-                if (cur == MEMEND(blk))
-                {
-                    if (MEMTOTAL(blk->size + cur->size) >= size)
-                        target = cur;
-                    break;
-                }
-                else if (cur > MEMEND(blk))
-                    break;
+            struct memblk *new = MEMBODY(blk, size);
+            new->size = (blk->size - size - sizeof(struct memblk));
+            new->last = true;
+            new->free = true;
+            new->phys = blk;
+            new->prev = blk->prev;
+            new->next = blk->next;
 
-                prev = cur;
-            }
-        }
+            if (blk->prev != NULL)
+                blk->prev->next = new;
+            else
+                head = new;
 
-        if (target != NULL)
-        {
-            size_t previous = blk->size;
-            size_t avaliable = MEMTOTAL(blk->size + target->size);
+            if (blk->next != NULL)
+                blk->next->prev = new;
 
-            struct memblk *next = target->next;
             blk->size = size;
-            if ((avaliable - size) >= 32)
-            {
-                struct memblk *new = MEMEND(blk);
-                new->size = (uint32_t)MEMEND(target) - MEMTOTAL(new);
-                new->next = next;
-                next = new;
-            }
-            else
-                blk->size = avaliable;
-
-            if (prev == NULL)
-                head = next;
-            else
-                prev->next = next;
-
-            vrm_mem_fill(&(((uint8_t*)mem)[previous]), 0, blk->size - previous);
-            ret = mem;
+            blk->last = false;
         }
         else
         {
-            ret = mem_new(size);
-            if (mem != NULL && ret != NULL)
-            {
-                vrm_mem_copy(ret, mem, blk->size);
-                mem_del(mem);
-            }
-        }
-    }
-    else
-    {
-        if (mem)
-        {
-            ret = mem;
-            if ((blk->size - size) >= 32)
-            {
-                blk->size = size;
+            if (blk->prev != NULL)
+                blk->prev->next = blk->next;
+            else
+                head = blk->next;
 
-                struct memblk *new = MEMEND(blk);
-                new->size = (uint32_t)MEMEND(blk) - MEMTOTAL(new);
-                new->next = blk->next;
-                blk->next = new;
-            }
+            if (blk->next != NULL)
+                blk->next->prev = blk->prev;
         }
-        else
-            ret = mem_new(size);
+
+        blk->prev = NULL;
+        blk->next = NULL;
+        blk->free = false;
+
+        ret = MEMBODY(blk, 0);
     }
 
     return ret;
 }
 
 extern void *
-mem_del(void *mem)
+vrm_mem_del(void *mem)
 {
     if (mem != NULL)
     {
-        struct memblk *blk = MEMHEAD(mem, 0);
+        struct memblk *blk = mem;
+        blk = &(blk[-1]);
+
         if (head != NULL)
-        {
-            struct memblk *end = MEMEND(blk);
-            struct memblk *prev = NULL;
-            struct memblk *next = head;
-
-            while (next < end)
-            {
-                prev = next;
-                next = next->next;
-            }
-
-            if (next == end)
-            {
-                blk->size += MEMTOTAL(next->size);
-                blk->next = next->next;
-            }
-            else
-                blk->next = next;
-
-            if (prev != NULL)
-            {
-                prev->next = blk;
-                if (MEMEND(prev) == blk)
-                {
-                    prev->size += MEMTOTAL(blk->size);
-                    prev->next = blk->next;
-                }
-            }
-            else
-                head = blk;
-        }
+            blk->next = head;
         else
-        {
             blk->next = NULL;
-            head = blk;
+
+        blk->prev = NULL;
+        blk->free = true;
+        head = blk;
+
+        /* Coalesce left */
+        struct memblk *prev = blk->phys;
+        if (prev && prev->free)
+        {
+            prev->size += blk->size + sizeof(struct memblk);
+            prev->last  = blk->last;
+            head = blk->next;
+        }
+
+        /* Absorb right */
+        struct memblk *next = MEMBODY(blk, blk->size);
+        if (!(blk->last) && next->free)
+        {
+            blk->size += next->size + sizeof(struct memblk);
+            blk->last  = next->last;
+            blk->next  = next->next;
+
+            if (next->next != NULL)
+                next->next->prev = blk;
         }
     }
 

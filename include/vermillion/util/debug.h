@@ -18,7 +18,4 @@
 
 #include <vermillion/util/types.h>
 
-void vrm_debug_char(char c);
-void vrm_debug_string(const char *s);
-void vrm_debug_unsigned(uint64_t n);
-void vrm_debug_signed(int64_t n);
+void vrm_debug(const char *fmt, ...);

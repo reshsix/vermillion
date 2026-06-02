@@ -114,13 +114,14 @@ file_dev(uint8_t id)
 extern struct vrm_file *
 vrm_file_open(uint8_t id, const char *path)
 {
-    struct vrm_file *ret = mem_new(sizeof(struct vrm_file));
+    struct vrm_file *ret = vrm_mem_new(sizeof(struct vrm_file));
 
     dev_fs *df = file_dev(id);
 
     bool success = false;
     if (ret && vrm_path_validate(path))
     {
+        vrm_mem_fill(ret, 0, sizeof(struct vrm_file));
         success = false;
 
         vrm_str_copy(vrm_file_buffer, path, 0);
@@ -132,9 +133,11 @@ vrm_file_open(uint8_t id, const char *path)
         if (cur)
         {
             char name[255] = {0};
-
             success = true;
-            for (char *token = vrm_str_token(vrm_file_buffer, "/", &state); token;
+
+            ret->dir = true;
+            for (char *token = vrm_str_token(vrm_file_buffer, "/", &state);
+                       token;
                        token = vrm_str_token(NULL,        "/", &state))
             {
                 success = false;
@@ -169,17 +172,19 @@ vrm_file_open(uint8_t id, const char *path)
         if (!(ret->dir))
         {
             ret->width = 0x200;
-            ret->buffer = mem_new(ret->width);
+            ret->buffer = vrm_mem_new(ret->width);
             if (ret->buffer)
+            {
                 if (!read(df, ret->cache, ret->buffer, 0))
-                    ret->buffer = mem_del(ret->buffer);
+                    ret->buffer = vrm_mem_del(ret->buffer);
+            }
 
             if (!(ret->buffer))
-                ret = mem_del(ret);
+                ret = vrm_mem_del(ret);
         }
     }
     else
-        ret = mem_del(ret);
+        ret = vrm_mem_del(ret);
 
     return ret;
 }
@@ -190,10 +195,10 @@ vrm_file_close(struct vrm_file *f)
     if (f)
     {
         vrm_file_flush(f);
-        mem_del(f->buffer);
+        vrm_mem_del(f->buffer);
     }
 
-    return mem_del(f);
+    return vrm_mem_del(f);
 }
 
 extern bool
@@ -310,9 +315,9 @@ vrm_file_read(struct vrm_file *f, void *buffer, uint32_t bytes)
 }
 
 extern uint32_t
-vrm_file_write(struct vrm_file *f, void *buffer, uint32_t bytes)
+vrm_file_write(struct vrm_file *f, const void *buffer, uint32_t bytes)
 {
-    return vrm_file_rw(f, buffer, bytes, true);
+    return vrm_file_rw(f, (void *)buffer, bytes, true);
 }
 
 extern bool
@@ -405,8 +410,8 @@ vrm_file_remove(uint8_t id, const char *path)
 
     if (ret)
     {
-        mem_del(f->buffer);
-        mem_del(f);
+        vrm_mem_del(f->buffer);
+        vrm_mem_del(f);
     }
     else
         vrm_file_close(f);
