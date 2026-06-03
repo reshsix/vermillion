@@ -680,7 +680,8 @@ fat32_resize(struct fat32 *f, struct fat32e *fe, uint32_t size)
 
 static void
 fill_entry(uint8_t *buf, const char *name,
-           bool dir, uint8_t entries, uint32_t cluster)
+           bool dir, uint8_t entries,
+           uint32_t cluster, uint32_t size)
 {
     vrm_mem_fill(buf, 0x0, 0x200);
 
@@ -737,6 +738,9 @@ fill_entry(uint8_t *buf, const char *name,
     buf[i + 16] = 0x21;
     buf[i + 18] = 0x21;
     buf[i + 24] = 0x21;
+
+    /* Filesize in case it's being moved */
+    vrm_mem_copy(&(buf[i + 28]), &size, sizeof(uint32_t));
 }
 
 static bool
@@ -794,7 +798,7 @@ directory_dots(struct fat32 *f, uint32_t cluster, uint32_t pcluster)
     if (ret)
     {
         uint8_t *buf = f->buffer;
-        vrm_mem_fill(buf, 0x0, 32 * 3);
+        vrm_mem_fill(buf, 0x0, 0x200 * f->br.sectspercluster);
 
         uint32_t i = 0;
         vrm_mem_fill(&(buf[i]), 0x20, 11);
@@ -823,7 +827,8 @@ directory_dots(struct fat32 *f, uint32_t cluster, uint32_t pcluster)
 
 static bool
 fat32_create(struct fat32 *f, uint32_t pcluster,
-             bool dir, const char *name, uint32_t cluster)
+             bool dir, const char *name,
+             uint32_t cluster, uint32_t size)
 {
     bool ret = (f && name);
 
@@ -911,7 +916,7 @@ fat32_create(struct fat32 *f, uint32_t pcluster,
 
             if (ret)
             {
-                fill_entry(fat32_buf2, name, dir, entries, cluster);
+                fill_entry(fat32_buf2, name, dir, entries, cluster, size);
                 fat32_buf_n = -1;
 
                 uint32_t bytes = (entries * 32) + ((unused_st != pos) ? 32 : 0);
@@ -1004,24 +1009,13 @@ write(void *ctx, void *entry, const uint8_t *data, uint32_t block)
 }
 
 static bool
-resize(void *ctx, void *entry, uint32_t size)
-{
-    bool ret = (ctx && entry);
-
-    if (ret)
-        ret = fat32_resize(ctx, entry, size);
-
-    return ret;
-}
-
-static bool
 create(void *ctx, void *parent, const char *name, bool dir)
 {
     bool ret = (ctx && parent && name);
 
     struct fat32e *fe = parent;
     if (ret)
-        ret = fat32_create(ctx, fe->cluster, dir, name, 0);
+        ret = fat32_create(ctx, fe->cluster, dir, name, 0, 0);
 
     return ret;
 }
@@ -1040,11 +1034,52 @@ remove(void *ctx, void *entry)
     return ret;
 }
 
+static bool
+resize(void *ctx, void *entry, uint32_t size)
+{
+    bool ret = (ctx && entry);
+
+    if (ret)
+        ret = fat32_resize(ctx, entry, size);
+
+    return ret;
+}
+
+static bool
+move(void *ctx, void *entry, void *parent, const char *name)
+{
+    bool ret = (ctx && entry && parent && name);
+
+    struct fat32 *f = ctx;
+    if (ret)
+        ret = (entry != &(f->root));
+
+    bool dir = false;
+    uint32_t cluster = 0, size = 0;
+    if (ret)
+    {
+        struct fat32e *fe = entry;
+        dir     = fe->attributes & 0x10;
+        cluster = fe->cluster;
+        size    = fe->size;
+        ret = fat32_remove(ctx, entry, false);
+    }
+
+    if (ret)
+    {
+        struct fat32e *fe = parent;
+        ret = fat32_create(ctx, fe->cluster, dir, name, cluster, size);
+    }
+
+    return ret;
+}
+
 static const drv_fs fat32 =
 {
-    .root = root, .walk = walk,
+    .root = root, .walk  = walk,
     .read = read, .write = write,
-    .resize = resize, .create = create, .remove = remove
+    .create = create, .remove = remove,
+    .resize = resize, .move   = move
 };
 
 /* Device creation */

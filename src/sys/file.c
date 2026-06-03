@@ -71,17 +71,6 @@ write(dev_fs *df, void *entry, void *buf, uint32_t fs)
 }
 
 static bool
-resize(dev_fs *df, void *entry, uint32_t size)
-{
-    bool ret = (df != NULL);
-
-    if (ret)
-        ret = df->driver->resize(df->context, entry, size);
-
-    return ret;
-}
-
-static bool
 create(dev_fs *df, void *parent, const char *name, bool dir)
 {
     bool ret = (df != NULL);
@@ -99,6 +88,28 @@ remove(dev_fs *df, void *entry)
 
     if (ret)
         ret = df->driver->remove(df->context, entry);
+
+    return ret;
+}
+
+static bool
+resize(dev_fs *df, void *entry, uint32_t size)
+{
+    bool ret = (df != NULL);
+
+    if (ret)
+        ret = df->driver->resize(df->context, entry, size);
+
+    return ret;
+}
+
+static bool
+move(dev_fs *df, void *entry, void *parent, const char *name)
+{
+    bool ret = (df != NULL);
+
+    if (ret)
+        ret = df->driver->move(df->context, entry, parent, name);
 
     return ret;
 }
@@ -167,6 +178,7 @@ vrm_file_open(uint8_t id, const char *path)
 
     if (success)
     {
+        ret->id = id;
         ret->df = df;
 
         if (!(ret->dir))
@@ -330,19 +342,6 @@ vrm_file_flush(struct vrm_file *f)
 }
 
 extern bool
-vrm_file_resize(struct vrm_file *f, uint32_t size)
-{
-    bool ret = (f && !(f->dir));
-
-    if (ret)
-        ret = resize(f->df, f->cache, size);
-    if (ret)
-        f->size = size;
-
-    return ret;
-}
-
-extern bool
 vrm_file_create(uint8_t id, const char *path, bool dir)
 {
     bool ret = vrm_path_validate(path);
@@ -415,6 +414,55 @@ vrm_file_remove(uint8_t id, const char *path)
     }
     else
         vrm_file_close(f);
+
+    return ret;
+}
+
+extern bool
+vrm_file_resize(struct vrm_file *f, uint32_t size)
+{
+    bool ret = (f && !(f->dir));
+
+    if (ret)
+        ret = resize(f->df, f->cache, size);
+    if (ret)
+        f->size = size;
+
+    return ret;
+}
+
+extern bool
+vrm_file_move(struct vrm_file *f, const char *path)
+{
+    bool ret = vrm_path_validate(path);
+
+    if (ret)
+    {
+        struct vrm_file *check = vrm_file_open(f->id, path);
+
+        if (!check)
+        {
+            vrm_str_copy(vrm_file_buffer, path, 0);
+            vrm_path_dirname(vrm_file_buffer);
+
+            struct vrm_file *p = vrm_file_open(f->id, vrm_file_buffer);
+
+            if (p && p->dir)
+            {
+                vrm_str_copy(vrm_file_buffer, path, 0);
+                vrm_path_filename(vrm_file_buffer);
+                ret = move(f->df, f->cache, p->cache, vrm_file_buffer);
+            }
+            else
+                ret = false;
+
+            vrm_file_close(p);
+        }
+        else
+            ret = false;
+
+        vrm_file_close(check);
+    }
 
     return ret;
 }

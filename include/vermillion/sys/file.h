@@ -29,9 +29,10 @@ typedef struct
                            uint8_t *data, uint32_t block);
     bool   (*write) (void *ctx, void *entry,
                      const uint8_t *data, uint32_t block);
-    bool   (*resize)(void *ctx, void *entry,  uint32_t size);
     bool   (*create)(void *ctx, void *parent, const char *name, bool dir);
     bool   (*remove)(void *ctx, void *entry);
+    bool   (*resize)(void *ctx, void *entry, uint32_t size);
+    bool   (*move)  (void *ctx, void *entry, void *parent, const char *name);
 } drv_fs;
 
 typedef struct
@@ -42,6 +43,7 @@ typedef struct
 
 struct vrm_file
 {
+    uint8_t id;
     dev_fs *df;
     void *cache;
 
@@ -74,7 +76,8 @@ uint32_t vrm_file_read (vrm_file *f,       void *buffer, uint32_t bytes);
 uint32_t vrm_file_write(vrm_file *f, const void *buffer, uint32_t bytes);
 bool vrm_file_flush(vrm_file *f);
 
-bool vrm_file_resize(vrm_file *f, uint32_t size);
-
 bool vrm_file_create(uint8_t id, const char *path, bool dir);
 bool vrm_file_remove(uint8_t id, const char *path);
+
+bool vrm_file_resize(vrm_file *f, uint32_t size);
+bool vrm_file_move(vrm_file *f, const char *path);
