@@ -21,9 +21,6 @@
 struct memblk
 {
     uint32_t size;
-    bool last, free;
-    struct memblk *phys;
-    struct memblk *prev;
     struct memblk *next;
 };
 
@@ -32,20 +29,14 @@ struct memblk
 
 /* For devtree usage */
 
-static struct memblk *head = NULL;
 extern struct memblk __free;
+static struct memblk *head = NULL;
 extern void
 mem_init(void)
 {
     head = &__free;
     head->size = (CONFIG_RAM_ADDRESS + CONFIG_RAM_SIZE +
                   CONFIG_STACK_SIZE  - (uint32_t)MEMBODY(head, 0));
-
-    head->last = true;
-    head->free = true;
-
-    head->phys = NULL;
-    head->prev = NULL;
     head->next = NULL;
 }
 
@@ -64,7 +55,7 @@ vrm_mem_new(size_t size)
 
     size = (size >= 16) ? size : 16;
 
-    struct memblk *blk = NULL;
+    struct memblk *blk = NULL, *prev = NULL;
     for (struct memblk *cur = head; cur != NULL; cur = cur->next)
     {
         if ((size_t)(cur->size) >= size)
@@ -72,6 +63,7 @@ vrm_mem_new(size_t size)
             blk = cur;
             break;
         }
+        prev = cur;
     }
 
     if (blk)
@@ -80,37 +72,23 @@ vrm_mem_new(size_t size)
         {
             struct memblk *new = MEMBODY(blk, size);
             new->size = (blk->size - size - sizeof(struct memblk));
-            new->last = true;
-            new->free = true;
-            new->phys = blk;
-            new->prev = blk->prev;
             new->next = blk->next;
 
-            if (blk->prev != NULL)
-                blk->prev->next = new;
+            if (prev != NULL)
+                prev->next = new;
             else
                 head = new;
 
-            if (blk->next != NULL)
-                blk->next->prev = new;
-
             blk->size = size;
-            blk->last = false;
         }
         else
         {
-            if (blk->prev != NULL)
-                blk->prev->next = blk->next;
+            if (prev != NULL)
+                prev->next = blk->next;
             else
                 head = blk->next;
-
-            if (blk->next != NULL)
-                blk->next->prev = blk->prev;
         }
-
-        blk->prev = NULL;
         blk->next = NULL;
-        blk->free = false;
 
         ret = MEMBODY(blk, 0);
     }
@@ -126,38 +104,64 @@ vrm_mem_del(void *mem)
         struct memblk *blk = mem;
         blk = &(blk[-1]);
 
-        if (head != NULL)
-            blk->next = head;
-        else
-            blk->next = NULL;
-
-        blk->prev = NULL;
-        blk->free = true;
-        head = blk;
-
-        /* Coalesce left */
-        struct memblk *prev = blk->phys;
-        if (prev && prev->free)
+        struct memblk *prev = NULL;
+        if (blk < head || !head)
         {
-            prev->size += blk->size + sizeof(struct memblk);
-            prev->last  = blk->last;
-            head = blk->next;
+            blk->next = head;
+            head      = blk;
+        }
+        else
+        {
+            for (struct memblk *cur = head; cur != NULL; cur = cur->next)
+            {
+                if (blk < cur)
+                {
+                    blk->next  = prev->next;
+                    prev->next = blk;
+                    break;
+                }
+
+                prev = cur;
+            }
+
+            if (!(blk->next))
+                prev->next = blk;
         }
 
-        /* Absorb right */
+        if (prev)
+        {
+            struct memblk *next = MEMBODY(prev, prev->size);
+            if (next == blk)
+            {
+                prev->size += blk->size + sizeof(struct memblk);
+                prev->next  = blk->next;
+                blk = prev;
+            }
+        }
+
         struct memblk *next = MEMBODY(blk, blk->size);
-        if (!(blk->last) && next->free)
+        if (blk->next == next)
         {
             blk->size += next->size + sizeof(struct memblk);
-            blk->last  = next->last;
             blk->next  = next->next;
-
-            if (next->next != NULL)
-                next->next->prev = blk;
         }
     }
 
     return NULL;
+}
+
+extern void
+vrm_mem_use(size_t *free, size_t *total)
+{
+    if (free)
+    {
+        *free = 0;
+        for (struct memblk *cur = head; cur != NULL; cur = cur->next)
+            *free += cur->size;
+    }
+
+    if (total)
+        *total = CONFIG_RAM_SIZE;
 }
 
 extern int

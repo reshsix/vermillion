@@ -25,6 +25,7 @@ void mem_clean(void);
 
 void *vrm_mem_new(size_t size);
 void *vrm_mem_del(void *mem);
+void  vrm_mem_use(size_t *free, size_t *total);
 
 int   vrm_mem_comp(const void *mem, const void *mem2, size_t length);
 void *vrm_mem_find(const void *mem, uint8_t c,        size_t length);
