@@ -16,6 +16,7 @@
 
 #pragma once
 
-#include <vermillion/util/types.h>
+#include <stdarg.h>
 
 void vrm_debug(const char *fmt, ...);
+void vrm_debug_custom(void (*chr)(char), const char *fmt, va_list args);
