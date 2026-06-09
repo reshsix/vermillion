@@ -23,15 +23,15 @@
 
 struct __attribute__((packed)) fat32br
 {
-    uint8_t jmp[3];
-    char oem[8];
+    uint8_t  jmp[3];
+    char     oem[8];
     uint16_t bytepersect;
-    uint8_t sectspercluster;
+    uint8_t  sectspercluster;
     uint16_t reservedsects;
-    uint8_t tablecount;
+    uint8_t  tablecount;
     uint16_t rootentries;
     uint16_t sectsvolume;
-    uint8_t mediatype;
+    uint8_t  mediatype;
     uint16_t _unused;
     uint16_t sectspertrack;
     uint16_t headcount;
@@ -44,12 +44,12 @@ struct __attribute__((packed)) fat32br
     uint16_t fsinfosect;
     uint16_t backupsect;
     uint8_t _reserved[12];
-    uint8_t drivenum;
-    uint8_t flagsnt;
-    uint8_t signature;
+    uint8_t  drivenum;
+    uint8_t  flagsnt;
+    uint8_t  signature;
     uint32_t volumeid;
-    char label[11];
-    char system[8];
+    char     label[11];
+    char     system[8];
 };
 
 struct fat32e
@@ -59,7 +59,7 @@ struct fat32e
     uint32_t location;
 
     uint32_t cluster;
-    size_t size;
+    uint32_t size;
 
     uint32_t sect;
     uint32_t idx;
@@ -545,17 +545,32 @@ fat32_new(uint8_t disk)
         vrm_mem_fill(ret, 0, sizeof(struct fat32));
 
         ret->disk = disk;
-        if (!vrm_disk_read(ret->disk, (uint8_t*)fat32_buf, 0, 0))
+        if (vrm_disk_read(ret->disk, (uint8_t*)fat32_buf, 0, 0))
+            vrm_mem_copy(&(ret->br), fat32_buf, sizeof(struct fat32br));
+        else
             ret = fat32_del(ret);
     }
 
     if (ret)
     {
-        vrm_mem_copy(&(ret->br), fat32_buf, sizeof(struct fat32br));
-
         ret->buffer = vrm_mem_new(0x200 * ret->br.sectspercluster);
         if (ret->buffer)
             vrm_mem_fill(ret->buffer, 0, 0x200 * ret->br.sectspercluster);
+        else
+            ret = fat32_del(ret);
+    }
+
+    if (ret)
+    {
+        if (vrm_disk_read(ret->disk, (uint8_t *)fat32_buf,
+                          ret->br.fsinfosect, 0))
+        {
+            /* Invalidate free cluster cache, it will not be used */
+            vrm_mem_fill(&(fat32_buf[0x7A]), 0xFF, 8);
+            if (!vrm_disk_write(ret->disk, (uint8_t *)fat32_buf,
+                                ret->br.fsinfosect, 0))
+                ret = fat32_del(ret);
+        }
         else
             ret = fat32_del(ret);
     }
@@ -614,7 +629,7 @@ entry_update(struct fat32 *f, struct fat32e *fe, bool unused)
                 if (i != index && f->buffer[i + 11] != 0x0F)
                     break;
 
-                vrm_mem_fill(&(f->buffer[i]), 0xE5, 1);
+                vrm_mem_fill(&(f->buffer[i + 0]), 0xE5, 1);
                 vrm_mem_fill(&(f->buffer[i + 1]), 0x00, 31);
 
                 if (i == 0)
@@ -627,8 +642,12 @@ entry_update(struct fat32 *f, struct fat32e *fe, bool unused)
         }
         else
         {
-            uint32_t size = fe->size;
-            vrm_mem_copy(&(f->buffer[index + 28]), &size, sizeof(uint32_t));
+            uint32_t i = index;
+            vrm_mem_copy(&(f->buffer[i + 28]), &(fe->size), sizeof(uint32_t));
+            f->buffer[i + 26] = (fe->cluster >> 0)  & 0xFF;
+            f->buffer[i + 27] = (fe->cluster >> 8)  & 0xFF;
+            f->buffer[i + 20] = (fe->cluster >> 16) & 0xFF;
+            f->buffer[i + 21] = (fe->cluster >> 24) & 0xFF;
         }
 
         if (ret)
@@ -644,33 +663,45 @@ fat32_resize(struct fat32 *f, struct fat32e *fe, uint32_t size)
     bool ret = true;
 
     uint32_t cluster_n = 0;
-    for (uint32_t c = fe->cluster; !cluster_eof(c); c = fat32_next(f, c))
-        cluster_n++;
-
-    uint32_t cluster_n2 = (size / 0x200) / f->br.sectspercluster;
-    if (cluster_n != cluster_n2)
+    if (fe->cluster && !cluster_eof(fe->cluster))
     {
-        if (cluster_n2 < cluster_n)
-        {
-            ret = fat32_free(f, fe->cluster, cluster_n2 + 1);
-            fe->size = size;
-        }
-        else if (cluster_n2 > cluster_n)
-        {
-            uint32_t cluster = fe->cluster;
-            for (uint32_t i = 0; ret && i <= cluster_n2; i++)
-            {
-                cluster = fat32_alloc2(f, cluster);
-                if (cluster_eof(cluster))
-                    ret = false;
-            }
-
-            if (ret)
-                fe->size = size;
-        }
+        for (uint32_t c = fe->cluster; !cluster_eof(c); c = fat32_next(f, c))
+            cluster_n++;
     }
-    else
-        fe->size = size;
+    else if (size)
+    {
+        fe->cluster = fat32_alloc(f);
+        cluster_n   = 1;
+        ret = (!cluster_eof(fe->cluster));
+    }
+
+    if (ret)
+    {
+        uint32_t cluster_n2 = (size / 0x200) / f->br.sectspercluster;
+        if (cluster_n != cluster_n2)
+        {
+            if (cluster_n2 < cluster_n)
+            {
+                ret = fat32_free(f, fe->cluster, cluster_n2 + 1);
+                fe->size = size;
+            }
+            else if (cluster_n2 > cluster_n)
+            {
+                uint32_t cluster = fe->cluster;
+                for (uint32_t i = 0; ret && i <= cluster_n2; i++)
+                {
+                    cluster = fat32_alloc2(f, cluster);
+                    if (cluster_eof(cluster))
+                        ret = false;
+                }
+
+                if (ret)
+                    fe->size = size;
+            }
+        }
+        else
+            fe->size = size;
+    }
 
     if (ret)
         ret = entry_update(f, fe, false);
@@ -729,8 +760,8 @@ fill_entry(uint8_t *buf, const char *name,
     uint32_t i = lfn_c * 32;
     vrm_mem_copy(&(buf[i]), id83, 11);
     buf[i + 11] = 0x20 | ((dir) ? 0x10 : 0x0);
-    buf[i + 26] = (cluster >> 0) & 0xFF;
-    buf[i + 27] = (cluster >> 8) & 0xFF;
+    buf[i + 26] = (cluster >> 0)  & 0xFF;
+    buf[i + 27] = (cluster >> 8)  & 0xFF;
     buf[i + 20] = (cluster >> 16) & 0xFF;
     buf[i + 21] = (cluster >> 24) & 0xFF;
 
@@ -789,7 +820,7 @@ chain_write(struct fat32 *f, uint8_t *buf, uint32_t cluster,
 }
 
 static bool
-directory_dots(struct fat32 *f, uint32_t cluster, uint32_t pcluster)
+directory_dots(struct fat32 *f, uint32_t cluster, uint32_t fpcluster)
 {
     bool ret = false;
 
@@ -802,22 +833,25 @@ directory_dots(struct fat32 *f, uint32_t cluster, uint32_t pcluster)
 
         uint32_t i = 0;
         vrm_mem_fill(&(buf[i]), 0x20, 11);
-        buf[i] = '.';
+        buf[i +  0] = '.';
         buf[i + 11] = 0x30;
-        buf[i + 26] = (cluster >> 0) & 0xFF;
-        buf[i + 27] = (cluster >> 8) & 0xFF;
+        buf[i + 26] = (cluster >> 0)  & 0xFF;
+        buf[i + 27] = (cluster >> 8)  & 0xFF;
         buf[i + 20] = (cluster >> 16) & 0xFF;
         buf[i + 21] = (cluster >> 24) & 0xFF;
 
+        if (fpcluster == 2)
+            fpcluster =  0;
+
         i += 32;
         vrm_mem_fill(&(buf[i]), 0x20, 11);
-        buf[i] = '.';
-        buf[i + 1] = '.';
-        buf[i + 11] = 0x30;
-        buf[i + 26] = (pcluster >> 0) & 0xFF;
-        buf[i + 27] = (pcluster >> 8) & 0xFF;
-        buf[i + 20] = (pcluster >> 16) & 0xFF;
-        buf[i + 21] = (pcluster >> 24) & 0xFF;
+        buf[i +  0] = '.';
+        buf[i +  1] = '.';
+        buf[i + 11] = 0x10;
+        buf[i + 26] = (fpcluster >> 0)  & 0xFF;
+        buf[i + 27] = (fpcluster >> 8)  & 0xFF;
+        buf[i + 20] = (fpcluster >> 16) & 0xFF;
+        buf[i + 21] = (fpcluster >> 24) & 0xFF;
 
         ret = vrm_disk_write(f->disk, f->buffer, sector, 0);
     }
@@ -845,9 +879,11 @@ fat32_create(struct fat32 *f, uint32_t pcluster,
     if (ret)
     {
         uint16_t pos = 0;
-        bool found = false;
-        uint32_t sector = fat32_fsector(f, pcluster), sector_idx = 0;
+        uint32_t fpcluster = pcluster;
+        uint32_t sector    = fat32_fsector(f, pcluster), sector_idx = 0;
         uint16_t unused_st = 0, unused_c = 0;
+
+        bool found = false;
         while (!found)
         {
             if (vrm_disk_read(f->disk, f->buffer, sector, 0))
@@ -902,14 +938,11 @@ fat32_create(struct fat32 *f, uint32_t pcluster,
 
         if (found)
         {
-            if (ret && cluster == 0)
+            if (ret && cluster == 0 && dir)
             {
                 cluster = fat32_alloc(f);
                 if (cluster)
-                {
-                    if (dir)
-                        ret = directory_dots(f, cluster, pcluster);
-                }
+                    ret = directory_dots(f, cluster, fpcluster);
                 else
                     ret = false;
             }
