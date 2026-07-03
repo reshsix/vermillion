@@ -50,7 +50,7 @@ OBJS += $(PREFIX)/gic.o
 endif
 
 PREFIX = src/util
-OBJS += $(PREFIX)/debug.o $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/path.o
+OBJS += $(PREFIX)/debug.o $(PREFIX)/mem.o $(PREFIX)/str.o
 
 PREFIX = src/hal
 OBJS += $(PREFIX)/uart.o  $(PREFIX)/spi.o \

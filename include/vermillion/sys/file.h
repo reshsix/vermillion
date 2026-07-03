@@ -22,17 +22,18 @@
 typedef struct
 {
     void *init, (*clean)(void *);
-    void * (*root)(void *ctx);
-    void * (*walk)(void *ctx, void *parent, void *entry,
-                   bool *dir, char *name, uint32_t *size);
-    bool   (*read)  (void *ctx, void *entry,
-                           uint8_t *data, uint32_t block);
-    bool   (*write) (void *ctx, void *entry,
-                     const uint8_t *data, uint32_t block);
-    bool   (*create)(void *ctx, void *parent, const char *name, bool dir);
-    bool   (*remove)(void *ctx, void *entry);
-    bool   (*resize)(void *ctx, void *entry, uint32_t size);
-    bool   (*move)  (void *ctx, void *entry, void *parent, const char *name);
+    uint32_t (*root)  (void *ctx);
+    bool (*walk)  (void *ctx, uint32_t parent, uint32_t *idx,
+                   bool *dir, char *name, uint32_t *size, uint32_t *location);
+    bool (*read)  (void *ctx, uint32_t location,
+                   uint8_t *data, uint32_t block);
+    bool (*write) (void *ctx, uint32_t location,
+                   const uint8_t *data, uint32_t block);
+    bool (*create)(void *ctx, uint32_t parent, const char *name, bool dir,
+                   uint32_t location, uint32_t size);
+    bool (*remove)(void *ctx, uint32_t parent, uint32_t idx, bool data);
+    bool (*resize)(void *ctx, uint32_t parent, uint32_t idx, uint32_t size,
+                   uint32_t *location);
 } drv_fs;
 
 typedef struct
@@ -43,22 +44,27 @@ typedef struct
 
 struct vrm_file
 {
-    uint8_t id;
-    dev_fs *df;
-    void *cache;
+    uint8_t dev;
 
-    uint8_t *buffer;
-    uint32_t width, block;
-    bool flush;
+    uint32_t parent, idx, location;
 
     bool dir;
     uint32_t size;
 
-    uint32_t pos;
+    uint8_t  buffer[0x200];
+    uint32_t block, pos;
+    bool     flush;
 };
 
 void file_setup(dev_fs *list, uint8_t count);
 #endif
+
+#define VRM_FILE_PATH_S 256
+
+bool vrm_file_validate(const char *path);
+void vrm_file_sanitize(char *path);
+void vrm_file_dirname (char *path);
+void vrm_file_basename(char *path);
 
 typedef struct vrm_file vrm_file;
 
@@ -66,10 +72,10 @@ vrm_file *vrm_file_open(uint8_t id, const char *path);
 vrm_file *vrm_file_close(vrm_file *f);
 
 bool vrm_file_stat(vrm_file *f, bool *dir, uint32_t *size);
-void *vrm_file_walk(vrm_file *f, void *state,
-                    bool *dir, char *name, uint32_t *size);
+bool vrm_file_walk(vrm_file *f, uint32_t *idx,
+                   bool *dir, char *name, uint32_t *size);
 
-bool vrm_file_seek(vrm_file *f, uint32_t pos);
+bool vrm_file_seek(vrm_file *f, uint32_t  pos);
 bool vrm_file_tell(vrm_file *f, uint32_t *pos);
 
 uint32_t vrm_file_read (vrm_file *f,       void *buffer, uint32_t bytes);
