@@ -227,7 +227,7 @@ vrm_file_tell(struct vrm_file *f, uint32_t *pos)
 {
     bool ret = (f && !(f->dir));
 
-    if (ret)
+    if (ret && pos)
         *pos = f->pos;
 
     return ret;

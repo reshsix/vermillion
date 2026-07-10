@@ -57,14 +57,14 @@ struct fat32
     uint8_t disk;
     struct fat32br br;
 
-    uint8_t  cache[0x200];
+    uint8_t  cache[0x200] __attribute__((aligned(4)));
     uint32_t cache_blk;
     bool     cached;
 };
 
 /* Helper macros */
 
-#define DIV_ROUND(x, y) (((x) + (y) - 1) / (y))
+#define DIV_CEIL(x, y) (((x) + (y) - 1) / (y))
 
 /* Disk functions */
 
@@ -124,7 +124,7 @@ cluster_set(struct fat32 *f, uint32_t cluster, uint32_t value)
 {
     bool ret = true;
 
-    uint32_t *table = f->cache;
+    uint32_t *table = (uint32_t *)f->cache;
 
     uint32_t idx = f->br.reservedsects + (cluster / 0x80);
     for (uint32_t i = 0; ret && i < f->br.tablecount; i++)
@@ -149,7 +149,7 @@ cluster_get(struct fat32 *f, uint32_t cluster)
 {
     uint32_t ret = CLUSTER_EOF;
 
-    uint32_t *table = f->cache;
+    uint32_t *table = (uint32_t *)f->cache;
 
     uint32_t idx = f->br.reservedsects + (cluster / 0x80);
     if (disk_cache(f, idx))
@@ -197,19 +197,21 @@ cluster_alloc(struct fat32 *f, uint32_t cluster, uint32_t count)
     uint32_t first =  cluster;
     for (uint32_t i = 0; i < count; i++)
     {
-        if (cluster)
+        if (cluster && !cluster_eof(cluster))
         {
             ret = cluster_next(f, cluster);
             if (cluster_eof(ret))
             {
                 uint32_t cluster2 = cluster_find(f, CLUSTER_FREE);
-                if (cluster2 && !cluster_eof(cluster))
+                if (!cluster_eof(cluster2))
                 {
                     if (cluster_set(f, cluster,  cluster2) &&
                         cluster_set(f, cluster2, CLUSTER_EOF))
                         ret = cluster2;
                     else
                         ret = CLUSTER_EOF;
+
+                    cluster = ret;
                 }
             }
         }
@@ -345,7 +347,7 @@ entry_alloc(struct fat32 *f, uint32_t fcluster, uint8_t count)
         uint32_t left = per_cluster - (i % per_cluster);
         if (left < count)
         {
-            uint32_t clusters = DIV_ROUND(count, per_cluster);
+            uint32_t clusters = DIV_CEIL(count, per_cluster);
             if (cluster_eof(cluster_alloc(f, fcluster, clusters)))
                 ret = -1;
         }
@@ -873,10 +875,8 @@ resize(void *ctx, uint32_t parent, uint32_t idx, uint32_t size,
 
         if (!dir)
         {
-            uint32_t per_sector  = 0x200 / 32;
-            uint32_t per_cluster = per_sector * f->br.sectspercluster;
-            uint32_t clusters    = DIV_ROUND(fsize, per_cluster);
-            uint32_t clusters2   = DIV_ROUND(size , per_cluster);
+            uint32_t clusters  = DIV_CEIL(fsize, 0x200);
+            uint32_t clusters2 = DIV_CEIL(size , 0x200);
             if (!cluster)
             {
                 cluster = cluster_alloc(f, cluster, clusters2);
