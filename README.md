@@ -1,11 +1,11 @@
 # Vermillion
 
-**Status: 1.2**
+**Status: 1.3α**
 
 ## Features
 - [x] HAL
 - [x] Filesystem
-- [ ] Multitasking
+- [x] Multitasking
 
 ## Example
 ```c

@@ -57,7 +57,7 @@ OBJS += $(PREFIX)/uart.o  $(PREFIX)/spi.o \
 		$(PREFIX)/timer.o $(PREFIX)/gpio.o $(PREFIX)/disk.o
 
 PREFIX = src/sys
-OBJS += $(PREFIX)/file.o
+OBJS += $(PREFIX)/file.o $(PREFIX)/task.o
 
 PREFIX = drivers/fs
 
