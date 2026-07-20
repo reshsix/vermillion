@@ -13,7 +13,7 @@
 # along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 
 CONFIG_NAME="sunxi_h3"
-CONFIG_CFLAGS="-nostdlib -ffreestanding -fpic -mcpu=cortex-a7 -mfloat-abi=soft"
+CONFIG_CFLAGS="-nostdlib -ffreestanding -mcpu=cortex-a7 -mfloat-abi=soft"
 CONFIG_DEVICE_TREE="devtree/sunxi_h3.c"
 
 CONFIG_RAM_ADDRESS=0x40000000

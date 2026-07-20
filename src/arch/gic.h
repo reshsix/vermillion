@@ -18,6 +18,8 @@
 
 #include <vermillion/util/types.h>
 
+extern uint32_t *gic_irq_regs;
+
 void gic_init(uint32_t cpu, uint32_t dist);
 void gic_clean(void);
 void gic_state(bool enabled);

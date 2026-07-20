@@ -14,84 +14,57 @@
  *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <arch/gic.h>
+
 #include <vermillion/sys/task.h>
 #include <vermillion/util/mem.h>
+#include <vermillion/hal/timer.h>
 
 /* Register state control */
 
 struct state
 {
-    void *gpr[13];
+    uint32_t gpr[17];
 } __attribute__((packed, aligned(4)));
 
-__attribute__((naked, return_twice))
-static void *
-state_save(struct state *st)
+static void
+state_save_irq(struct state *st)
+{
+    /* Saving original registers from gic_irq_regs */
+    for (uint8_t i = 0; i < 17; i++)
+        st->gpr[i] = gic_irq_regs[i];
+}
+
+__attribute__((naked, noreturn))
+static void
+state_load_irq(struct state *st)
 {
     (void)st;
 
     /* Call parameters: st -> r0 */
 
-    /* Saving low callee-saved registers in st->gpr[0 -> 3] */
-    __asm__ __volatile__ ("stmia r0!, {r4-r7}");
-    /* Saving high callee-saved registers in st->gpr[4 -> 10] */
-    __asm__ __volatile__ ("mov r1,  r8\n" "mov r2,  r9\n" "mov r3, r10\n" \
-                          "mov r4, r11\n" "mov r5, r12\n" "mov r6, r13\n" \
-                          "mov r7, r14\n");
-    __asm__ __volatile__ ("stmia r0!, {r1-r7}");
-    /* Restoring low registers */
-    __asm__ __volatile__ ("sub r0, r0, #44");
-    __asm__ __volatile__ ("ldmia r0!, {r4-r7}");
-    /* Setting r1 to st->gpr[12] */
-    __asm__ __volatile__ ("mov r1, r0");
-    __asm__ __volatile__ ("add r1, r1, #32");
-    /* Saving cpsr in st->gpr[12] */
-    __asm__ __volatile__ ("mrs r2, cpsr");
-    __asm__ __volatile__ ("str r2, [r1]");
-    /* Setting r1 to st->gpr[11] */
-    __asm__ __volatile__ ("sub r1, r1, #4");
-    /* Setting r0 to NULL for first return */
-    __asm__ __volatile__ ("mov r0, $0");
-    /* Saving program counter in st->gpr[11] */
-    __asm__ __volatile__ ("str pc, [r1]");
-    /* Return with NULL or the value from state_load */
-    __asm__ __volatile__ ("bx lr");
-    /* Again if coming from state_load */
-    __asm__ __volatile__ ("bx lr");
-
-    /* Supressing compiler warning */
-    return NULL;
-}
-
-__attribute__((naked, noreturn))
-static void
-state_load(struct state *st, void *ret)
-{
-    (void)st, (void)ret;
-
-    /* Call parameters: st -> r0, ret -> r1 */
-
-    /* Loading cpsr */
-    __asm__ __volatile__ ("add r0, r0, #48");
-    __asm__ __volatile__ ("ldr r2, [r0]");
-    __asm__ __volatile__ ("msr cpsr, r2");
-    /* Loading high callee-saved registers */
-    __asm__ __volatile__ ("sub r0, r0, #32");
-    __asm__ __volatile__ ("ldmia r0!, {r2-r7}");
-    __asm__ __volatile__ ("mov r8,  r2\n" "mov r9,  r3\n" "mov r10, r4\n" \
-                          "mov r11, r5\n" "mov r12, r6\n" "mov r13, r7\n");
-    __asm__ __volatile__ ("ldr r2, [r0]");
-    __asm__ __volatile__ ("mov r14, r2");
-    /* Loading low callee-saved registers */
-    __asm__ __volatile__ ("sub r0, r0, #40");
-    __asm__ __volatile__ ("ldmia r0!, {r4-r7}");
-    /* Setting r2 to program counter */
-    __asm__ __volatile__ ("add r0, r0, #28");
-    __asm__ __volatile__ ("ldr r2, [r0]");
-    /* Setting r0 to ret */
-    __asm__ __volatile__ ("mov r0, r1");
-    /* Jumping to address */
-    __asm__ __volatile__ ("mov pc, r2");
+    /* Loading registers */
+    __asm__ __volatile__ ("add r0, r0, #16");
+    __asm__ __volatile__ ("ldmia r0!, {r4-r12}");
+    /* Including the actual sp and lr from the task */
+    __asm__ __volatile__ ("ldmia r0,  {sp, lr}^");
+    /* Setting lr to program counter */
+    __asm__ __volatile__ ("add r0, r0, #8");
+    __asm__ __volatile__ ("ldr lr, [r0]");
+    /* Loading cpsr into spsr */
+    __asm__ __volatile__ ("add r0, r0, #4");
+    __asm__ __volatile__ ("ldr r1, [r0]");
+    __asm__ __volatile__ ("msr spsr, r1");
+    /* Loading original r0-r3 */
+    __asm__ __volatile__ ("sub r0, r0, #60");
+    __asm__ __volatile__ ("ldmia r0, {r1-r3}");
+    __asm__ __volatile__ ("sub r0, r0, #4");
+    __asm__ __volatile__ ("ldr r0, [r0]");
+    /* Flushes all the changes */
+    __asm__ __volatile__ ("dsb sy");
+    __asm__ __volatile__ ("isb");
+    /* Jumping to address (using exception return) */
+    __asm__ __volatile__ ("subs pc, lr, #4");
 
     /* Supressing compiler warning */
     while (true);
@@ -102,43 +75,47 @@ state_load(struct state *st, void *ret)
 struct context
 {
     void (*f)(void *), *arg;
-
     uint8_t stack[CONFIG_STACK_SIZE];
-    void *fp, *sp;
-
-    struct context *previous;
 };
 
+__attribute__((naked, noreturn))
 static void
-context_run(struct context *ctx)
+context_run_irq(struct context *ctx)
 {
-    /* Saving both current and previous context as static for recursion */
-    static struct context *s_ctx = NULL;
-    ctx->previous = s_ctx;
-    s_ctx = ctx;
+    /* Variable to the end/base of the stack */
+    static uint32_t stack = 0;
+    stack = ((uint32_t)ctx->stack) + CONFIG_STACK_SIZE;
 
-    /* Pointer to the end/base of the stack */
-    static void *stack = NULL;
-    stack = (void*)((uint32_t)s_ctx->stack + CONFIG_STACK_SIZE);
-
-    /* Saving current stack */
-    __asm__ __volatile__ ("mov %0, fp" : "=r"(s_ctx->fp));
-    __asm__ __volatile__ ("mov %0, sp" : "=r"(s_ctx->sp));
     /* Setting stack to allocated address */
-    __asm__ __volatile__ ("mov fp, %0" :: "r"(stack));
-    __asm__ __volatile__ ("mov sp, fp");
+    __asm__ __volatile__ ("ldmia %0, {fp}^" :: "r"(&stack));
+    __asm__ __volatile__ ("ldmia %0, {sp}^" :: "r"(&stack));
 
-    /* Jumping to function */
-    s_ctx->f(s_ctx->arg);
+    /* Setting Saved CPSR to System mode, either ARM or Thumb state */
+    if ((uintptr_t)ctx->f & 1)
+    {
+        __asm__ __volatile__ ("mov r0, #0x3f");
+        __asm__ __volatile__ ("msr spsr_c, r0");
+        ctx->f = (void *)((uintptr_t)ctx->f & ~1);
+    }
+    else
+    {
+        __asm__ __volatile__ ("mov r0, #0x1f");
+        __asm__ __volatile__ ("msr spsr_c, r0");
+    }
 
-    /* Turning the stack back to normal */
-    __asm__ __volatile__ ("mov fp, %0" :: "r"(s_ctx->fp));
-    __asm__ __volatile__ ("mov sp, %0" :: "r"(s_ctx->sp));
+    /* Flushes all the changes */
+    __asm__ __volatile__ ("dsb sy");
+    __asm__ __volatile__ ("isb");
 
-    /* Loading previous context for next run */
-    struct context *prev = s_ctx->previous;
-    s_ctx->previous = NULL;
-    s_ctx = prev;
+    /* Jumping to function (as an exception return) */
+    __asm__ __volatile__ ("mov  r0, %0\n"
+                          "movs pc, %1\n"
+                          :
+                          : "r"(ctx->arg), "r"(ctx->f)
+                          : "r0");
+
+    /* Supressing compiler warning */
+    while (true);
 }
 
 /* Task implementation */
@@ -162,31 +139,37 @@ static struct vrm_task *current   =  NULL ;
 static void
 task_insert(struct vrm_task *t)
 {
-    t->prev = tails[t->priority];
-    if (t->prev)
-        t->prev->next  = t;
-    t->next = NULL;
+    if (t)
+    {
+        t->prev = tails[t->priority];
+        if (t->prev)
+            t->prev->next = t;
+        t->next = NULL;
 
-    if (!(heads[t->priority]))
-        heads[t->priority] = t;
-    tails[t->priority] = t;
+        if (!(heads[t->priority]))
+            heads[t->priority] = t;
+        tails[t->priority] = t;
+    }
 }
 
 static void
 task_remove(struct vrm_task *t)
 {
-    if (t->priority < 32)
+    if (t)
     {
-        if (heads[t->priority] == t)
-            heads[t->priority] =  t->next;
-        if (tails[t->priority] == t)
-            tails[t->priority] =  t->prev;
-    }
+        if (t->priority < 32)
+        {
+            if (heads[t->priority] == t)
+                heads[t->priority] =  t->next;
+            if (tails[t->priority] == t)
+                tails[t->priority] =  t->prev;
+        }
 
-    if (t->prev)
-        t->prev->next = t->next;
-    if (t->next)
-        t->next->prev = t->prev;
+        if (t->prev)
+            t->prev->next = t->next;
+        if (t->next)
+            t->next->prev = t->prev;
+    }
 }
 
 extern struct vrm_task *
@@ -313,54 +296,79 @@ vrm_task_priority(struct vrm_task *t, uint8_t priority)
 extern void
 vrm_task_yield(void)
 {
-    if (state_save(&(current->callee)) == NULL)
-        state_load(&(current->caller), (void *)0x1);
+    gic_wait();
+}
+
+static void
+task_next(void)
+{
+    task_remove(current);
+    task_insert(current);
+
+    bool found = false;
+    for (uint8_t i = 0; !found && i < 32; i++)
+    {
+        uint8_t j = 32 - i - 1;
+
+        current = heads[j];
+        while (current && !found)
+        {
+            switch (current->status)
+            {
+                case VRM_TASK_NEW:
+                case VRM_TASK_READY:
+                    found = true;
+                    break;
+
+                case VRM_TASK_DELETED:
+                    vrm_task_remove(current);
+                    break;
+
+                default:
+                    break;
+            }
+
+            if (!found)
+                current = current->next;
+        }
+    }
+}
+
+static void
+task_preempt(void *arg)
+{
+    (void)arg;
+
+    if (current)
+        state_save_irq(&(current->caller));
+
+    task_next();
+
+    if (current)
+    {
+        switch (current->status)
+        {
+            case VRM_TASK_NEW:
+                current->status = VRM_TASK_READY;
+                context_run_irq(&(current->ctx));
+                break;
+
+            case VRM_TASK_READY:
+                state_load_irq(&(current->caller));
+                break;
+
+            default:
+                break;
+        }
+    }
 }
 
 extern void
-vrm_task_scheduler(void)
+vrm_task_scheduler(uint8_t timer, uint32_t us, uint32_t flags)
 {
+    (void)flags;
+
+    vrm_timer_alarm(timer, us, true, task_preempt, NULL);
     while (true)
-    {
-        bool found = false;
-        for (uint8_t i = 0; !found && i < 32; i++)
-        {
-            uint8_t j = 32 - i - 1;
-
-            current = heads[j];
-            while (current && !found)
-            {
-                switch (current->status)
-                {
-                    case VRM_TASK_NEW:
-                        if (state_save(&(current->caller)) == NULL)
-                            context_run(&(current->ctx));
-                        current->status = VRM_TASK_READY;
-                        found = true;
-                        break;
-
-                    case VRM_TASK_READY:
-                        if (state_save(&(current->caller)) == NULL)
-                            state_load(&(current->callee), (void*)0x1);
-                        found = true;
-                        break;
-
-                    case VRM_TASK_DELETED:
-                        vrm_task_remove(current);
-                        break;
-
-                    default:
-                        break;
-                }
-
-                if (found)
-                {
-                    task_remove(current);
-                    task_insert(current);
-                }
-                else
-                    current = current->next;
-            }
-        }
-    }
+        gic_wait();
 }

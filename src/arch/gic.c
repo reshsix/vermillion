@@ -214,14 +214,51 @@ INTERRUPT(abort) handler_data(void)
         arm_wait_interrupts();
 }
 
-INTERRUPT(irq) handler_irq(void)
+static void
+handler_irq_c(void)
 {
     enum intr_core c = 0;
+
     uint16_t n = intr_info(gic.cpu, &c);
     intr_ack(gic.cpu, c, n);
 
     if (gic.handler[n])
         gic.handler[n](gic.arg[n]);
+}
+
+uint32_t *gic_irq_regs;
+__attribute__((naked))
+INTERRUPT(irq) handler_irq(void)
+{
+    /* Make space for CPSR */
+    __asm__ __volatile__ ("sub sp, sp, #4");
+    /* Saves all the system mode registers */
+    __asm__ __volatile__ ("stmdb sp!, {lr}");
+    __asm__ __volatile__ ("stmdb sp, {r0-r14}^");
+    /* Saves CPSR */
+    __asm__ __volatile__ ("add sp, sp, #4");
+    __asm__ __volatile__ ("mrs r0, spsr");
+    __asm__ __volatile__ ("str r0, [sp]");
+    /* Saves sp address */
+    __asm__ __volatile__ ("sub sp, sp, #64");
+    __asm__ __volatile__ ("mov %0, sp" : "=r"(gic_irq_regs));
+
+    /* Branches to C handler */
+    (void)handler_irq_c;
+    __asm__ __volatile__ ("bl handler_irq_c");
+
+    /* Restores the previous state */
+    __asm__ __volatile__ ("ldmia sp, {r0-r14}^");
+    __asm__ __volatile__ ("add sp, sp, #60");
+    __asm__ __volatile__ ("ldmia sp!, {lr}");
+    __asm__ __volatile__ ("ldmia sp!, {r0}");
+    __asm__ __volatile__ ("msr spsr_fsxc, r0");
+    __asm__ __volatile__ ("ldr r0, [sp, #-68]");
+    /* Flushes all the changes */
+    __asm__ __volatile__ ("dsb sy");
+    __asm__ __volatile__ ("isb");
+    /* Does an exception return */
+    __asm__ __volatile__ ("subs pc, lr, #4");
 }
 
 INTERRUPT(fiq) handler_fiq(void)

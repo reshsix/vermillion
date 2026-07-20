@@ -36,4 +36,4 @@ bool       vrm_task_suspend  (vrm_task *t);
 bool       vrm_task_resume   (vrm_task *t);
 bool       vrm_task_priority (vrm_task *t, uint8_t priority);
 void       vrm_task_yield    (void);
-void       vrm_task_scheduler(void);
+void       vrm_task_scheduler(uint8_t timer, uint32_t us, uint32_t flags);
