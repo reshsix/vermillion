@@ -193,8 +193,7 @@ cluster_alloc(struct fat32 *f, uint32_t cluster, uint32_t count)
 {
     uint32_t ret = CLUSTER_EOF;
 
-    bool     chain = (cluster);
-    uint32_t first =  cluster;
+    uint32_t first = (cluster) ? cluster : ret;
     for (uint32_t i = 0; i < count; i++)
     {
         if (cluster && !cluster_eof(cluster))
@@ -214,6 +213,8 @@ cluster_alloc(struct fat32 *f, uint32_t cluster, uint32_t count)
                     cluster = ret;
                 }
             }
+            else
+                cluster = ret;
         }
         else
         {
@@ -231,9 +232,6 @@ cluster_alloc(struct fat32 *f, uint32_t cluster, uint32_t count)
         }
     }
 
-    if (chain)
-        first = cluster_next(f, cluster);
-
     return (cluster_eof(ret)) ? ret : first;
 }
 
@@ -242,7 +240,7 @@ cluster_free(struct fat32 *f, uint32_t cluster, uint32_t depth)
 {
     bool ret = true;
 
-    for (uint32_t i = 0; ret && !cluster_eof(cluster); i++)
+    for (uint32_t i = 0; ret && cluster && !cluster_eof(cluster); i++)
     {
         uint32_t prev = cluster;
         cluster = cluster_next(f, cluster);
@@ -804,15 +802,16 @@ remove(void *ctx, uint32_t parent, uint32_t idx, bool data)
         for (uint8_t i = 0; true; i++)
         {
             entry = entry_cache(f, parent, idx + i);
-            if (!entry)
-                break;
-
-            entry[0] = 0xE5;
-            if (entry[11] != 0x0F)
+            if (entry)
             {
-                ret = true;
-                break;
+                if (entry[11] != 0x0F)
+                {
+                    ret = true;
+                    break;
+                }
             }
+            else
+                break;
         }
 
         if (ret && data)
@@ -826,9 +825,17 @@ remove(void *ctx, uint32_t parent, uint32_t idx, bool data)
                 /* Checks for empty directory */
                 if (dir)
                 {
-                    entry = entry_cache(f, cluster, 2);
-                    if (entry[0] != 0x0)
-                        ret = false;
+                    for (size_t i = 2; true; i++)
+                    {
+                        entry = entry_cache(f, cluster, i);
+                        if (!entry || entry[0] == 0x00)
+                            break;
+                        if (entry[0] != 0xE5)
+                        {
+                            ret = false;
+                            break;
+                        }
+                    }
                 }
 
                 if (ret)
@@ -836,6 +843,22 @@ remove(void *ctx, uint32_t parent, uint32_t idx, bool data)
             }
             else
                 ret = false;
+        }
+
+        if (ret)
+        {
+            for (uint8_t i = 0; true; i++)
+            {
+                entry = entry_cache(f, parent, idx + i);
+                if (entry)
+                {
+                    entry[0] = 0xE5;
+                    if (entry[11] != 0x0F)
+                        break;
+                }
+                else
+                    break;
+            }
         }
     }
 
@@ -886,7 +909,7 @@ resize(void *ctx, uint32_t parent, uint32_t idx, uint32_t size,
             {
                 if (clusters2 > clusters)
                 {
-                    cluster = cluster_alloc(f, cluster, clusters2 - clusters);
+                    cluster = cluster_alloc(f, cluster, clusters2);
                     ret     = !cluster_eof(cluster);
                 }
                 else
