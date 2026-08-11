@@ -118,57 +118,87 @@ context_run_irq(struct context *ctx)
     while (true);
 }
 
+/* Critical sections */
+
+static uint32_t critical = 0;
+
+extern void
+vrm_task_crit_in(void)
+{
+    critical++;
+    gic_state(false);
+}
+
+extern void
+vrm_task_crit_out(void)
+{
+    if (critical > 0)
+        critical--;
+
+    if (critical == 0)
+        gic_state(true);
+}
+
 /* Task implementation */
+
+enum task_st
+{
+    VRM_TASK_NEW,
+    VRM_TASK_READY,
+    VRM_TASK_DELETED
+};
 
 struct vrm_task
 {
     uint8_t priority;
-    enum vrm_task_st status;
-    bool suspended;
+    enum task_st status;
 
-    struct state caller, callee;
+    struct state state;
     struct context ctx;
 
     struct vrm_task *prev, *next;
+    struct vrm_task_list *list;
 } task;
 
-static struct vrm_task *heads[32] = {NULL};
-static struct vrm_task *tails[32] = {NULL};
-static struct vrm_task *current   =  NULL ;
+static struct vrm_task_list active[32] = {NULL};
+static struct vrm_task    *current     =  NULL;
 
 static void
-task_insert(struct vrm_task *t)
+task_insert(struct vrm_task *t, struct vrm_task_list *list)
 {
-    if (t)
+    if (t && !(t->list))
     {
-        t->prev = tails[t->priority];
+        t->next = NULL;
+        t->prev = list->tail;
         if (t->prev)
             t->prev->next = t;
-        t->next = NULL;
 
-        if (!(heads[t->priority]))
-            heads[t->priority] = t;
-        tails[t->priority] = t;
+        if (!(list->head))
+            list->head = t;
+        list->tail = t;
+
+        t->list = list;
     }
 }
 
 static void
-task_remove(struct vrm_task *t)
+task_remove(struct vrm_task *t, struct vrm_task_list *list)
 {
-    if (t)
+    if (t && (t->list == list))
     {
-        if (t->priority < 32)
-        {
-            if (heads[t->priority] == t)
-                heads[t->priority] =  t->next;
-            if (tails[t->priority] == t)
-                tails[t->priority] =  t->prev;
-        }
+        if (list->head == t)
+            list->head =  t->next;
+        if (list->tail == t)
+            list->tail =  t->prev;
 
         if (t->prev)
             t->prev->next = t->next;
         if (t->next)
             t->next->prev = t->prev;
+
+        t->prev = NULL;
+        t->next = NULL;
+        t->list = NULL;
     }
 }
 
@@ -177,18 +207,21 @@ vrm_task_create(void (*f)(void *), void *arg, uint8_t priority)
 {
     struct vrm_task *ret = NULL;
 
-    if (f && priority < 32)
-        ret = vrm_mem_new(sizeof(struct vrm_task));
-
-    if (ret)
+    VRM_TASK_CRITICAL
     {
-        vrm_mem_fill(ret, 0, sizeof(struct vrm_task));
+        if (f && priority < 32)
+            ret = vrm_mem_new(sizeof(struct vrm_task));
 
-        ret->ctx.f    = f;
-        ret->ctx.arg  = arg;
-        ret->priority = priority;
+        if (ret)
+        {
+            vrm_mem_fill(ret, 0, sizeof(struct vrm_task));
 
-        task_insert(ret);
+            ret->ctx.f    = f;
+            ret->ctx.arg  = arg;
+            ret->priority = priority;
+
+            task_insert(ret, &(active[ret->priority]));
+        }
     }
 
     return (ret);
@@ -197,120 +230,101 @@ vrm_task_create(void (*f)(void *), void *arg, uint8_t priority)
 extern struct vrm_task *
 vrm_task_remove(struct vrm_task *t)
 {
-    if (t)
+    VRM_TASK_CRITICAL
     {
-        task_remove(t);
+        if (t)
+        {
+            task_remove(t, &(active[t->priority]));
+            if (current && current == t)
+                current = NULL;
 
-        if (current && current == t)
-            current = NULL;
-
-        vrm_mem_del(t);
-    }
-    else
-    {
-        current->status = VRM_TASK_DELETED;
-        vrm_task_yield();
+            vrm_mem_del(t);
+        }
+        else
+        {
+            current->status = VRM_TASK_DELETED;
+            vrm_task_yield();
+        }
     }
 
     return NULL;
 }
 
-extern bool
-vrm_task_block(struct vrm_task *t)
+extern void
+vrm_task_block(struct vrm_task *t, struct vrm_task_list *list)
 {
-    bool ret = false;
-
-    t = (!t) ? current : t;
-    if (t && (t->status == VRM_TASK_READY ||
-              t->status == VRM_TASK_BLOCKED))
+    VRM_TASK_CRITICAL
     {
-        t->status = VRM_TASK_BLOCKED;
-        ret = true;
-    }
+        t = (!t) ? current : t;
+        if (t)
+        {
+            task_remove(t, &(active[t->priority]));
+            if (list)
+                task_insert(t, list);
 
-    return ret;
+            if (current && current == t)
+            {
+                current = NULL;
+                vrm_task_yield();
+            }
+        }
+    }
 }
 
-extern bool
-vrm_task_unblock(struct vrm_task *t)
+extern void
+vrm_task_unblock(struct vrm_task *t, struct vrm_task_list *list)
 {
-    bool ret = false;
-
-    t = (!t) ? current : t;
-    if (t && t->status == VRM_TASK_BLOCKED)
+    VRM_TASK_CRITICAL
     {
-        t->status = VRM_TASK_READY;
-        ret = true;
-    }
+        t = (!t) ? current : t;
+        if (t)
+        {
+            if (list)
+                task_remove(t, list);
 
-    return ret;
+            task_insert(t, &(active[t->priority]));
+        }
+    }
 }
 
-extern bool
-vrm_task_suspend(struct vrm_task *t)
-{
-    bool ret = false;
-
-    t = (!t) ? current : t;
-    if (t)
-    {
-        t->suspended = true;
-        ret          = true;
-    }
-
-    return ret;
-}
-
-extern bool
-vrm_task_resume(struct vrm_task *t)
-{
-    bool ret = false;
-
-    t = (!t) ? current : t;
-    if (t)
-    {
-        t->suspended = false;
-        ret          = true;
-    }
-
-    return ret;
-}
-
-extern bool
+extern void
 vrm_task_priority(struct vrm_task *t, uint8_t priority)
 {
-    bool ret = false;
-
-    t = (!t) ? current : t;
-    if (t)
+    VRM_TASK_CRITICAL
     {
-        task_remove(t);
-        t->priority = priority;
-        task_insert(t);
-        ret = true;
-    }
+        t = (!t) ? current : t;
 
-    return ret;
+        if (t)
+        {
+            vrm_task_block(t, NULL);
+            t->priority = priority;
+            vrm_task_unblock(t, NULL);
+        }
+    }
 }
 
 extern void
 vrm_task_yield(void)
 {
-    gic_wait();
+    if (!critical)
+        gic_wait();
 }
 
 static void
 task_next(void)
 {
-    task_remove(current);
-    task_insert(current);
+    if (current)
+    {
+        task_remove(current, &(active[current->priority]));
+        task_insert(current, &(active[current->priority]));
+    }
 
     bool found = false;
     for (uint8_t i = 0; !found && i < 32; i++)
     {
         uint8_t j = 32 - i - 1;
 
-        current = heads[j];
+        current = active[j].head;
         while (current && !found)
         {
             switch (current->status)
@@ -340,21 +354,22 @@ task_preempt(void *arg)
     (void)arg;
 
     if (current)
-        state_save_irq(&(current->caller));
+        state_save_irq(&(current->state));
 
     task_next();
-
     if (current)
     {
         switch (current->status)
         {
             case VRM_TASK_NEW:
                 current->status = VRM_TASK_READY;
+                gic_irq_ack();
                 context_run_irq(&(current->ctx));
                 break;
 
             case VRM_TASK_READY:
-                state_load_irq(&(current->caller));
+                gic_irq_ack();
+                state_load_irq(&(current->state));
                 break;
 
             default:
@@ -371,4 +386,69 @@ vrm_task_scheduler(uint8_t timer, uint32_t us, uint32_t flags)
     vrm_timer_alarm(timer, us, true, task_preempt, NULL);
     while (true)
         gic_wait();
+}
+
+/* Synchronization primitives */
+
+extern void
+vrm_task_sem_take(struct vrm_task_sem *s)
+{
+    bool yield = false;
+
+    VRM_TASK_CRITICAL
+    {
+        if (s->count)
+            s->count--;
+        else
+        {
+            vrm_task_block(current, &(s->list));
+            yield = true;
+        }
+    }
+
+    if (yield)
+        vrm_task_yield();
+}
+
+extern void
+vrm_task_sem_give(struct vrm_task_sem *s)
+{
+    VRM_TASK_CRITICAL
+    {
+        vrm_task_unblock(s->list.head, &(s->list));
+        s->count++;
+    }
+}
+
+extern void
+vrm_task_mut_lock(struct vrm_task_mut *m)
+{
+    bool yield = false;
+
+    VRM_TASK_CRITICAL
+    {
+        if (!(m->owner))
+            m->owner = current;
+        else
+        {
+            vrm_task_block(current, &(m->list));
+            yield = true;
+        }
+    }
+
+    if (yield)
+        vrm_task_yield();
+}
+
+extern void
+vrm_task_mut_unlock(struct vrm_task_mut *m)
+{
+    VRM_TASK_CRITICAL
+    {
+        if (current == m->owner)
+        {
+            vrm_task_unblock(m->list.head, &(m->list));
+            m->owner = NULL;
+        }
+    }
 }

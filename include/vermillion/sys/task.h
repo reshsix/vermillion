@@ -20,20 +20,57 @@
 
 typedef struct vrm_task vrm_task;
 
-enum vrm_task_st
+struct vrm_task_list
 {
-    VRM_TASK_NEW,
-    VRM_TASK_READY,
-    VRM_TASK_BLOCKED,
-    VRM_TASK_DELETED
+    vrm_task *head, *tail;
 };
+
+/* Main functions */
 
 vrm_task * vrm_task_create   (void (*f)(void *), void *arg, uint8_t priority);
 vrm_task * vrm_task_remove   (vrm_task *t);
-bool       vrm_task_block    (vrm_task *t);
-bool       vrm_task_unblock  (vrm_task *t);
-bool       vrm_task_suspend  (vrm_task *t);
-bool       vrm_task_resume   (vrm_task *t);
-bool       vrm_task_priority (vrm_task *t, uint8_t priority);
+void       vrm_task_block    (vrm_task *t, struct vrm_task_list *list);
+void       vrm_task_unblock  (vrm_task *t, struct vrm_task_list *list);
+void       vrm_task_priority (vrm_task *t, uint8_t priority);
 void       vrm_task_yield    (void);
 void       vrm_task_scheduler(uint8_t timer, uint32_t us, uint32_t flags);
+
+/* Critical sections */
+
+void vrm_task_crit_in (void);
+void vrm_task_crit_out(void);
+
+#define VRM_TASK_CRITICAL \
+    for (int _once##__LINE__ = (vrm_task_crit_in(), 1); \
+             _once##__LINE__;                               \
+         (vrm_task_crit_out(), _once##__LINE__ = 0))
+
+/* Semaphores */
+
+struct vrm_task_sem
+{
+    size_t count;
+    struct vrm_task_list list;
+};
+void vrm_task_sem_take(struct vrm_task_sem *s);
+void vrm_task_sem_give(struct vrm_task_sem *s);
+
+#define VRM_TASK_SEMAPHORE(s) \
+    for (int _once##__LINE__ = (vrm_task_sem_take(s), 1); \
+             _once##__LINE__;                             \
+         (vrm_task_sem_give(s), _once##__LINE__ = 0))
+
+/* Mutexes */
+
+struct vrm_task_mut
+{
+    vrm_task *owner;
+    struct vrm_task_list list;
+};
+void vrm_task_mut_lock  (struct vrm_task_mut *m);
+void vrm_task_mut_unlock(struct vrm_task_mut *m);
+
+#define VRM_TASK_MUTEX(m) \
+    for (int _once##__LINE__ = (vrm_task_mut_lock(m), 1); \
+             _once##__LINE__;                             \
+         (vrm_task_mut_unlock(m), _once##__LINE__ = 0))

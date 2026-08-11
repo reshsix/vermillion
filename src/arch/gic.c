@@ -64,20 +64,6 @@ enum intr_core
     INTR_CORE_NONE = 255
 };
 
-static inline uint16_t
-intr_info(uint32_t cpu, enum intr_core *c)
-{
-    uint32_t info = ICCIAR(cpu);
-    *c = info >> 10;
-    return info & 0x3FF;
-}
-
-static inline void
-intr_ack(uint32_t cpu, enum intr_core c, uint16_t n)
-{
-    ICCEOIR(cpu) = (c << 10) | (n & 0x3FF);
-}
-
 static inline void
 arm_disable_irq(void)
 {
@@ -214,22 +200,38 @@ INTERRUPT(abort) handler_data(void)
         arm_wait_interrupts();
 }
 
+static uint32_t irq_info = 0;
+extern void
+gic_irq_ack(void)
+{
+    ICCEOIR(gic.cpu) = irq_info;
+}
+
 static void
 handler_irq_c(void)
 {
-    enum intr_core c = 0;
+    irq_info = ICCIAR(gic.cpu);
 
-    uint16_t n = intr_info(gic.cpu, &c);
-    intr_ack(gic.cpu, c, n);
+    uint16_t n = irq_info & 0x3FF;
+    if (n != 0x3FF)
+    {
+        if (gic.handler[n])
+            gic.handler[n](gic.arg[n]);
 
-    if (gic.handler[n])
-        gic.handler[n](gic.arg[n]);
+        gic_irq_ack();
+    }
 }
 
 uint32_t *gic_irq_regs;
 __attribute__((naked))
 INTERRUPT(irq) handler_irq(void)
 {
+    /* Load correct and empty stack */
+    __asm__ __volatile__ ("mov sp, %0\n"
+                          :
+                          : "r"(&(gic.stack[CONFIG_STACK_SIZE]))
+                          : "memory");
+
     /* Make space for CPSR */
     __asm__ __volatile__ ("sub sp, sp, #4");
     /* Saves all the system mode registers */
@@ -282,14 +284,6 @@ gic_init(uint32_t cpu, uint32_t dist)
     __ivt[IVT_DATA]     = handler_data;
     __ivt[IVT_IRQ]      = handler_irq;
     __ivt[IVT_FIQ]      = handler_fiq;
-
-    void *addr = &(gic.stack[CONFIG_STACK_SIZE]);
-    __asm__ __volatile__ ("msr CPSR_c, #0b11010010\n"
-                          "mov sp, %0\n"
-                          "msr CPSR_c, #0b11010011\n"
-                          :
-                          : "r"(addr)
-                          : "memory");
 
     gic_priority(gic.cpu, 0xFF);
 }
