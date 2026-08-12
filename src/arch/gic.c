@@ -309,17 +309,9 @@ gic_state(bool enabled)
     gic.enabled = enabled;
 
     if (gic.enabled)
-    {
-        gic_enable(gic.cpu);
-        gic_enable_dist(gic.dist);
         arm_enable_irq();
-    }
     else
-    {
         arm_disable_irq();
-        gic_disable_dist(gic.dist);
-        gic_disable(gic.cpu);
-    }
 }
 
 extern void

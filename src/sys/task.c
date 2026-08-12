@@ -122,21 +122,35 @@ context_run_irq(struct context *ctx)
 
 static uint32_t critical = 0;
 
+static bool
+outside_irq(void)
+{
+    uint32_t cpsr;
+    __asm__ __volatile__ ("mrs %0, cpsr" : "=r"(cpsr));
+    return (cpsr & 0xF) != 0x2;
+}
+
 extern void
 vrm_task_crit_in(void)
 {
-    critical++;
-    gic_state(false);
+    if (outside_irq())
+    {
+        critical++;
+        gic_state(false);
+    }
 }
 
 extern void
 vrm_task_crit_out(void)
 {
-    if (critical > 0)
-        critical--;
+    if (outside_irq())
+    {
+        if (critical > 0)
+            critical--;
 
-    if (critical == 0)
-        gic_state(true);
+        if (critical == 0)
+            gic_state(true);
+    }
 }
 
 /* Task implementation */
@@ -152,6 +166,7 @@ struct vrm_task
 {
     uint8_t priority;
     enum task_st status;
+    uint32_t delay;
 
     struct state state;
     struct context ctx;
@@ -161,6 +176,7 @@ struct vrm_task
 } task;
 
 static struct vrm_task_list active[32] = {NULL};
+static struct vrm_task_list sleeping   = {NULL};
 static struct vrm_task    *current     =  NULL;
 
 static void
@@ -243,7 +259,9 @@ vrm_task_remove(struct vrm_task *t)
         else
         {
             current->status = VRM_TASK_DELETED;
-            vrm_task_yield();
+
+            VRM_TASK_NONCRITICAL
+                vrm_task_yield();
         }
     }
 
@@ -253,6 +271,8 @@ vrm_task_remove(struct vrm_task *t)
 extern void
 vrm_task_block(struct vrm_task *t, struct vrm_task_list *list)
 {
+    bool yield = false;
+
     VRM_TASK_CRITICAL
     {
         t = (!t) ? current : t;
@@ -263,12 +283,12 @@ vrm_task_block(struct vrm_task *t, struct vrm_task_list *list)
                 task_insert(t, list);
 
             if (current && current == t)
-            {
-                current = NULL;
-                vrm_task_yield();
-            }
+                yield = true;
         }
     }
+
+    if (yield)
+        vrm_task_yield();
 }
 
 extern void
@@ -353,10 +373,21 @@ task_preempt(void *arg)
 {
     (void)arg;
 
+    /* Saving state and choosing next task */
     if (current)
         state_save_irq(&(current->state));
-
     task_next();
+
+    /* Waking up delayed tasks */
+    for (struct vrm_task *t = sleeping.head; t; t = t->next)
+    {
+        if (t->delay == 0)
+            vrm_task_unblock(t, &sleeping);
+        else
+            t->delay--;
+    }
+
+    /* Jumping to the choosen task */
     if (current)
     {
         switch (current->status)
@@ -378,10 +409,20 @@ task_preempt(void *arg)
     }
 }
 
+static void
+task_idle(void *arg)
+{
+    (void)arg;
+
+    while (true)
+        vrm_task_yield();
+}
+
 extern void
 vrm_task_scheduler(uint8_t timer, uint32_t us, uint32_t flags)
 {
     (void)flags;
+    vrm_task_create(task_idle, NULL, 0);
 
     vrm_timer_alarm(timer, us, true, task_preempt, NULL);
     while (true)
@@ -393,21 +434,16 @@ vrm_task_scheduler(uint8_t timer, uint32_t us, uint32_t flags)
 extern void
 vrm_task_sem_take(struct vrm_task_sem *s)
 {
-    bool yield = false;
-
     VRM_TASK_CRITICAL
     {
-        if (s->count)
-            s->count--;
-        else
+        while (s->count == 0)
         {
-            vrm_task_block(current, &(s->list));
-            yield = true;
+            VRM_TASK_NONCRITICAL
+                vrm_task_block(current, &(s->list));
         }
-    }
 
-    if (yield)
-        vrm_task_yield();
+        s->count--;
+    }
 }
 
 extern void
@@ -423,21 +459,16 @@ vrm_task_sem_give(struct vrm_task_sem *s)
 extern void
 vrm_task_mut_lock(struct vrm_task_mut *m)
 {
-    bool yield = false;
-
     VRM_TASK_CRITICAL
     {
-        if (!(m->owner))
-            m->owner = current;
-        else
+        while (m->owner != NULL)
         {
-            vrm_task_block(current, &(m->list));
-            yield = true;
+            VRM_TASK_NONCRITICAL
+                vrm_task_block(current, &(m->list));
         }
-    }
 
-    if (yield)
-        vrm_task_yield();
+        m->owner = current;
+    }
 }
 
 extern void
@@ -451,4 +482,11 @@ vrm_task_mut_unlock(struct vrm_task_mut *m)
             m->owner = NULL;
         }
     }
+}
+
+extern void
+vrm_task_delay(uint32_t ticks)
+{
+    current->delay = ticks;
+    vrm_task_block(current, &sleeping);
 }

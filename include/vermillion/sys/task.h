@@ -44,6 +44,10 @@ void vrm_task_crit_out(void);
     for (int _once##__LINE__ = (vrm_task_crit_in(), 1); \
              _once##__LINE__;                               \
          (vrm_task_crit_out(), _once##__LINE__ = 0))
+#define VRM_TASK_NONCRITICAL \
+    for (int _once##__LINE__ = (vrm_task_crit_out(), 1); \
+             _once##__LINE__;                               \
+         (vrm_task_crit_in(), _once##__LINE__ = 0))
 
 /* Semaphores */
 
@@ -74,3 +78,7 @@ void vrm_task_mut_unlock(struct vrm_task_mut *m);
     for (int _once##__LINE__ = (vrm_task_mut_lock(m), 1); \
              _once##__LINE__;                             \
          (vrm_task_mut_unlock(m), _once##__LINE__ = 0))
+
+/* Delay */
+
+void vrm_task_delay(uint32_t ticks);

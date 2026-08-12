@@ -1,6 +1,6 @@
 # Vermillion
 
-**Status: 1.3α**
+**Status: 1.3β**
 
 ## Features
 - [x] HAL
