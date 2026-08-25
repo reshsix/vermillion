@@ -54,30 +54,28 @@ void vrm_task_crit_out(void);
 struct vrm_task_sem
 {
     size_t count;
-    struct vrm_task_list list;
 };
-void vrm_task_sem_take(struct vrm_task_sem *s);
+bool vrm_task_sem_take(struct vrm_task_sem *s, uint32_t timeout);
 void vrm_task_sem_give(struct vrm_task_sem *s);
 
-#define VRM_TASK_SEMAPHORE(s) \
-    for (int _once##__LINE__ = (vrm_task_sem_take(s), 1); \
-             _once##__LINE__;                             \
-         (vrm_task_sem_give(s), _once##__LINE__ = 0))
+#define VRM_TASK_SEMAPHORE(s, timeout) \
+    if (vrm_task_sem_take(s, timeout)) \
+        for (bool _once##__LINE__ = 1; _once##__LINE__; \
+            (vrm_task_sem_give(s), _once##__LINE__ = 0))
 
 /* Mutexes */
 
 struct vrm_task_mut
 {
     vrm_task *owner;
-    struct vrm_task_list list;
 };
-void vrm_task_mut_lock  (struct vrm_task_mut *m);
+bool vrm_task_mut_lock  (struct vrm_task_mut *m, uint32_t timeout);
 void vrm_task_mut_unlock(struct vrm_task_mut *m);
 
-#define VRM_TASK_MUTEX(m) \
-    for (int _once##__LINE__ = (vrm_task_mut_lock(m), 1); \
-             _once##__LINE__;                             \
-         (vrm_task_mut_unlock(m), _once##__LINE__ = 0))
+#define VRM_TASK_MUTEX(m, timeout) \
+    if (vrm_task_mut_lock(m, timeout)) \
+        for (bool _once##__LINE__ = 1; _once##__LINE__; \
+            (vrm_task_mut_unlock(m), _once##__LINE__ = 0))
 
 /* Delay */
 

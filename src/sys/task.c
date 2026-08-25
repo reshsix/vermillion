@@ -373,19 +373,22 @@ task_preempt(void *arg)
 {
     (void)arg;
 
-    /* Saving state and choosing next task */
+    /* Saving state */
     if (current)
         state_save_irq(&(current->state));
-    task_next();
 
     /* Waking up delayed tasks */
     for (struct vrm_task *t = sleeping.head; t; t = t->next)
     {
+        if (t->delay)
+            t->delay--;
+
         if (t->delay == 0)
             vrm_task_unblock(t, &sleeping);
-        else
-            t->delay--;
     }
+
+    /* Choosing next task */
+    task_next();
 
     /* Jumping to the choosen task */
     if (current)
@@ -432,18 +435,32 @@ vrm_task_scheduler(uint8_t timer, uint32_t us, uint32_t flags)
 /* Synchronization primitives */
 
 extern void
-vrm_task_sem_take(struct vrm_task_sem *s)
+vrm_task_delay(uint32_t ticks)
 {
+    current->delay = ticks;
+    vrm_task_block(current, &sleeping);
+}
+
+extern bool
+vrm_task_sem_take(struct vrm_task_sem *s, uint32_t timeout)
+{
+    bool ret = true;
+
     VRM_TASK_CRITICAL
     {
-        while (s->count == 0)
+        for (; s->count == 0 && timeout; timeout--)
         {
             VRM_TASK_NONCRITICAL
-                vrm_task_block(current, &(s->list));
+                vrm_task_delay(1);
         }
 
-        s->count--;
+        if (s->count != 0)
+            s->count--;
+        else
+            ret = false;
     }
+
+    return ret;
 }
 
 extern void
@@ -451,24 +468,30 @@ vrm_task_sem_give(struct vrm_task_sem *s)
 {
     VRM_TASK_CRITICAL
     {
-        vrm_task_unblock(s->list.head, &(s->list));
         s->count++;
     }
 }
 
-extern void
-vrm_task_mut_lock(struct vrm_task_mut *m)
+extern bool
+vrm_task_mut_lock(struct vrm_task_mut *m, uint32_t timeout)
 {
+    bool ret = true;
+
     VRM_TASK_CRITICAL
     {
-        while (m->owner != NULL)
+        for (; m->owner != NULL && timeout; timeout--)
         {
             VRM_TASK_NONCRITICAL
-                vrm_task_block(current, &(m->list));
+                vrm_task_delay(1);
         }
 
-        m->owner = current;
+        if (m->owner == NULL)
+            m->owner = current;
+        else
+            ret = false;
     }
+
+    return ret;
 }
 
 extern void
@@ -477,16 +500,6 @@ vrm_task_mut_unlock(struct vrm_task_mut *m)
     VRM_TASK_CRITICAL
     {
         if (current == m->owner)
-        {
-            vrm_task_unblock(m->list.head, &(m->list));
             m->owner = NULL;
-        }
     }
-}
-
-extern void
-vrm_task_delay(uint32_t ticks)
-{
-    current->delay = ticks;
-    vrm_task_block(current, &sleeping);
 }
