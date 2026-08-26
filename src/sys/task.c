@@ -168,6 +168,9 @@ struct vrm_task
     enum task_st status;
     uint32_t delay;
 
+    uint32_t mutexes;
+    uint8_t priority0;
+
     struct state state;
     struct context ctx;
 
@@ -316,9 +319,14 @@ vrm_task_priority(struct vrm_task *t, uint8_t priority)
 
         if (t)
         {
-            vrm_task_block(t, NULL);
-            t->priority = priority;
-            vrm_task_unblock(t, NULL);
+            if (t->mutexes)
+                t->priority0 = priority;
+            else
+            {
+                vrm_task_block(t, NULL);
+                t->priority = priority;
+                vrm_task_unblock(t, NULL);
+            }
         }
     }
 }
@@ -479,6 +487,13 @@ vrm_task_mut_lock(struct vrm_task_mut *m, uint32_t timeout)
 
     VRM_TASK_CRITICAL
     {
+        if (m->owner && m->owner->priority < current->priority)
+        {
+            vrm_task_block(m->owner, NULL);
+            m->owner->priority = current->priority;
+            vrm_task_unblock(m->owner, NULL);
+        }
+
         for (; m->owner != NULL && timeout; timeout--)
         {
             VRM_TASK_NONCRITICAL
@@ -486,7 +501,13 @@ vrm_task_mut_lock(struct vrm_task_mut *m, uint32_t timeout)
         }
 
         if (m->owner == NULL)
+        {
             m->owner = current;
+
+            if (!m->owner->mutexes)
+                m->owner->priority0 = m->owner->priority;
+            m->owner->mutexes++;
+        }
         else
             ret = false;
     }
@@ -499,7 +520,17 @@ vrm_task_mut_unlock(struct vrm_task_mut *m)
 {
     VRM_TASK_CRITICAL
     {
-        if (current == m->owner)
+        if (m->owner && current == m->owner)
+        {
+            m->owner->mutexes--;
+            if (!m->owner->mutexes)
+            {
+                vrm_task_block(m->owner, NULL);
+                m->owner->priority = m->owner->priority0;
+                vrm_task_unblock(m->owner, NULL);
+            }
+
             m->owner = NULL;
+        }
     }
 }
