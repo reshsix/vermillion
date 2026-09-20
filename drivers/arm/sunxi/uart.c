@@ -86,11 +86,9 @@ config(void *ctx, uint32_t baud, uint32_t fields)
 {
     bool ret = (baud <= 1500000 && baud >= 23);
 
-    if (ret)
+    struct uart *u = ctx;
+    if (ret && IO_USR(u->port) & 1)
     {
-        struct uart *u = ctx;
-        while (IO_USR(u->port) & 1);
-
         uint16_t divider = 1500000 / baud;
         uint8_t     bits = (fields >> 0) & 0x7;
         uint8_t   parity = (fields >> 3) & 0x7;
@@ -98,7 +96,7 @@ config(void *ctx, uint32_t baud, uint32_t fields)
         ret = ((bits   <= VRM_UART_5B)   &&
                (parity <= VRM_UART_EVEN) &&
                (stop   <= VRM_UART_2S)   &&
-               ((stop != VRM_UART_1HS) || (bits == VRM_UART_5B)));
+               ((stop  != VRM_UART_1HS)  || (bits == VRM_UART_5B)));
 
         if (ret)
         {

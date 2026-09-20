@@ -16,17 +16,20 @@
 
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/disk.h>
+#include <vermillion/sys/task.h>
 #include <vermillion/util/types.h>
 
 /* Devtree setup */
 
-static dev_disk *dev_l = NULL;
-static uint8_t dev_c = 0;
+static dev_disk            *dev_l = NULL;
+static struct vrm_task_mut *dev_m = NULL;
+static uint8_t              dev_c = 0;
 
 extern void
-disk_setup(dev_disk *list, uint8_t count)
+disk_setup(dev_disk *list, struct vrm_task_mut *muts, uint8_t count)
 {
     dev_l = list;
+    dev_m = muts;
     dev_c = count;
 }
 
@@ -38,16 +41,20 @@ disk_setup(dev_disk *list, uint8_t count)
 extern bool
 vrm_disk_size(uint8_t id, uint16_t *sector, uint32_t *count)
 {
+    bool ret = false;
+
     uint16_t sector2 = 0;
     uint32_t count2  = 0;
-
-    bool ret = DISK_CALL(size, &sector2, &count2);
-    if (ret)
+    VRM_TASK_MUTEX(&(dev_m[id]), 0)
     {
-        if (sector)
-            *sector = sector2;
-        if (count)
-            *count  = count2;
+        ret = DISK_CALL(size, &sector2, &count2);
+        if (ret)
+        {
+            if (sector)
+                *sector = sector2;
+            if (count)
+                *count  = count2;
+        }
     }
 
     return ret;
@@ -56,13 +63,23 @@ vrm_disk_size(uint8_t id, uint16_t *sector, uint32_t *count)
 extern bool
 vrm_disk_read(uint8_t id, uint8_t *data, uint32_t block, uint32_t flags)
 {
+    bool ret = false;
+
     (void)flags;
-    return DISK_CALL(read, data, block);
+    VRM_TASK_MUTEX(&(dev_m[id]), 0)
+        ret = DISK_CALL(read, data, block);
+
+    return ret;
 }
 
 extern bool
 vrm_disk_write(uint8_t id, uint8_t *data, uint32_t block, uint32_t flags)
 {
+    bool ret = false;
+
     (void)flags;
-    return DISK_CALL(write, data, block);
+    VRM_TASK_MUTEX(&(dev_m[id]), 0)
+        ret = DISK_CALL(write, data, block);
+
+    return ret;
 }

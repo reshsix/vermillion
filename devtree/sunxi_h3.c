@@ -35,6 +35,8 @@
 #include <vermillion/util/mem.h>
 #include <vermillion/util/types.h>
 
+#include <vermillion/sys/task.h>
+
 #define R_PRCM 0x01F01400
 #define APB0_GATE *(volatile uint32_t*)(R_PRCM + 0x28)
 
@@ -54,6 +56,12 @@ dev_gpio  gpio [2];
 dev_uart  uart [3];
 dev_disk  disk [2];
 dev_timer timer[2];
+
+struct vrm_task_mut spi_mut  [1] = {0};
+struct vrm_task_mut gpio_mut [2] = {0};
+struct vrm_task_mut uart_mut [3] = {0};
+struct vrm_task_mut disk_mut [2] = {0};
+struct vrm_task_mut timer_mut[2] = {0};
 
 struct led
 {
@@ -104,7 +112,7 @@ vrm_devtree_init(uint8_t platform, uint8_t board, uint32_t flags)
         BUS4_RESET |= 1 << 18;
         uart[1] = sunxi_uart_init(1);
         uart[2] = sunxi_uart_init(2);
-        uart_setup(uart, 3);
+        uart_setup(uart, uart_mut, 3);
         vrm_uart_config(0, 115200, VRM_UART_8B | VRM_UART_NONE | VRM_UART_1S);
         vrm_uart_config(1, 115200, VRM_UART_8B | VRM_UART_NONE | VRM_UART_1S);
         vrm_uart_config(2, 115200, VRM_UART_8B | VRM_UART_NONE | VRM_UART_1S);
@@ -112,7 +120,7 @@ vrm_devtree_init(uint8_t platform, uint8_t board, uint32_t flags)
         /* GPIO initialization */
         gpio[0] = sunxi_gpio_init(0);
         gpio[1] = sunxi_gpio_init(1);
-        gpio_setup(gpio, 2);
+        gpio_setup(gpio, gpio_mut, 2);
         /* Power led ON */
         vrm_gpio_config(power.id, power.port, power.slot, VRM_GPIO_OUT);
         vrm_gpio_set(power.id, power.port, power.slot, true);
@@ -138,13 +146,13 @@ vrm_devtree_init(uint8_t platform, uint8_t board, uint32_t flags)
         /* Timers */
         timer[0] = sunxi_timer_init(0);
         timer[1] = sunxi_timer_init(1);
-        timer_setup(timer, 2);
+        timer_setup(timer, timer_mut, 2);
 
         /* Disks */
         disk[0] = sunxi_mmc_init(0);
-        disk_setup(disk, 1);
+        disk_setup(disk, disk_mut, 1);
         disk[1] = mbr_init(0, 0, 1);
-        disk_setup(disk, 2);
+        disk_setup(disk, disk_mut, 2);
 
         /* Filesystems */
         fs[0] = fat32_init(1);
@@ -155,7 +163,7 @@ vrm_devtree_init(uint8_t platform, uint8_t board, uint32_t flags)
         BUS0_GATE  |= 1 << 20;
         BUS0_RESET |= 1 << 20;
         spi[0] = sunxi_spi_init(0);
-        spi_setup(spi, 1);
+        spi_setup(spi, spi_mut, 1);
         vrm_spi_config(0, 24000000, VRM_SPI_MODE0 | VRM_SPI_MSB | VRM_SPI_CSL);
 
         /* Interrupts ON */

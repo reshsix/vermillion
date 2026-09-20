@@ -31,8 +31,6 @@
 #define VRM_UART_1HS   (1 << 6)
 #define VRM_UART_2S    (2 << 6)
 
-#define VRM_UART_NOWAIT (1 << 0)
-
 #ifdef VERMILLION_INTERNALS
 typedef struct
 {
@@ -49,7 +47,9 @@ typedef struct
     void *context;
 } dev_uart;
 
-void uart_setup(dev_uart *list, uint8_t count);
+#include <vermillion/sys/task.h>
+
+void uart_setup(dev_uart *list, struct vrm_task_mut *muts, uint8_t count);
 #endif
 
 bool vrm_uart_info  (uint8_t id, uint32_t *baud, uint32_t *fields);

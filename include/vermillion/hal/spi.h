@@ -27,10 +27,12 @@
 #define VRM_SPI_CSL   (0 << 3)
 #define VRM_SPI_CSH   (1 << 3)
 
-#define VRM_SPI_NOWAIT   (1 << 0)
-#define VRM_SPI_PARTIAL  (1 << 1)
-#define VRM_SPI_NO_TX    (1 << 2)
-#define VRM_SPI_NO_RX    (1 << 3)
+#define VRM_SPI_COMPLETE (0 << 0)
+#define VRM_SPI_PARTIAL  (1 << 0)
+#define VRM_SPI_TX       (0 << 1)
+#define VRM_SPI_NO_TX    (1 << 1)
+#define VRM_SPI_RX       (0 << 2)
+#define VRM_SPI_NO_RX    (1 << 2)
 
 #ifdef VERMILLION_INTERNALS
 typedef struct
@@ -49,7 +51,9 @@ typedef struct
     void *context;
 } dev_spi;
 
-void spi_setup(dev_spi *list, uint8_t count);
+#include <vermillion/sys/task.h>
+
+void spi_setup(dev_spi *list, struct vrm_task_mut *muts, uint8_t count);
 #endif
 
 bool vrm_spi_info    (uint8_t id, uint32_t *freq, uint32_t *fields);

@@ -18,25 +18,7 @@
 
 #include <vermillion/util/types.h>
 
-#ifdef VERMILLION_INTERNALS
-typedef struct
-{
-    void *init, (*clean)(void *);
-    bool (*alarm)(void *ctx, uint32_t us, bool repeat,
-                  void (*handler)(void *), void *arg);
-    void (*wait)(void *ctx);
-} drv_timer;
-
-typedef struct
-{
-    const drv_timer *driver;
-    void *context;
-} dev_timer;
-
-#include <vermillion/sys/task.h>
-
-void timer_setup(dev_timer *list, struct vrm_task_mut *muts, uint8_t count);
-#endif
-
-bool vrm_timer_alarm(uint8_t id, uint32_t us, bool repeat,
-                     void (*handler)(void *), void *arg);
+uint8_t vrm_misc_getc (uint8_t id);
+void    vrm_misc_putc (uint8_t id, uint8_t  data);
+void    vrm_misc_spi  (uint8_t id, uint8_t *data, size_t count, uint32_t flags);
+void    vrm_misc_sleep(uint8_t id, uint32_t us);

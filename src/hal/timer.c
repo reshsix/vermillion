@@ -15,19 +15,22 @@
 */
 
 #define VERMILLION_INTERNALS
+#include <vermillion/sys/task.h>
 #include <vermillion/hal/timer.h>
 #include <vermillion/util/mem.h>
 #include <vermillion/util/types.h>
 
-static dev_timer *dev_l = NULL;
-static uint8_t dev_c = 0;
+static dev_timer           *dev_l = NULL;
+static struct vrm_task_mut *dev_m = NULL;
+static uint8_t              dev_c = 0;
 
 /* Devtree setup */
 
 extern void
-timer_setup(dev_timer *list, uint8_t count)
+timer_setup(dev_timer *list, struct vrm_task_mut *muts, uint8_t count)
 {
     dev_l = list;
+    dev_m = muts;
     dev_c = count;
 }
 
@@ -36,30 +39,14 @@ timer_setup(dev_timer *list, uint8_t count)
 #define TIMER_CALL(f, ...) \
 ((id < dev_c) ? dev_l[id].driver->f(dev_l[id].context, ##__VA_ARGS__) : false)
 
-static void
-sleep(void *arg)
-{
-    bool *flag = arg;
-    *flag = true;
-}
-
 extern bool
 vrm_timer_alarm(uint8_t id, uint32_t us,
                 bool repeat, void (*handler)(void *), void *arg)
 {
-    return TIMER_CALL(alarm, us, repeat, handler, arg);
-}
+    bool ret = false;
 
-extern bool
-vrm_timer_sleep(uint8_t id, uint32_t us)
-{
-    volatile bool ret = false;
-
-    if (vrm_timer_alarm(id, us, false, sleep, (bool *)&ret))
-    {
-        while (!ret)
-            TIMER_CALL(wait);
-    }
+    VRM_TASK_MUTEX(&(dev_m[id]), 0)
+        ret = TIMER_CALL(alarm, us, repeat, handler, arg);
 
     return ret;
 }

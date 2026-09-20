@@ -16,17 +16,20 @@
 
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/spi.h>
+#include <vermillion/sys/task.h>
 #include <vermillion/util/types.h>
 
 /* Devtree setup */
 
-static dev_spi *dev_l = NULL;
-static uint8_t dev_c = 0;
+static dev_spi             *dev_l = NULL;
+static struct vrm_task_mut *dev_m = NULL;
+static uint8_t              dev_c = 0;
 
 extern void
-spi_setup(dev_spi *list, uint8_t count)
+spi_setup(dev_spi *list, struct vrm_task_mut *muts, uint8_t count)
 {
     dev_l = list;
+    dev_m = muts;
     dev_c = count;
 }
 
@@ -38,15 +41,19 @@ spi_setup(dev_spi *list, uint8_t count)
 extern bool
 vrm_spi_info(uint8_t id, uint32_t *freq, uint32_t *fields)
 {
-    uint32_t freq2 = 0, fields2 = 0;
+    bool ret = false;
 
-    bool ret = SPI_CALL(info, &freq2, &fields2);
-    if (ret)
+    uint32_t freq2 = 0, fields2 = 0;
+    VRM_TASK_MUTEX(&(dev_m[id]), 0)
     {
-        if (freq)
-            *freq = freq2;
-        if (fields)
-            *fields = fields2;
+        ret = SPI_CALL(info, &freq2, &fields2);
+        if (ret)
+        {
+            if (freq)
+                *freq = freq2;
+            if (fields)
+                *fields = fields2;
+        }
     }
 
     return ret;
@@ -55,13 +62,23 @@ vrm_spi_info(uint8_t id, uint32_t *freq, uint32_t *fields)
 extern bool
 vrm_spi_config(uint8_t id, uint32_t freq, uint32_t fields)
 {
-    return SPI_CALL(config, freq, fields);
+    bool ret = false;
+
+    VRM_TASK_MUTEX(&(dev_m[id]), 0)
+        ret = SPI_CALL(config, freq, fields);
+
+    return ret;
 }
 
 extern bool
 vrm_spi_limit(uint8_t id, size_t *count)
 {
-    return SPI_CALL(limit, count);
+    bool ret = false;
+
+    VRM_TASK_MUTEX(&(dev_m[id]), 0)
+        ret = SPI_CALL(limit, count);
+
+    return ret;
 }
 
 extern bool
@@ -69,27 +86,8 @@ vrm_spi_transfer(uint8_t id, uint8_t *data, size_t count, uint32_t flags)
 {
     bool ret = false;
 
-    if (flags & VRM_SPI_NOWAIT)
+    VRM_TASK_MUTEX(&(dev_m[id]), 0)
         ret = SPI_CALL(transfer, data, count, flags);
-    else
-    {
-        size_t limit = 0;
-        ret = vrm_spi_limit(id, &limit);
-        if (ret)
-        {
-            uint32_t flags2 = flags | VRM_SPI_PARTIAL;
-            for (size_t i = 0; i < count; i += limit)
-            {
-                if (i + limit >= count)
-                    flags2 = flags;
-
-                size_t remain = count - i;
-                size_t size = (remain > limit) ? limit : remain;
-                while (!SPI_CALL(transfer, &(data[i]), size, flags2));
-                while (!vrm_spi_poll(id));
-            }
-        }
-    }
 
     return ret;
 }
@@ -97,5 +95,10 @@ vrm_spi_transfer(uint8_t id, uint8_t *data, size_t count, uint32_t flags)
 extern bool
 vrm_spi_poll(uint8_t id)
 {
-    return SPI_CALL(poll);
+    bool ret = false;
+
+    VRM_TASK_MUTEX(&(dev_m[id]), 0)
+        ret = SPI_CALL(poll);
+
+    return ret;
 }

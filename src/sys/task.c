@@ -43,6 +43,11 @@ state_load_irq(struct state *st)
 
     /* Call parameters: st -> r0 */
 
+    /* Clears IRQ stack without using r0 */
+    __asm__ __volatile__ ("mov sp, %0"
+                          :
+                          : "r"(gic_irq_stack)
+                          : "memory", "r0");
     /* Loading registers */
     __asm__ __volatile__ ("add r0, r0, #16");
     __asm__ __volatile__ ("ldmia r0!, {r4-r12}");
@@ -103,6 +108,12 @@ context_run_irq(struct context *ctx)
         __asm__ __volatile__ ("msr spsr_c, r0");
     }
 
+    /* Clear IRQ stack */
+    __asm__ __volatile__ ("mov sp, %0"
+                          :
+                          : "r"(gic_irq_stack)
+                          : "memory");
+
     /* Flushes all the changes */
     __asm__ __volatile__ ("dsb sy");
     __asm__ __volatile__ ("isb");
@@ -116,6 +127,16 @@ context_run_irq(struct context *ctx)
 
     /* Supressing compiler warning */
     while (true);
+}
+
+/* Tick counter */
+
+static uint64_t ticks = 0;
+
+extern uint64_t
+vrm_task_ticks(void)
+{
+    return ticks;
 }
 
 /* Critical sections */
@@ -133,7 +154,7 @@ outside_irq(void)
 extern void
 vrm_task_crit_in(void)
 {
-    if (outside_irq())
+    if (ticks && outside_irq())
     {
         critical++;
         gic_state(false);
@@ -143,7 +164,7 @@ vrm_task_crit_in(void)
 extern void
 vrm_task_crit_out(void)
 {
-    if (outside_irq())
+    if (ticks && outside_irq())
     {
         if (critical > 0)
             critical--;
@@ -155,17 +176,15 @@ vrm_task_crit_out(void)
 
 /* Task implementation */
 
-enum task_st
-{
-    VRM_TASK_NEW,
-    VRM_TASK_READY,
-    VRM_TASK_DELETED
-};
-
 struct vrm_task
 {
     uint8_t priority;
-    enum task_st status;
+    enum
+    {
+        VRM_TASK_NEW,
+        VRM_TASK_READY,
+        VRM_TASK_DELETED
+    } status;
     uint32_t delay;
 
     uint32_t mutexes;
@@ -259,7 +278,7 @@ vrm_task_remove(struct vrm_task *t)
 
             vrm_mem_del(t);
         }
-        else
+        else if (current)
         {
             current->status = VRM_TASK_DELETED;
 
@@ -334,7 +353,7 @@ vrm_task_priority(struct vrm_task *t, uint8_t priority)
 extern void
 vrm_task_yield(void)
 {
-    if (!critical)
+    if (ticks && !critical)
         gic_wait();
 }
 
@@ -379,6 +398,7 @@ task_next(void)
 static void
 task_preempt(void *arg)
 {
+    ticks++;
     (void)arg;
 
     /* Saving state */
@@ -445,8 +465,11 @@ vrm_task_scheduler(uint8_t timer, uint32_t us, uint32_t flags)
 extern void
 vrm_task_delay(uint32_t ticks)
 {
-    current->delay = ticks;
-    vrm_task_block(current, &sleeping);
+    if (ticks && current)
+    {
+        current->delay = ticks;
+        vrm_task_block(current, &sleeping);
+    }
 }
 
 extern bool
@@ -454,18 +477,21 @@ vrm_task_sem_take(struct vrm_task_sem *s, uint32_t timeout)
 {
     bool ret = true;
 
-    VRM_TASK_CRITICAL
+    if (ticks)
     {
-        for (; s->count == 0 && timeout; timeout--)
+        VRM_TASK_CRITICAL
         {
-            VRM_TASK_NONCRITICAL
-                vrm_task_delay(1);
-        }
+            for (; s->count == 0 && timeout; timeout--)
+            {
+                VRM_TASK_NONCRITICAL
+                    vrm_task_delay(1);
+            }
 
-        if (s->count != 0)
-            s->count--;
-        else
-            ret = false;
+            if (s->count != 0)
+                s->count--;
+            else
+                ret = false;
+        }
     }
 
     return ret;
@@ -474,9 +500,12 @@ vrm_task_sem_take(struct vrm_task_sem *s, uint32_t timeout)
 extern void
 vrm_task_sem_give(struct vrm_task_sem *s)
 {
-    VRM_TASK_CRITICAL
+    if (ticks)
     {
-        s->count++;
+        VRM_TASK_CRITICAL
+        {
+            s->count++;
+        }
     }
 }
 
@@ -485,31 +514,34 @@ vrm_task_mut_lock(struct vrm_task_mut *m, uint32_t timeout)
 {
     bool ret = true;
 
-    VRM_TASK_CRITICAL
+    if (ticks && current)
     {
-        if (m->owner && m->owner->priority < current->priority)
+        VRM_TASK_CRITICAL
         {
-            vrm_task_block(m->owner, NULL);
-            m->owner->priority = current->priority;
-            vrm_task_unblock(m->owner, NULL);
-        }
+            if (m->owner && m->owner->priority < current->priority)
+            {
+                vrm_task_block(m->owner, NULL);
+                m->owner->priority = current->priority;
+                vrm_task_unblock(m->owner, NULL);
+            }
 
-        for (; m->owner != NULL && timeout; timeout--)
-        {
-            VRM_TASK_NONCRITICAL
-                vrm_task_delay(1);
-        }
+            for (; m->owner != NULL && timeout; timeout--)
+            {
+                VRM_TASK_NONCRITICAL
+                    vrm_task_delay(1);
+            }
 
-        if (m->owner == NULL)
-        {
-            m->owner = current;
+            if (m->owner == NULL)
+            {
+                m->owner = current;
 
-            if (!m->owner->mutexes)
-                m->owner->priority0 = m->owner->priority;
-            m->owner->mutexes++;
+                if (!m->owner->mutexes)
+                    m->owner->priority0 = m->owner->priority;
+                m->owner->mutexes++;
+            }
+            else
+                ret = false;
         }
-        else
-            ret = false;
     }
 
     return ret;
@@ -518,19 +550,22 @@ vrm_task_mut_lock(struct vrm_task_mut *m, uint32_t timeout)
 extern void
 vrm_task_mut_unlock(struct vrm_task_mut *m)
 {
-    VRM_TASK_CRITICAL
+    if (ticks && current)
     {
-        if (m->owner && current == m->owner)
+        VRM_TASK_CRITICAL
         {
-            m->owner->mutexes--;
-            if (!m->owner->mutexes)
+            if (m->owner && current == m->owner)
             {
-                vrm_task_block(m->owner, NULL);
-                m->owner->priority = m->owner->priority0;
-                vrm_task_unblock(m->owner, NULL);
-            }
+                m->owner->mutexes--;
+                if (!m->owner->mutexes)
+                {
+                    vrm_task_block(m->owner, NULL);
+                    m->owner->priority = m->owner->priority0;
+                    vrm_task_unblock(m->owner, NULL);
+                }
 
-            m->owner = NULL;
+                m->owner = NULL;
+            }
         }
     }
 }

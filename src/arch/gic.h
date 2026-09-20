@@ -19,6 +19,7 @@
 #include <vermillion/util/types.h>
 
 extern uint32_t *gic_irq_regs;
+extern void     *gic_irq_stack;
 extern void gic_irq_ack(void);
 
 void gic_init(uint32_t cpu, uint32_t dist);

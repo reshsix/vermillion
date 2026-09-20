@@ -71,16 +71,19 @@ config(void *ctx, uint32_t freq, uint32_t fields)
 {
     bool ret = (freq <= 24000000 && freq >= 367);
 
+    /* Check if XCH = 0 */
+    struct spi *spi = ctx;
+    if (ret)
+        ret = !(SPI_TCR(spi->addr) & (1 << 31));
+
     if (ret)
     {
-        struct spi *spi = ctx;
-        while (SPI_TCR(spi->addr) & (1 << 31));
-
         uint32_t divider = 24000000 / freq;
-        uint8_t mode  = (fields >> 0) & 0x3;
-        bool lsb = (fields >> 2) & 0x1;
-        bool csh = (fields >> 3) & 0x1;
+        uint8_t mode = (fields >> 0) & 0x3;
+        bool lsb     = (fields >> 2) & 0x1;
+        bool csh     = (fields >> 3) & 0x1;
 
+        /* Find the closest divider */
         if (divider > 512)
         {
             if ((divider & (divider - 1)) == 0)

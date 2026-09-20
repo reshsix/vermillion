@@ -16,17 +16,20 @@
 
 #define VERMILLION_INTERNALS
 #include <vermillion/hal/uart.h>
+#include <vermillion/sys/task.h>
 #include <vermillion/util/types.h>
 
 /* Devtree setup */
 
-static dev_uart *dev_l = NULL;
-static uint8_t dev_c = 0;
+static dev_uart            *dev_l = NULL;
+static struct vrm_task_mut *dev_m = NULL;
+static uint8_t              dev_c = 0;
 
 extern void
-uart_setup(dev_uart *list, uint8_t count)
+uart_setup(dev_uart *list, struct vrm_task_mut *muts, uint8_t count)
 {
     dev_l = list;
+    dev_m = muts;
     dev_c = count;
 }
 
@@ -38,15 +41,19 @@ uart_setup(dev_uart *list, uint8_t count)
 extern bool
 vrm_uart_info(uint8_t id, uint32_t *baud, uint32_t *fields)
 {
-    uint32_t baud2 = 0, fields2 = 0;
+    bool ret = false;
 
-    bool ret = UART_CALL(info, &baud2, &fields2);
-    if (ret)
+    uint32_t baud2 = 0, fields2 = 0;
+    VRM_TASK_MUTEX(&(dev_m[id]), 0)
     {
-        if (baud)
-            *baud = baud2;
-        if (fields)
-            *fields = fields2;
+        ret = UART_CALL(info, &baud2, &fields2);
+        if (ret)
+        {
+            if (baud)
+                *baud = baud2;
+            if (fields)
+                *fields = fields2;
+        }
     }
 
     return ret;
@@ -55,10 +62,13 @@ vrm_uart_info(uint8_t id, uint32_t *baud, uint32_t *fields)
 extern bool
 vrm_uart_config(uint8_t id, uint32_t baud, uint32_t fields)
 {
-    if (baud == 0)
-        baud = 115200;
+    bool ret = false;
 
-    return UART_CALL(config, baud, fields);
+    baud = (baud != 0) ? baud : 115200;
+    VRM_TASK_MUTEX(&(dev_m[id]), 0)
+        ret = UART_CALL(config, baud, fields);
+
+    return ret;
 }
 
 extern bool
@@ -66,13 +76,9 @@ vrm_uart_read(uint8_t id, uint8_t *data, uint32_t flags)
 {
     bool ret = false;
 
-    if (flags & VRM_UART_NOWAIT)
+    (void)flags;
+    VRM_TASK_MUTEX(&(dev_m[id]), 0)
         ret = UART_CALL(read, data);
-    else
-    {
-        while (!UART_CALL(read, data));
-        ret = true;
-    }
 
     return ret;
 }
@@ -82,13 +88,9 @@ vrm_uart_write(uint8_t id, uint8_t data, uint32_t flags)
 {
     bool ret = false;
 
-    if (flags & VRM_UART_NOWAIT)
+    (void)flags;
+    VRM_TASK_MUTEX(&(dev_m[id]), 0)
         ret = UART_CALL(write, data);
-    else
-    {
-        while (!UART_CALL(write, data));
-        ret = true;
-    }
 
     return ret;
 }

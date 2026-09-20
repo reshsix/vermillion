@@ -223,15 +223,10 @@ handler_irq_c(void)
 }
 
 uint32_t *gic_irq_regs;
+void     *gic_irq_stack;
 __attribute__((naked))
 INTERRUPT(irq) handler_irq(void)
 {
-    /* Load correct and empty stack */
-    __asm__ __volatile__ ("mov sp, %0\n"
-                          :
-                          : "r"(&(gic.stack[CONFIG_STACK_SIZE]))
-                          : "memory");
-
     /* Make space for CPSR */
     __asm__ __volatile__ ("sub sp, sp, #4");
     /* Saves all the system mode registers */
@@ -284,6 +279,14 @@ gic_init(uint32_t cpu, uint32_t dist)
     __ivt[IVT_DATA]     = handler_data;
     __ivt[IVT_IRQ]      = handler_irq;
     __ivt[IVT_FIQ]      = handler_fiq;
+
+    gic_irq_stack = &(gic.stack[CONFIG_STACK_SIZE]);
+    __asm__ __volatile__ ("msr CPSR_c, #0b11010010\n"
+                          "mov sp, %0\n"
+                          "msr CPSR_c, #0b11010011\n"
+                          :
+                          : "r"(gic_irq_stack)
+                          : "memory");
 
     gic_priority(gic.cpu, 0xFF);
 }

@@ -49,7 +49,9 @@ typedef struct
     void *context;
 } dev_gpio;
 
-void gpio_setup(dev_gpio *list, uint8_t count);
+#include <vermillion/sys/task.h>
+
+void gpio_setup(dev_gpio *list, struct vrm_task_mut *muts, uint8_t count);
 #endif
 
 bool vrm_gpio_info  (uint8_t id, uint8_t port, uint8_t slot, uint32_t *fields);

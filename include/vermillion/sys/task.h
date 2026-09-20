@@ -35,6 +35,13 @@ void       vrm_task_priority (vrm_task *t, uint8_t priority);
 void       vrm_task_yield    (void);
 void       vrm_task_scheduler(uint8_t timer, uint32_t us, uint32_t flags);
 
+/* Tick counter */
+
+uint64_t vrm_task_ticks(void);
+
+#define VRM_TASK_RUNNING \
+    if (vrm_task_ticks())
+
 /* Critical sections */
 
 void vrm_task_crit_in (void);

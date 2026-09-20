@@ -17,7 +17,7 @@
 #include <stdarg.h>
 
 #define VERMILLION_INTERNALS
-#include <vermillion/hal/uart.h>
+#include <vermillion/util/misc.h>
 #include <vermillion/util/types.h>
 
 #include <vermillion/util/debug.h>
@@ -100,16 +100,16 @@ debug(void (*debug_chr)(char), const char *fmt, va_list args)
             switch (fmt[i])
             {
                 case 'd':
-                    debug_dec(debug_chr, va_arg(args, int));
+                    debug_dec(debug_chr, va_arg(args, int32_t));
                     break;
                 case 'D':
-                    debug_dec(debug_chr, va_arg(args, long));
+                    debug_dec(debug_chr, va_arg(args, int64_t));
                     break;
                 case 'x':
-                    debug_hex(debug_chr, va_arg(args, int));
+                    debug_hex(debug_chr, va_arg(args, uint32_t));
                     break;
                 case 'X':
-                    debug_hex(debug_chr, va_arg(args, long));
+                    debug_hex(debug_chr, va_arg(args, uint64_t));
                     break;
                 case 'c':
                     debug_chr(va_arg(args, int));
@@ -134,9 +134,9 @@ debug(void (*debug_chr)(char), const char *fmt, va_list args)
 }
 
 static void
-debug_uart0(char c)
+debug_chr(char c)
 {
-    vrm_uart_write(0, c, 0);
+    vrm_misc_putc(0, c);
 }
 
 extern void
@@ -144,7 +144,7 @@ vrm_debug(const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    debug(debug_uart0, fmt, args);
+    debug(debug_chr, fmt, args);
     va_end(args);
 }
 
