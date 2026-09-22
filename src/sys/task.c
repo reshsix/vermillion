@@ -156,8 +156,8 @@ vrm_task_crit_in(void)
 {
     if (ticks && outside_irq())
     {
-        critical++;
         gic_state(false);
+        critical++;
     }
 }
 
