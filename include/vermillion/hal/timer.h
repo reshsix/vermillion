@@ -33,7 +33,7 @@ typedef struct
     void *context;
 } dev_timer;
 
-#include <vermillion/sys/task.h>
+#include <vermillion/task.h>
 
 void timer_setup(dev_timer *list, struct vrm_task_mut *muts, uint8_t count);
 #endif

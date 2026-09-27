@@ -20,3 +20,5 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+
+#define VRM_NONE 0

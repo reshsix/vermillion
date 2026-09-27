@@ -14,11 +14,10 @@
  *  along with vermillion. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <vermillion/task.h>
 #include <vermillion/hal/spi.h>
 #include <vermillion/hal/uart.h>
 #include <vermillion/hal/timer.h>
-
-#include <vermillion/sys/task.h>
 
 extern uint8_t
 vrm_misc_getc(uint8_t id)

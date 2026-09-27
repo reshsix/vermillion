@@ -51,7 +51,7 @@ typedef struct
     void *context;
 } dev_spi;
 
-#include <vermillion/sys/task.h>
+#include <vermillion/task.h>
 
 void spi_setup(dev_spi *list, struct vrm_task_mut *muts, uint8_t count);
 #endif

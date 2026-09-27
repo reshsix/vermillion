@@ -25,6 +25,7 @@
 #include <drivers/arm/sunxi/timer.h>
 
 #define VERMILLION_INTERNALS
+#include <vermillion/task.h>
 #include <vermillion/devtree.h>
 #include <vermillion/hal/spi.h>
 #include <vermillion/hal/disk.h>
@@ -34,8 +35,6 @@
 #include <vermillion/sys/file.h>
 #include <vermillion/util/mem.h>
 #include <vermillion/util/types.h>
-
-#include <vermillion/sys/task.h>
 
 #define R_PRCM 0x01F01400
 #define APB0_GATE *(volatile uint32_t*)(R_PRCM + 0x28)

@@ -44,6 +44,9 @@ CFLAGS += $(KCONFIG_FLAGS)
 
 OBJS := boot.o devtree.o
 
+PREFIX = src
+OBJS += $(PREFIX)/task.o
+
 PREFIX = src/arch
 ifdef CONFIG_ARM_GIC
 OBJS += $(PREFIX)/gic.o
@@ -57,7 +60,7 @@ OBJS += $(PREFIX)/uart.o  $(PREFIX)/spi.o \
 		$(PREFIX)/timer.o $(PREFIX)/gpio.o $(PREFIX)/disk.o
 
 PREFIX = src/sys
-OBJS += $(PREFIX)/file.o $(PREFIX)/task.o
+OBJS += $(PREFIX)/file.o
 
 PREFIX = drivers/fs
 

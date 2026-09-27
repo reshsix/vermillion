@@ -34,7 +34,7 @@ typedef struct
     void *context;
 } dev_disk;
 
-#include <vermillion/sys/task.h>
+#include <vermillion/task.h>
 
 void disk_setup(dev_disk *list, struct vrm_task_mut *muts, uint8_t count);
 #endif

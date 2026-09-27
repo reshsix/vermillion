@@ -1,6 +1,6 @@
 # Vermillion
 
-**Status: 1.3γ**
+**Status: 1.3.0γ**
 
 ## Features
 - [x] HAL
@@ -11,14 +11,35 @@
 ```c
 /* main.c */
 
+#include <vermillion/task.h>
 #include <vermillion/devtree.h>
+
 #include <vermillion/util/debug.h>
 
-void main(void)
+static struct vrm_task_mut mut = {.owner = NULL};
+
+static void
+task(void *arg)
 {
-    if (vrm_devtree_init(VRM_PLATFORM_SUNXI_H3, VRM_BOARD_NANOPI_NEO, 0))
+    while (true)
     {
-        vrm_debug("Hello World\r\n");
+        VRM_TASK_MUTEX(&mut, 1000)
+        {
+            vrm_debug(arg);
+        }
+        vrm_task_delay(1000);
+    }
+}
+
+extern void
+main(void)
+{
+    if (vrm_devtree_init(VRM_PLATFORM_SUNXI_H3, VRM_BOARD_NANOPI_NEO, VRM_NONE))
+    {
+        vrm_task_create(task, "Task C running", 29);
+        vrm_task_create(task, "Task B running", 30);
+        vrm_task_create(task, "Task A running", 31);
+        vrm_task_scheduler(0, 1000, VRM_NONE);
 
         vrm_devtree_clean();
     }

@@ -15,8 +15,8 @@
 */
 
 #define VERMILLION_INTERNALS
+#include <vermillion/task.h>
 #include <vermillion/hal/spi.h>
-#include <vermillion/sys/task.h>
 #include <vermillion/util/types.h>
 
 /* Devtree setup */

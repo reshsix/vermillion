@@ -15,7 +15,7 @@
 */
 
 #define VERMILLION_INTERNALS
-#include <vermillion/sys/task.h>
+#include <vermillion/task.h>
 #include <vermillion/hal/timer.h>
 #include <vermillion/util/mem.h>
 #include <vermillion/util/types.h>

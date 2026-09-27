@@ -16,9 +16,10 @@
 
 #include <arch/gic.h>
 
-#include <vermillion/sys/task.h>
 #include <vermillion/util/mem.h>
 #include <vermillion/hal/timer.h>
+
+#include <vermillion/task.h>
 
 /* Register state control */
 
