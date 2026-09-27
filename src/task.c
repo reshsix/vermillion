@@ -84,6 +84,13 @@ struct context
     uint8_t stack[CONFIG_STACK_SIZE];
 };
 
+static void
+context_trampoline(void)
+{
+    vrm_task_remove(NULL);
+    while (true);
+}
+
 __attribute__((naked, noreturn))
 static void
 context_run_irq(struct context *ctx)
@@ -114,6 +121,14 @@ context_run_irq(struct context *ctx)
                           :
                           : "r"(gic_irq_stack)
                           : "memory");
+
+    /* Setting return trampoline */
+    static void *trampoline = context_trampoline;
+    __asm__ __volatile__ ("mov   r0, %0\n"
+                          "ldmia r0, {lr}^\n"
+                          :
+                          : "r"(&trampoline)
+                          : "r0", "memory");
 
     /* Flushes all the changes */
     __asm__ __volatile__ ("dsb sy");
@@ -396,11 +411,15 @@ task_next(void)
     }
 }
 
+static struct state task_caller;
 static void
 task_preempt(void *arg)
 {
-    ticks++;
     (void)arg;
+
+    if (!ticks)
+        state_save_irq(&task_caller);
+    ticks++;
 
     /* Saving state */
     if (current)
@@ -446,19 +465,33 @@ task_idle(void *arg)
 {
     (void)arg;
 
-    while (true)
+    while (sleeping.head)
         vrm_task_yield();
+
+    VRM_TASK_CRITICAL
+        vrm_task_remove(NULL);
+
+    ticks    = 0;
+    critical = 0;
+
+    gic_state(false);
+    state_load_irq(&task_caller);
 }
 
 extern void
 vrm_task_scheduler(uint8_t timer, uint32_t us, uint32_t flags)
 {
-    (void)flags;
-    vrm_task_create(task_idle, NULL, 0);
+    if (!ticks)
+    {
+        (void)flags;
+        vrm_task_create(task_idle, NULL, 0);
 
-    vrm_timer_alarm(timer, us, true, task_preempt, NULL);
-    while (true)
+        vrm_timer_alarm(timer, us, true, task_preempt, NULL);
         gic_wait();
+
+        vrm_timer_alarm(timer, 0, false, NULL, NULL);
+        gic_state(true);
+    }
 }
 
 /* Synchronization primitives */

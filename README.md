@@ -21,7 +21,7 @@ static struct vrm_task_mut mut = {.owner = NULL};
 static void
 task(void *arg)
 {
-    while (true)
+    for (int i = 0; i < 3; i++)
     {
         VRM_TASK_MUTEX(&mut, 1000)
         {
@@ -41,6 +41,7 @@ main(void)
         vrm_task_create(task, "Task A running", 31);
         vrm_task_scheduler(0, 1000, VRM_NONE);
 
+        vrm_debug("Tasks complete");
         vrm_devtree_clean();
     }
 }
