@@ -21,5 +21,5 @@
 #include <vermillion/sys/file.h>
 #include <vermillion/util/types.h>
 
-dev_fs fat32_init(uint8_t disk);
+dev_fs fat32_init(uint8_t id, uint8_t disk);
 void fat32_clean(dev_fs *f);

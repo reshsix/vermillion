@@ -87,9 +87,9 @@ mbr_init(uint8_t id, uint8_t disk, uint8_t partition)
 
     if (ret)
     {
-        uint8_t *buffer = vrm_mem_new(ret->sector);
+        uint8_t buffer[ret->sector];
 
-        if (buffer && vrm_disk_read(disk, buffer, 0, 0))
+        if (vrm_disk_read(disk, buffer, 0, 0))
         {
             uint8_t *info = &(buffer[0x1BE + ((partition - 1) * 16)]);
             vrm_mem_copy(&(ret->lba),
@@ -101,8 +101,6 @@ mbr_init(uint8_t id, uint8_t disk, uint8_t partition)
         }
         else
             ret = NULL;
-
-        vrm_mem_del(buffer);
     }
 
     return (dev_disk){.driver = &mbr, .context = ret};

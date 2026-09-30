@@ -62,6 +62,8 @@ struct fat32
     bool     cached;
 };
 
+static struct fat32 fat32s[1] = {0};
+
 /* Helper macros */
 
 #define DIV_CEIL(x, y) (((x) + (y) - 1) / (y))
@@ -952,14 +954,15 @@ static const drv_fs fat32 =
 /* Device creation */
 
 extern dev_fs
-fat32_init(uint8_t disk)
+fat32_init(uint8_t id, uint8_t disk)
 {
     struct fat32 *ret = NULL;
 
     uint16_t sector = 0;
-    if (vrm_disk_size(disk, &sector, NULL) && sector == 0x200)
+    if (id < sizeof(fat32s) / sizeof(struct fat32) &&
+        vrm_disk_size(disk, &sector, NULL) && sector == 0x200)
     {
-        ret = vrm_mem_new(sizeof(struct fat32));
+        ret = &(fat32s[id]);
 
         if (ret)
         {

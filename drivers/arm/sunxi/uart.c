@@ -87,7 +87,10 @@ config(void *ctx, uint32_t baud, uint32_t fields)
     bool ret = (baud <= 1500000 && baud >= 23);
 
     struct uart *u = ctx;
-    if (ret && IO_USR(u->port) & 1)
+    if (ret)
+        ret = !(IO_USR(u->port) & 1);
+
+    if (ret)
     {
         uint16_t divider = 1500000 / baud;
         uint8_t     bits = (fields >> 0) & 0x7;
@@ -118,6 +121,8 @@ config(void *ctx, uint32_t baud, uint32_t fields)
             u->fields = fields;
         }
     }
+    else
+        ret = false;
 
     return ret;
 }

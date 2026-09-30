@@ -34,7 +34,7 @@ task(void *arg)
 extern void
 main(void)
 {
-    if (vrm_devtree_init(VRM_PLATFORM_SUNXI_H3, VRM_BOARD_NANOPI_NEO, VRM_NONE))
+    VRM_DEVTREE(SUNXI_H3, NANOPI_NEO, VRM_FLAG_ALL)
     {
         vrm_task_create(task, "Task C running", 29);
         vrm_task_create(task, "Task B running", 30);
@@ -42,7 +42,6 @@ main(void)
         vrm_task_scheduler(0, 1000, VRM_NONE);
 
         vrm_debug("Tasks complete");
-        vrm_devtree_clean();
     }
 }
 ```
