@@ -53,7 +53,7 @@ struct uart
 
 struct uart serials[5] = {0};
 static const uint32_t ports[5] = {0x01c28000, 0x01c28400,
-                             0x01c28800, 0x01c28c00, 0x01f02800};
+                                  0x01c28800, 0x01c28c00, 0x01f02800};
 static const uint8_t irqs[5] = {32, 33, 34, 35, 70};
 
 static void
@@ -61,14 +61,30 @@ uart_handler(void *arg)
 {
     struct uart *u = arg;
 
-    while (IO_LSR(u->port) & (1 << 0))
+    while (true)
     {
-        size_t next = (u->head + 1) & 0x3FF;
-        if (next != u->tail)
+        uint8_t ir = IO_IIR(u->port) & 0xF;
+
+        if (ir == 0x4 || ir == 0xC)
         {
-            u->buffer[u->head] = IO_BUF(u->port);
-            u->head = next;
+            while (IO_LSR(u->port) & (1 << 0))
+            {
+                size_t next = (u->head + 1) & 0x3FF;
+                if (next != u->tail)
+                {
+                    u->buffer[u->head] = IO_BUF(u->port);
+                    u->head = next;
+                }
+                else
+                {
+                    volatile uint8_t dropper = 0;
+                    dropper = IO_BUF(u->port);
+                    (void)dropper;
+                }
+            }
         }
+        else
+            break;
     }
 }
 
@@ -184,7 +200,7 @@ sunxi_uart_init(uint8_t id)
 
         /* FIFOs with RX 1/2 full interrupt */
         IO_FCR(ret->port) = (1 << 7) | (1 << 0);
-        IO_IER(ret->port) |= (1 << 0);
+        IO_IER(ret->port) = (1 << 0);
     }
 
     return (dev_uart){.driver = &sunxi_uart, .context = ret};

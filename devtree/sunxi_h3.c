@@ -91,7 +91,7 @@ check_init(void *ptr, uint64_t flag, const char *s)
     if (x[n].context) \
     { \
         for (int i = 0; !(name##_##x##_##y##_success)  && i < 100; i++) \
-            name##_##x##_##y##_success = vrm_##x##_##y(i, __VA_ARGS__); \
+            name##_##x##_##y##_success = vrm_##x##_##y(n, __VA_ARGS__); \
     \
         if (!(name##_##x##_##y##_success)) \
             vrm_debug("Failed to ~s ~s", #y, #name); \

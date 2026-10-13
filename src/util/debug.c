@@ -92,6 +92,8 @@ debug_dec(void (*debug_chr)(char), int64_t n)
 static void
 debug(void (*debug_chr)(char), const char *fmt, va_list args)
 {
+    bool nl = true;
+
     for (size_t i = 0; fmt[i]; i++)
     {
         if (fmt[i] == '~')
@@ -120,6 +122,9 @@ debug(void (*debug_chr)(char), const char *fmt, va_list args)
                 case 'p':
                     debug_hex(debug_chr, (uintptr_t)va_arg(args, void *));
                     break;
+                case 'n':
+                    nl = false;
+                    break;
                 default:
                     debug_chr('~');
                     debug_chr(fmt[i]);
@@ -130,7 +135,8 @@ debug(void (*debug_chr)(char), const char *fmt, va_list args)
             debug_chr(fmt[i]);
     }
 
-    debug_str(debug_chr, "\r\n");
+    if (nl)
+        debug_str(debug_chr, "\r\n");
 }
 
 static void
