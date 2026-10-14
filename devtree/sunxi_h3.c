@@ -20,6 +20,7 @@
 #include <drivers/fs/fat32.h>
 #include <drivers/arm/sunxi/mmc.h>
 #include <drivers/arm/sunxi/spi.h>
+#include <drivers/arm/sunxi/eint.h>
 #include <drivers/arm/sunxi/gpio.h>
 #include <drivers/arm/sunxi/uart.h>
 #include <drivers/arm/sunxi/timer.h>
@@ -29,6 +30,7 @@
 #include <vermillion/devtree.h>
 #include <vermillion/hal/spi.h>
 #include <vermillion/hal/disk.h>
+#include <vermillion/hal/eint.h>
 #include <vermillion/hal/gpio.h>
 #include <vermillion/hal/uart.h>
 #include <vermillion/hal/timer.h>
@@ -50,12 +52,14 @@
 dev_fs    fs   [1];
 dev_spi   spi  [1];
 dev_gpio  gpio [2];
+dev_eint  eint [2];
 dev_uart  uart [3];
 dev_disk  disk [2];
 dev_timer timer[2];
 
 struct vrm_task_mut spi_mut  [1] = {0};
 struct vrm_task_mut gpio_mut [2] = {0};
+struct vrm_task_mut eint_mut [2] = {0};
 struct vrm_task_mut uart_mut [3] = {0};
 struct vrm_task_mut disk_mut [2] = {0};
 struct vrm_task_mut timer_mut[2] = {0};
@@ -114,6 +118,7 @@ vrm_devtree_init(uint8_t platform, uint8_t board, uint64_t flags)
         file_setup (fs,               1);
         spi_setup  (spi,   spi_mut,   1);
         gpio_setup (gpio,  gpio_mut,  2);
+        eint_setup (eint,  eint_mut,  2);
         uart_setup (uart,  uart_mut,  3);
         disk_setup (disk,  disk_mut,  2);
         timer_setup(timer, timer_mut, 2);
@@ -134,6 +139,10 @@ vrm_devtree_init(uint8_t platform, uint8_t board, uint64_t flags)
             gpio[0] = sunxi_gpio_init(0);
         INIT_DEV(VRM_FLAG_GPIO1, gpio[1])
             gpio[1] = sunxi_gpio_init(1);
+        INIT_DEV(VRM_FLAG_EINT0, eint[0])
+            eint[0] = sunxi_eint_init(0);
+        INIT_DEV(VRM_FLAG_EINT1, eint[1])
+            eint[1] = sunxi_eint_init(1);
         INIT_DEV(VRM_FLAG_UART1, uart[1])
         {
             TRY(PG6, gpio, config, 0, 6, 6, VRM_GPIO_MUX0);

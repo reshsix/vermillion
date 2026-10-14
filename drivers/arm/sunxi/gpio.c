@@ -74,7 +74,7 @@ config(void *ctx, uint8_t port, uint8_t slot, uint32_t flags)
     if (port < gpio->io_ports && slot < 32)
     {
         uint8_t role = (flags >> 0) & 0xF;
-        if (role < VRM_GPIO_MUX4)
+        if (role <= VRM_GPIO_MUX4)
         {
             uint8_t roles[8] = {7, 0, 1, 2, 3, 4, 5, 6};
             role = roles[role];

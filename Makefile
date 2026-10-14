@@ -56,7 +56,7 @@ PREFIX = src/util
 OBJS += $(PREFIX)/debug.o $(PREFIX)/mem.o $(PREFIX)/str.o $(PREFIX)/misc.o
 
 PREFIX = src/hal
-OBJS += $(PREFIX)/uart.o  $(PREFIX)/spi.o \
+OBJS += $(PREFIX)/uart.o  $(PREFIX)/spi.o  $(PREFIX)/eint.o \
 		$(PREFIX)/timer.o $(PREFIX)/gpio.o $(PREFIX)/disk.o
 
 PREFIX = src/sys
@@ -76,6 +76,10 @@ PREFIX = drivers/arm/sunxi
 
 ifdef CONFIG_GPIO_SUNXI_GPIO
 OBJS += $(PREFIX)/gpio.o
+endif
+
+ifdef CONFIG_EINT_SUNXI_EINT
+OBJS += $(PREFIX)/eint.o
 endif
 
 ifdef CONFIG_STORAGE_SUNXI_MMC
