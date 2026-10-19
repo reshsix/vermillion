@@ -39,8 +39,6 @@ typedef struct
 void disk_setup(dev_disk *list, struct vrm_task_mut *muts, uint8_t count);
 #endif
 
-#define VRM_DISK_WAIT (0 << 0)
-
 bool vrm_disk_size (uint8_t id, uint16_t *sector, uint32_t *count);
 bool vrm_disk_read (uint8_t id, uint8_t *data, uint32_t block, uint32_t flags);
 bool vrm_disk_write(uint8_t id, uint8_t *data, uint32_t block, uint32_t flags);

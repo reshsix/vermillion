@@ -44,11 +44,9 @@ Results in `kernel.elf` and `kernel.bin`
 
 void main(void)
 {
-    if (vrm_devtree_init(VRM_PLATFORM_SUNXI_H3, VRM_BOARD_NANOPI_NEO, 0))
+    VRM_DEVTREE(SUNXI_H3, NANOPI_NEO, VRM_FLAG_ALL)
     {
         vrm_debug("Hello World");
-
-        vrm_devtree_clean();
     }
 }
 ```

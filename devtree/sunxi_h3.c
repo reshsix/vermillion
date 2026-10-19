@@ -57,6 +57,7 @@ dev_uart  uart [3];
 dev_disk  disk [2];
 dev_timer timer[2];
 
+struct vrm_task_mut fs_mut   [1] = {0};
 struct vrm_task_mut spi_mut  [1] = {0};
 struct vrm_task_mut gpio_mut [2] = {0};
 struct vrm_task_mut eint_mut [2] = {0};
@@ -115,7 +116,7 @@ vrm_devtree_init(uint8_t platform, uint8_t board, uint64_t flags)
         APB0_GATE = 1;
 
         /* Set pointers and mutexes */
-        file_setup (fs,               1);
+        file_setup (fs,    fs_mut,    1);
         spi_setup  (spi,   spi_mut,   1);
         gpio_setup (gpio,  gpio_mut,  2);
         eint_setup (eint,  eint_mut,  2);

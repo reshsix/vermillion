@@ -15,14 +15,13 @@
 */
 
 #define VERMILLION_INTERNALS
+#include <vermillion/task.h>
 #include <vermillion/sys/file.h>
 #include <vermillion/util/mem.h>
 #include <vermillion/util/str.h>
 #include <vermillion/util/types.h>
 
 /* Path utils */
-
-static char vrm_path_buffer[VRM_FILE_PATH_S] = {0};
 
 extern bool
 vrm_file_validate(const char *path)
@@ -33,13 +32,15 @@ vrm_file_validate(const char *path)
 extern void
 vrm_file_sanitize(char *path)
 {
-    vrm_path_buffer[0] = '/';
-    if (path[0] == '/')
-        vrm_str_copy(&(vrm_path_buffer[1]), &(path[1]), 0);
-    else
-        vrm_str_copy(&(vrm_path_buffer[1]), path, 0);
+    char buffer[VRM_FILE_PATH_S] = {0};
 
-    char *next = vrm_path_buffer;
+    buffer[0] = '/';
+    if (path[0] == '/')
+        vrm_str_copy(&(buffer[1]), &(path[1]), 0);
+    else
+        vrm_str_copy(&(buffer[1]), path, 0);
+
+    char *next = buffer;
     do
     {
         uint32_t move = 0;
@@ -60,14 +61,14 @@ vrm_file_sanitize(char *path)
     }
     while (next);
 
-    uint32_t length = vrm_str_length(vrm_path_buffer);
-    if (vrm_path_buffer[length - 1] == '/')
-        vrm_path_buffer[length - 1] = '\0';
+    uint32_t length = vrm_str_length(buffer);
+    if (buffer[length - 1] == '/')
+        buffer[length - 1] = '\0';
 
-    if (vrm_path_buffer[0] == '\0')
-        vrm_str_copy(vrm_path_buffer, "/", 0);
+    if (buffer[0] == '\0')
+        vrm_str_copy(buffer, "/", 0);
 
-    vrm_str_copy(path, vrm_path_buffer, 0);
+    vrm_str_copy(path, buffer, 0);
 }
 
 extern void
@@ -94,12 +95,14 @@ vrm_file_basename(char *path)
 /* Devtree setup */
 
 static dev_fs *dev_l = NULL;
+static struct vrm_task_mut *dev_m = NULL;
 static uint8_t dev_c = 0;
 
 extern void
-file_setup(dev_fs *list, uint8_t count)
+file_setup(dev_fs *list, struct vrm_task_mut *muts, uint8_t count)
 {
     dev_l = list;
+    dev_m = muts;
     dev_c = count;
 }
 
@@ -127,8 +130,9 @@ vrm_file_open(uint8_t id, const char *path)
         vrm_str_copy(vrm_file_buffer, path, 0);
         vrm_file_sanitize(vrm_file_buffer);
 
-        f->location = FS_ROOT();
-        f->dir      = true;
+        f->dir = true;
+        VRM_TASK_MUTEX(&(dev_m[id]), 0)
+            f->location = FS_ROOT();
 
         char name[256] = {0};
         char *state    = NULL;
@@ -141,9 +145,16 @@ vrm_file_open(uint8_t id, const char *path)
             f->idx    = 0;
 
             uint32_t idx = 0;
-            while (FS_CALL(walk, f->parent,  &(idx), &(f->dir), name,
-                                 &(f->size), &(f->location)))
+            while (true)
             {
+                bool try = false;
+
+                VRM_TASK_MUTEX(&(dev_m[id]), 0)
+                    try = FS_CALL(walk, f->parent,  &(idx), &(f->dir), name,
+                                  &(f->size), &(f->location));
+                if (!try)
+                    break;
+
                 if (vrm_str_comp(name, token, 0) == 0)
                 {
                     success = true;
@@ -160,8 +171,11 @@ vrm_file_open(uint8_t id, const char *path)
         f->dev = id;
         if (!(f->dir) && f->size)
         {
-            if (!FS_CALL(read, f->location, f->buffer, 0))
-                f = vrm_mem_del(f);
+            VRM_TASK_MUTEX(&(dev_m[id]), 0)
+            {
+                if (!FS_CALL(read, f->location, f->buffer, 0))
+                    f = vrm_mem_del(f);
+            }
         }
     }
     else
@@ -202,7 +216,10 @@ vrm_file_walk(struct vrm_file *f, uint32_t *idx,
     bool ret = false;
 
     if (f->dir)
-        ret = FS_CALL(walk, f->location, idx, dir, name, size, NULL);
+    {
+        VRM_TASK_MUTEX(&(dev_m[f->dev]), 0)
+            ret = FS_CALL(walk, f->location, idx, dir, name, size, NULL);
+    }
 
     return ret;
 }
@@ -252,16 +269,24 @@ vrm_file_rw(struct vrm_file *f, void *buffer, uint32_t bytes, bool w)
         {
             if (f->pos / 0x200 != f->block)
             {
+                bool try = false;
+
                 if (f->flush)
                 {
-                    if (FS_CALL(write, f->location, f->buffer, f->block))
+                    VRM_TASK_MUTEX(&(dev_m[f->dev]), 0)
+                        try = FS_CALL(write, f->location, f->buffer, f->block);
+
+                    if (try)
                         f->flush = false;
                     else
                         break;
                 }
 
                 f->block = f->pos / 0x200;
-                if (!FS_CALL(read, f->location, f->buffer, f->block))
+                VRM_TASK_MUTEX(&(dev_m[f->dev]), 0)
+                    try = FS_CALL(read, f->location, f->buffer, f->block);
+
+                if (!try)
                     break;
             }
 
@@ -306,8 +331,11 @@ vrm_file_write(struct vrm_file *f, const void *buffer, uint32_t bytes)
 extern bool
 vrm_file_flush(struct vrm_file *f)
 {
-    if (f && f->flush)
-        f->flush = !(FS_CALL(write, f->location, f->buffer, f->block));
+    VRM_TASK_MUTEX(&(dev_m[f->dev]), 0)
+    {
+        if (f && f->flush)
+            f->flush = !(FS_CALL(write, f->location, f->buffer, f->block));
+    }
 
     return (f && !(f->flush));
 }
@@ -334,7 +362,12 @@ vrm_file_create(uint8_t id, const char *path, bool dir)
                 vrm_str_copy(vrm_file_buffer, path, 0);
                 vrm_file_sanitize(vrm_file_buffer);
                 vrm_file_basename(vrm_file_buffer);
-                ret = FS_CALL(create, f->location, vrm_file_buffer, dir, 0, 0);
+
+                VRM_TASK_MUTEX(&(dev_m[id]), 0)
+                {
+                    ret = FS_CALL(create, f->location,
+                                  vrm_file_buffer, dir, 0, 0);
+                }
             }
             else
                 ret = false;
@@ -357,7 +390,10 @@ vrm_file_remove(uint8_t id, const char *path)
 
     struct vrm_file *f = vrm_file_open(id, path);
     if (f)
-        ret = FS_CALL(remove, f->parent, f->idx, true);
+    {
+        VRM_TASK_MUTEX(&(dev_m[id]), 0)
+            ret = FS_CALL(remove, f->parent, f->idx, true);
+    }
 
     if (ret)
         vrm_mem_del(f);
@@ -373,7 +409,10 @@ vrm_file_resize(struct vrm_file *f, uint32_t size)
     bool ret = (f && !(f->dir));
 
     if (ret)
-        ret = FS_CALL(resize, f->parent, f->idx, size, &(f->location));
+    {
+        VRM_TASK_MUTEX(&(dev_m[f->dev]), 0)
+            ret = FS_CALL(resize, f->parent, f->idx, size, &(f->location));
+    }
     if (ret)
         f->size = size;
 
@@ -402,9 +441,13 @@ vrm_file_move(struct vrm_file *f, const char *path)
                 vrm_str_copy(vrm_file_buffer, path, 0);
                 vrm_file_sanitize(vrm_file_buffer);
                 vrm_file_basename(vrm_file_buffer);
-                ret = FS_CALL(remove, f->parent, f->idx, false) &&
-                      FS_CALL(create, f->parent,
-                              vrm_file_buffer, f->dir, f->location, f->size);
+
+                VRM_TASK_MUTEX(&(dev_m[f->dev]), 0)
+                {
+                    ret = FS_CALL(remove, f->parent, f->idx, false) &&
+                          FS_CALL(create, f->parent, vrm_file_buffer,
+                                  f->dir, f->location, f->size);
+                }
             }
             else
                 ret = false;

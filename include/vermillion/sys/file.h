@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <vermillion/task.h>
 #include <vermillion/util/types.h>
 
 #ifdef VERMILLION_INTERNALS
@@ -56,7 +57,7 @@ struct vrm_file
     bool     flush;
 };
 
-void file_setup(dev_fs *list, uint8_t count);
+void file_setup(dev_fs *list, struct vrm_task_mut *muts, uint8_t count);
 #endif
 
 #define VRM_FILE_PATH_S 256
