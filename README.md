@@ -1,6 +1,6 @@
 # Vermillion
 
-**Status: 1.3.0γ**
+**Status: 1.3.0**
 
 ## Features
 - [x] HAL
